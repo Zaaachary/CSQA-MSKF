@@ -132,13 +132,3 @@ dmypy.json
 .vscode
 .idea
 
-# CSQA
-dev_rand_split.json
-dev_rand_split.jsonl
-test_rand_split.json
-test_rand_split.jsonl
-train_rand_split.json
-train_rand_split.jsonl
-
-albert-base-v2
-albert-large-v2
