@@ -37,13 +37,13 @@ def mkdir_if_notexist(dir_):
         os.makedirs(dirname)
             
 def get_device(gpu_ids):
-    if gpu_ids:
+    if gpu_ids[0] == -1:
+        device_name = 'cpu'
+        print('device is cpu')
+    else:
         device_name = 'cuda:' + str(gpu_ids[0])
         n_gpu = torch.cuda.device_count()
         print('device is cuda, # cuda is: %d' % n_gpu)
-    else:
-        device_name = 'cpu'
-        print('device is cpu')
     device = torch.device(device_name)
     return device
 

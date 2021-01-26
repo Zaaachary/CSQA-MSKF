@@ -122,12 +122,12 @@ if __name__ == "__main__":
 
     # 其他参数
     parser.add_argument('--print_step', type=int, default=250)
-    parser.add_argument('--gpu_ids', type=str, default='0')
+    parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--mission', type=str, default='train')
     parser.add_argument('--fp16', type=int, default=0)
 
-    # args = parser.parse_args()
+    args = parser.parse_args()
     argstr = """
     --batch_size 2
     --lr 1e-5 
@@ -145,5 +145,6 @@ if __name__ == "__main__":
     --pretrained_model_dir DATA/model/albert-large-v2/
     --pretrained_vocab_dir DATA/model/albert-large-v2/
     """
-    args = parser.parse_args(argstr.split())
+    # args = parser.parse_args(argstr.split())
+    print(args)
     main(args)
