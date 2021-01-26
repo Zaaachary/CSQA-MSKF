@@ -1,3 +1,4 @@
+
 class Feature:
     def __init__(self, idx, input_ids, input_mask, segment_ids):
         self.idx = idx

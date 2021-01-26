@@ -1,7 +1,7 @@
 import json
 
 from torch.utils.data import TensorDataset
-from .feature import Feature
+from utils.feature import Feature
 
 class CSQAExample:
     def __init__(self, example_id, label, text_list):

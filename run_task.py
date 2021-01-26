@@ -8,6 +8,9 @@
 import argparse
 import random
 import time
+import logging; logging.getLogger("transformers").setLevel(logging.WARNING)
+logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 import numpy as np
 import torch
@@ -15,10 +18,12 @@ from transformers.tokenization_albert import AlbertTokenizer
 from transformers.modeling_albert import AlbertConfig
 from transformers.optimization import AdamW, get_cosine_with_hard_restarts_schedule_with_warmup
 
-from dataset import data_processor
 from model.models import AlbertCSQA
 from utils.common import mkdir_if_notexist
-from utils.base_trainer import Trainer
+from csqa_task import data_processor
+from csqa_task.trainer import Trainer
+from csqa_task.task import MultipleChoice
+
 
 def train(train_dataloader, devlp_dataloader, args):
     
@@ -83,8 +88,18 @@ def main(args):
     processor.load_data()
     deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
-    # train
-    train(train_dataloader, deval_dataloader, args)
+    # # train
+    # train(train_dataloader, deval_dataloader, args)
+    task = MultipleChoice(args)
+    task.init(AlbertCSQA)
+    task.train(train_dataloader, deval_dataloader, save_last=False)
+
+    end = time.time()
+    logger.info("start is {}, end is {}".format(start, end))
+    logger.info("循环运行时间:%.2f秒"%(end-start))
+    with open('./result_1.txt', 'w', encoding='utf-8') as f:
+        f.write("循环运行时间:%.2f秒"%(end-start))
+    
 
     
 

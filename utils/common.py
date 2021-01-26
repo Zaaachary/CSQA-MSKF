@@ -1,8 +1,9 @@
 import os
-
 import logging; logging.getLogger("transformers").setLevel(logging.WARNING)
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+import torch
 
 def save_csv(data, path,sep=',', type='default'):
     if len(data) < 1:
@@ -35,6 +36,17 @@ def mkdir_if_notexist(dir_):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
             
+def get_device(gpu_ids):
+    if gpu_ids:
+        device_name = 'cuda:' + str(gpu_ids[0])
+        n_gpu = torch.cuda.device_count()
+        print('device is cuda, # cuda is: %d' % n_gpu)
+    else:
+        device_name = 'cpu'
+        print('device is cpu')
+    device = torch.device(device_name)
+    return device
+
 
 class AvgVar:
     """

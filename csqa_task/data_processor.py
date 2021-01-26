@@ -12,7 +12,7 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 
-from .example import CSQAExample
+from csqa_task.example import CSQAExample
 
 class CSQAProcessor():
 
