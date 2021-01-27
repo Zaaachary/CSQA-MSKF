@@ -13,6 +13,7 @@ logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 import numpy as np
+from tqdm import tqdm
 import torch
 from transformers import AlbertTokenizer
 from transformers import AlbertConfig
@@ -25,51 +26,9 @@ from csqa_task.trainer import Trainer
 from csqa_task.task import MultipleChoice
 
 
-def train(train_dataloader, devlp_dataloader, args):
-    
-    # init
-    device = 'cuda:0' if torch.cuda.is_available else 'cpu'
-    model = AlbertCSQA.from_pretrained(args.pretrained_model_dir)
-    print(model)
-
-    # train
-    trainer = Trainer(
-            model, False, device,
-            args.print_step, args.output_model_dir, args.fp16)
-
-
-    t_total = len(train_dataloader) * args.num_train_epochs
-    warmup_proportion = args.warmup_proportion
-
-    params = list(model.named_parameters())
-
-    no_decay_keywords = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-
-    def _no_decay(n):
-        return any(nd in n for nd in no_decay_keywords)
-
-    parameters = [
-        {'params': [p for n, p in params if _no_decay(n)], 'weight_decay': 0.0},
-        {'params': [p for n, p in params if not _no_decay(n)],
-            'weight_decay': args.weight_decay}
-    ]
-
-    optimizer = AdamW(parameters, lr=args.lr, eps=1e-8)
-    scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(
-          optimizer, num_warmup_steps=warmup_proportion * t_total,
-          num_training_steps=t_total)
-
-    
-    trainer.set_optimizer(optimizer)
-    trainer.set_scheduler(scheduler)
-
-    trainer.train(args.num_train_epochs, train_dataloader, devlp_dataloader, save_last=False)
-
-
-
 def main(args):
     start = time.time()
-    print("start is {}".format(start))
+    print("start in {}".format(start))
 
     # set seed
     random.seed(args.seed)
@@ -77,28 +36,44 @@ def main(args):
     torch.manual_seed(args.seed)
 
     # load data and preprocess
+    print("loading tokenizer")
     tokenizer = AlbertTokenizer.from_pretrained(args.pretrained_vocab_dir)
-    print("tokenizer loaded")
 
-    processor = data_processor.CSQAProcessor('DATA', 'train')
-    processor.load_data()
-    train_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
+    if args.mission == 'train':
+        print("loading train set")
+        processor = data_processor.CSQAProcessor('DATA', 'train')
+        processor.load_data()
+        train_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
+    print('loading dev set')
     processor = data_processor.CSQAProcessor('DATA', 'dev')
     processor.load_data()
     deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
-    # # train
-    # train(train_dataloader, deval_dataloader, args)
+    # run task accroading to mission
     task = MultipleChoice(args)
-    task.init(AlbertCSQA)
-    task.train(train_dataloader, deval_dataloader, save_last=False)
+    if args.mission == 'train':
+        task.init(AlbertCSQA)
+        task.train(train_dataloader, deval_dataloader, save_last=False)
+    
+    elif args.mission == 'test':
+        task.init(AlbertCSQA)
+        idx, result, label, predict = task.trial(deval_dataloader)
+        content = ''
+        length = len(result)
+        right = 0
+        for i, item in enumerate(tqdm(result)):
+            if predict[i] == label[i]:
+                right += 1
+            content += '{},{},{},{},{},{},{},{}\n' .format(idx[i][0], item[0], item[1], item[2], item[3], item[4], label[i], predict[i])
+
+        logger.info("accuracy is {}".format(right/length))
+        with open(args.pred_file_name, 'w', encoding='utf-8') as f:
+            f.write(content)
 
     end = time.time()
     logger.info("start is {}, end is {}".format(start, end))
     logger.info("循环运行时间:%.2f秒"%(end-start))
-    with open('./result_1.txt', 'w', encoding='utf-8') as f:
-        f.write("循环运行时间:%.2f秒"%(end-start))
 
 
 if __name__ == "__main__":
@@ -112,11 +87,11 @@ if __name__ == "__main__":
     parser.add_argument('--weight_decay', type=float, default=0.1)
 
     # 路径参数
-    parser.add_argument('--train_file_name', type=str)
-    parser.add_argument('--dev_file_name', type=str)
-    parser.add_argument('--test_file_name', type=str)
-    parser.add_argument('--pred_file_name', type=str)
-    parser.add_argument('--output_model_dir', type=str)
+    parser.add_argument('--train_file_name', type=str)      # train_data.json
+    parser.add_argument('--dev_file_name', type=str)        # dev_data.json
+    parser.add_argument('--test_file_name', type=str)       # test_data.json
+    parser.add_argument('--pred_file_name', type=str)       # output of predict file
+    parser.add_argument('--output_model_dir', type=str)     # 
     parser.add_argument('--pretrained_model_dir', type=str)
     parser.add_argument('--pretrained_vocab_dir', type=str)
 
@@ -124,27 +99,10 @@ if __name__ == "__main__":
     parser.add_argument('--print_step', type=int, default=250)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--mission', type=str, default='train')
+    parser.add_argument('--mission', type=str, choices=['train','test'])
     parser.add_argument('--fp16', type=int, default=0)
 
     args = parser.parse_args()
-    argstr = """
-    --batch_size 2
-    --lr 1e-5 
-    --num_train_epochs 1 
-    --warmup_proportion 0.1 
-    --weight_decay 0.1 
-    --fp16 0 
-    --print_step 100 
-    --mission train 
-    --train_file_name DATA/csqa/train_data.json 
-    --dev_file_name DATA/csqa/dev_data.json 
-    --test_file_name DATA/csqa/trial_data.json 
-    --pred_file_name  DATA/result/task_result.json 
-    --output_model_dir DATA/result/model/
-    --pretrained_model_dir DATA/model/albert-large-v2/
-    --pretrained_vocab_dir DATA/model/albert-large-v2/
-    """
-    # args = parser.parse_args(argstr.split())
     print(args)
+
     main(args)

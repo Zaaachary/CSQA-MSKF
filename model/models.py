@@ -67,6 +67,11 @@ class AlbertCSQA(AlbertPreTrainedModel):
 
     def _to_tensor(self, it, device): return torch.tensor(it, device=device, dtype=torch.float)
 
+    def predict(self, idx, input_ids, attention_mask, token_type_ids):
+        """
+        return: [B, 5]
+        """
+        return self._forward(idx, input_ids, attention_mask, token_type_ids)
 
 
 class AttentionMerge(nn.Module):
