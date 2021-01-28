@@ -56,8 +56,9 @@ class AlbertCSQA(AlbertPreTrainedModel):
             attention_mask=flat_attention_mask,
             token_type_ids=flat_token_type_ids
         )
-
+        
         # outputs[0]: [B*5, L, H] => [B*5, H]
+        # flat_attention_mask [B*5, L]
         h12 = self.att_merge(outputs[0], flat_attention_mask)   
 
         # [B*5, H] => [B*5, 1] => [B, 5]

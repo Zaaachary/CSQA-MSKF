@@ -53,7 +53,7 @@ class CSQAProcessor():
     def _convert_to_tensor(self, batch_size, drop_last, shuffle):
         tensors = []
 
-        features = self.data[0]
+        features = self.data[0]     # tensor, label
         all_idx = torch.tensor([[f.idx for f in fs] for fs in features], dtype=torch.long)
         all_input_ids = torch.tensor([[f.input_ids for f in fs] for fs in features], dtype=torch.long)
         all_input_mask = torch.tensor([[f.input_mask for f in fs] for fs in features], dtype=torch.long)

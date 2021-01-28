@@ -12,14 +12,14 @@ import logging; logging.getLogger("transformers").setLevel(logging.WARNING)
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+import torch
 import numpy as np
 from tqdm import tqdm
-import torch
 from transformers import AlbertTokenizer
-from transformers import AlbertConfig
 from transformers.optimization import AdamW, get_cosine_with_hard_restarts_schedule_with_warmup
 
 from model.models import AlbertCSQA
+from model.modelB import AlbertAddTFM
 from utils.common import mkdir_if_notexist
 from csqa_task import data_processor
 from csqa_task.trainer import Trainer
@@ -53,7 +53,8 @@ def main(args):
     # run task accroading to mission
     task = MultipleChoice(args)
     if args.mission == 'train':
-        task.init(AlbertCSQA)
+        # task.init(AlbertCSQA)
+        task.init(AlbertAddTFM)
         task.train(train_dataloader, deval_dataloader, save_last=False)
     
     elif args.mission == 'test':
@@ -72,8 +73,8 @@ def main(args):
             f.write(content)
 
     end = time.time()
-    logger.info("start is {}, end is {}".format(start, end))
-    logger.info("循环运行时间:%.2f秒"%(end-start))
+    logger.info("start in {:.f}, end in {:.0f}".format(start, end))
+    logger.info("运行时间:%.2f秒"%(end-start))
 
 
 if __name__ == "__main__":

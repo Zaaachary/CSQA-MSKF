@@ -17,8 +17,8 @@ class MultipleChoice:
     2. self.train(...)
     3. cls.load(...)
     """
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, args):
+        self.config = args
 
     def init(self, ModelClass):
         gpu_ids = list(map(int, self.config.gpu_ids.split()))

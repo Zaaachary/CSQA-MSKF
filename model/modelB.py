@@ -19,7 +19,10 @@ class AlbertAddTFM(AlbertPreTrainedModel):
 
         self.albert = AlbertModel(config)
 
-        self.tfm = nn.TransformerEncoderLayer()
+        self.tfm = nn.TransformerEncoderLayer(
+            d_model=config.hidden_size, nhead=16, 
+            dim_feedforward=512, dropout=0.1
+        )
 
         self.att_merge = AttentionMerge(
             config.hidden_size, 1024, 0.1)
@@ -33,7 +36,7 @@ class AlbertAddTFM(AlbertPreTrainedModel):
 
     def forward(self, idx, input_ids, attention_mask, token_type_ids, labels):
         """
-        input_ids: [B, 2, L]
+        input_ids: [B, 5, L]
         labels: [B, ]
         """
         # logits: [B, 2]
@@ -59,8 +62,16 @@ class AlbertAddTFM(AlbertPreTrainedModel):
             token_type_ids=flat_token_type_ids
         )
 
-        # outputs[0]: [B*5, L, H] => [B*5, H]
-        h12 = self.att_merge(outputs[0], flat_attention_mask)   
+        # outputs[0]: [B*5, L, H] => output [L, B*5, H] => output [B*5, L, H]
+        output = outputs[0].transpose(0, 1)
+        mask = flat_attention_mask.bool()
+        mask = mask.float().masked_fill(mask==0, float('-inf')).masked_fill(mask==1,float(0.0))
+        output = self.tfm(src=output)
+        # output = self.tfm(src=output, src_key_padding_mask=mask)
+        output = output.transpose(0, 1)
+
+        # output [B*5, L, H] => [B*5, H]
+        h12 = self.att_merge(output, flat_attention_mask)   
 
         # [B*5, H] => [B*5, 1] => [B, 5]
         logits = self.scorer(h12).view(-1, 5)
