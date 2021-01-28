@@ -73,7 +73,7 @@ def main(args):
             f.write(content)
 
     end = time.time()
-    logger.info("start in {:.f}, end in {:.0f}".format(start, end))
+    logger.info("start in {:.0f}, end in {:.0f}".format(start, end))
     logger.info("运行时间:%.2f秒"%(end-start))
 
 
