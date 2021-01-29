@@ -20,8 +20,8 @@ class AlbertAddTFM(AlbertPreTrainedModel):
         self.albert = AlbertModel(config)
 
         self.tfm = nn.TransformerEncoderLayer(
-            d_model=config.hidden_size, nhead=16, 
-            dim_feedforward=512, dropout=0.1
+            d_model=config.hidden_size, nhead=8, 
+            dim_feedforward=config.hidden_size*2, dropout=0.1
         )
 
         self.att_merge = AttentionMerge(
@@ -64,9 +64,9 @@ class AlbertAddTFM(AlbertPreTrainedModel):
 
         # outputs[0]: [B*5, L, H] => output [L, B*5, H] => output [B*5, L, H]
         output = outputs[0].transpose(0, 1)
-        mask = flat_attention_mask.bool()
-        mask = mask.float().masked_fill(mask==0, float('-inf')).masked_fill(mask==1,float(0.0))
-        output = self.tfm(src=output)
+        mask = flat_attention_mask + 1
+        mask = mask.masked_fill(mask==2, 0).bool()
+        output = self.tfm(src=output, src_key_padding_mask=mask)
         # output = self.tfm(src=output, src_key_padding_mask=mask)
         output = output.transpose(0, 1)
 
