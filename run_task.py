@@ -80,14 +80,14 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    # 训练过程中的参数
+    # train param
     parser.add_argument('--lr', type=float, default=2e-5)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--num_train_epochs', type=int, default=5)
     parser.add_argument('--warmup_proportion', type=float, default=0.1)
     parser.add_argument('--weight_decay', type=float, default=0.1)
 
-    # 路径参数
+    # path param
     parser.add_argument('--train_file_name', type=str)      # train_data.json
     parser.add_argument('--dev_file_name', type=str)        # dev_data.json
     parser.add_argument('--test_file_name', type=str)       # test_data.json
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('--pretrained_model_dir', type=str)
     parser.add_argument('--pretrained_vocab_dir', type=str)
 
-    # 其他参数
+    # other param
     parser.add_argument('--print_step', type=int, default=250)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
