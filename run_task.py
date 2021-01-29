@@ -15,11 +15,12 @@ logger = logging.getLogger(__name__)
 import torch
 import numpy as np
 from tqdm import tqdm
-from transformers import AlbertTokenizer
+from transformers import AlbertTokenizer, ElectraTokenizerFast
 from transformers.optimization import AdamW, get_cosine_with_hard_restarts_schedule_with_warmup
 
 from model.models import AlbertCSQA
 from model.modelB import AlbertAddTFM
+from model.modelE import ElectraCSQA
 from utils.common import mkdir_if_notexist
 from csqa_task import data_processor
 from csqa_task.trainer import Trainer
@@ -37,7 +38,8 @@ def main(args):
 
     # load data and preprocess
     print("loading tokenizer")
-    tokenizer = AlbertTokenizer.from_pretrained(args.pretrained_vocab_dir)
+    tokenizer = ElectraTokenizerFast.from_pretrained(args.pretrained_vocab_dir)
+    # tokenizer = AlbertTokenizer.from_pretrained(args.pretrained_vocab_dir)
 
     if args.mission == 'train':
         print("loading train set")
@@ -54,7 +56,8 @@ def main(args):
     task = MultipleChoice(args)
     if args.mission == 'train':
         # task.init(AlbertCSQA)
-        task.init(AlbertAddTFM)
+        # task.init(AlbertAddTFM)
+        task.init(ElectraCSQA)
         task.train(train_dataloader, deval_dataloader, save_last=False)
     
     elif args.mission == 'test':

@@ -1,6 +1,6 @@
 #! -*- encoding:utf-8 -*-
 """
-@File    :   models.py
+@File    :   modelE.py
 @Author  :   Zachary Li
 @Contact :   li_zaaachary@163.com
 @Dscpt   :   
@@ -10,7 +10,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import AlbertModel, AlbertPreTrainedModel
+from transformers import ElectraModel, ElectraForPreTraining
 
 
 class AttentionMerge(nn.Module):
@@ -50,11 +50,11 @@ class AttentionMerge(nn.Module):
         return context
 
 
-class AlbertCSQA(AlbertPreTrainedModel):
+class ElectraCSQA(ElectraForPreTraining):
     def __init__(self, config):
-        super(AlbertCSQA, self).__init__(config)
+        super(ElectraCSQA, self).__init__(config)
 
-        self.albert = AlbertModel(config)
+        self.electra = ElectraModel(config)
 
         self.att_merge = AttentionMerge(
             config.hidden_size, 1024, 0.1)
@@ -88,7 +88,7 @@ class AlbertCSQA(AlbertPreTrainedModel):
         flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
         flat_token_type_ids = token_type_ids.view(-1, token_type_ids.size(-1))
 
-        outputs = self.albert(
+        outputs = self.electra(
             input_ids=flat_input_ids,
             attention_mask=flat_attention_mask,
             token_type_ids=flat_token_type_ids
