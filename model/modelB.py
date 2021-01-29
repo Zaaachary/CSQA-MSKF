@@ -20,8 +20,8 @@ class AlbertAddTFM(AlbertPreTrainedModel):
         self.albert = AlbertModel(config)
 
         self.tfm = nn.TransformerEncoderLayer(
-            d_model=config.hidden_size, nhead=8, 
-            dim_feedforward=config.hidden_size*2, dropout=0.1
+            d_model=config.hidden_size, nhead=16,
+            dim_feedforward=512, dropout=0.1
         )
 
         self.att_merge = AttentionMerge(
