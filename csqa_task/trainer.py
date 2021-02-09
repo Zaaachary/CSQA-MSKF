@@ -83,16 +83,19 @@ class Trainer(BaseTrainer):
         batch = tuple(t.to(self.device) for t in batch)
         result = self.model(*batch)
         result = self._mean(result)
+        # record
+        import pdb; pdb.set_trace()
         record.inc([it.item() for it in result])
         return result[0]
 
     def _report(self, train_record, devlp_record):
         # record: loss, right_num, all_num
-        train_loss = train_record[0].avg()
+        # import pdb; pdb.set_trace()
+        train_loss = train_record[0].avg()  # utils.common.AvgVar
         devlp_loss = devlp_record[0].avg()
 
-        trn, tan = train_record.list()[1:]
-        drn, dan = devlp_record.list()[1:]
+        trn, tan = train_record.list()[1:]  # 76, 400  Vn -> list  [29.43147110939026, 6, 40.0]
+        drn, dan = devlp_record.list()[1:]  # 335 1221
 
         logger.info(f'\n____Train: loss {train_loss:.4f} {int(trn)}/{int(tan)} = {int(trn)/int(tan):.4f} |'
               f' Devlp: loss {devlp_loss:.4f} {int(drn)}/{int(dan)} = {int(drn)/int(dan):.4f}')

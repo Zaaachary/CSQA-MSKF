@@ -19,8 +19,6 @@ from transformers import AlbertTokenizer, ElectraTokenizerFast
 from transformers.optimization import AdamW, get_cosine_with_hard_restarts_schedule_with_warmup
 
 from model.models import AlbertCSQA
-from model.modelB import AlbertAddTFM
-from model.modelE import ElectraCSQA
 from utils.common import mkdir_if_notexist
 from csqa_task import data_processor
 from csqa_task.trainer import Trainer
@@ -55,9 +53,9 @@ def main(args):
     # run task accroading to mission
     task = MultipleChoice(args)
     if args.mission == 'train':
-        # task.init(AlbertCSQA)
+        task.init(AlbertCSQA)
         # task.init(AlbertAddTFM)
-        task.init(ElectraCSQA)
+        # task.init(ElectraCSQA)
         task.train(train_dataloader, deval_dataloader, save_last=False)
     
     elif args.mission == 'test':
