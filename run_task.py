@@ -23,7 +23,7 @@ from transformers.optimization import (
 from csqa_task import data_processor
 from csqa_task.controller import MultipleChoice
 from csqa_task.trainer import Trainer
-from model.models import AlbertCSQA, AlbertAddTFM
+from model.AttnMerge import AlbertCSQA, AlbertAddTFM
 from utils.common import mkdir_if_notexist
 
 
@@ -58,12 +58,12 @@ def main(args):
 
     if args.mission == 'train':
         print("loading train set")
-        processor = data_processor.CSQAProcessor('DATA', 'train')
+        processor = data_processor.MSBaseline_Processor('DATA', 'train')
         processor.load_data()
         train_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
     print('loading dev set')
-    processor = data_processor.CSQAProcessor('DATA', 'dev')
+    processor = data_processor.MSBaseline_Processor('DATA', 'dev')
     processor.load_data()
     deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
@@ -74,11 +74,13 @@ def main(args):
     # run task accroading to mission
     if args.mission == 'train':
         controller.train(train_dataloader, deval_dataloader, save_last=False)
+
     elif args.mission == 'test':
         idx, result, label, predict = controller.predict(deval_dataloader)
         content = ''
         length = len(result)
         right = 0
+
         for i, item in enumerate(tqdm(result)):
             if predict[i] == label[i]:
                 right += 1
@@ -120,8 +122,8 @@ if __name__ == "__main__":
     parser.add_argument('--task_name', type=str, default='MS_baseline')
 
 
-    # args = parser.parse_args()
-    args = parser.parse_args('--batch_size 2 --lr 1e-5 --num_train_epochs 1 --warmup_proportion 0.1 --weight_decay 0.1 --gpu_ids 0 --fp16 0 --print_step 100 --mission train --train_file_name DATA/csqa/train_data.json --dev_file_name DATA/csqa/dev_data.json --test_file_name DATA/csqa/trial_data.json --pred_file_name  DATA/result/task_result.json --output_model_dir DATA/result/model/ --pretrained_model_dir DATA/model/albert-large-v2/'.split())
+    args = parser.parse_args()
+    # args = parser.parse_args('--batch_size 2 --lr 1e-5 --num_train_epochs 1 --warmup_proportion 0.1 --weight_decay 0.1 --gpu_ids 0 --fp16 0 --print_step 100 --mission train --train_file_name DATA/csqa/train_data.json --dev_file_name DATA/csqa/dev_data.json --test_file_name DATA/csqa/trial_data.json --pred_file_name  DATA/result/task_result.json --output_model_dir DATA/result/model/ --pretrained_model_dir DATA/model/albert-large-v2/'.split())
 
     print(args)
 

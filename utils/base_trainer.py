@@ -69,8 +69,8 @@ class BaseTrainer:
             for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
                 self.model.train()
                 self._step(batch)
-
                 if self.global_step % self.print_step == 0:
+                    import pdb; pdb.set_trace()
 
                     dev_record = self.evaluate(dev_dataloader)
                     self.model.zero_grad()

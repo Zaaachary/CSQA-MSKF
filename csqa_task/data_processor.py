@@ -14,8 +14,8 @@ from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 
 from csqa_task.example import CSQAExample
 
-class CSQAProcessor():
-
+class MSBaseline_Processor():
+    
     def __init__(self, data_dir, dataset_type):
         self.data_dir = data_dir
         self.dataset_type = dataset_type
