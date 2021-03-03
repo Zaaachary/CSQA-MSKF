@@ -10,9 +10,9 @@ logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 import torch
-
 from utils.base_trainer import BaseTrainer
 from utils.common import get_device
+
 
 class Trainer(BaseTrainer):
     def __init__(self, model, multi_gpu, device, 
@@ -53,7 +53,7 @@ class Trainer(BaseTrainer):
         token_type_ids = token_type_ids[:, :, :max_seq_length]
         
         return idx, input_ids, attention_mask, token_type_ids, labels
-        
+         
     def _step(self, batch):
         loss = self._forward(batch, self.train_record)
         if self.fp16:
@@ -84,7 +84,7 @@ class Trainer(BaseTrainer):
         result = self.model(*batch)
         result = self._mean(result)
         # record
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         record.inc([it.item() for it in result])
         return result[0]
 

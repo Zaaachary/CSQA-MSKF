@@ -1,15 +1,16 @@
 #! -*- encoding:utf-8 -*-
 """
-@File    :   task.py
+@File    :   controller.py
 @Author  :   Zachary Li
 @Contact :   li_zaaachary@163.com
-@Dscpt   :   
+@Dscpt   :   程序主要控制器
 """
 import torch
 from tqdm import tqdm
-
 from utils.common import get_device
+
 from csqa_task.trainer import Trainer
+
 
 class MultipleChoice:
     """
@@ -23,7 +24,6 @@ class MultipleChoice:
     def init(self, ModelClass):
         gpu_ids = list(map(int, self.config.gpu_ids.split()))
         multi_gpu = (len(gpu_ids) > 1)
-#        multi_gpu = gpu_ids
         self.device = get_device(gpu_ids)
 
         print('init_model', self.config.pretrained_model_dir)
@@ -51,21 +51,7 @@ class MultipleChoice:
         self.trainer.train(
             self.config.num_train_epochs, train_dataloader, devlp_dataloader, save_last=save_last)
 
-    @classmethod
-    def load(cls, config, ConfigClass, ModelClass):
-        gpu_ids = list(map(int, config.gpu_ids.split()))
-        multi_gpu = (len(gpu_ids) > 1)
-        device = get_device(gpu_ids)
-
-        srt = cls(config)
-        srt.device = device
-        srt.trainer = Trainer.load_model(
-            ConfigClass, ModelClass, multi_gpu, device,
-            config.print_step, config.output_model_dir, config.fp16)
-
-        return srt
-
-    def trial(self, dataloader):
+    def predict(self, dataloader):
         result = []
         idx = []
         labels = []
@@ -81,3 +67,17 @@ class MultipleChoice:
                 predicts.extend(torch.argmax(ret, dim=1).cpu().numpy().tolist())
 
         return idx, result, labels, predicts
+
+    @classmethod
+    def load(cls, config, ConfigClass, ModelClass):
+        gpu_ids = list(map(int, config.gpu_ids.split()))
+        multi_gpu = (len(gpu_ids) > 1)
+        device = get_device(gpu_ids)
+
+        srt = cls(config)
+        srt.device = device
+        srt.trainer = Trainer.load_model(
+            ConfigClass, ModelClass, multi_gpu, device,
+            config.print_step, config.output_model_dir, config.fp16)
+
+        return srt

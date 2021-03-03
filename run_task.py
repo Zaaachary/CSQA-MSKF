@@ -1,6 +1,6 @@
 #! -*- encoding:utf-8 -*-
 """
-@File    :   task.py
+@File    :   run_task.py
 @Author  :   Zachary Li
 @Contact :   li_zaaachary@163.com
 @Dscpt   :   
@@ -8,36 +8,53 @@
 import argparse
 import random
 import time
+
 import logging; logging.getLogger("transformers").setLevel(logging.WARNING)
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-import torch
 import numpy as np
+import torch
 from tqdm import tqdm
 from transformers import AlbertTokenizer, ElectraTokenizerFast
-from transformers.optimization import AdamW, get_cosine_with_hard_restarts_schedule_with_warmup
+from transformers.optimization import (
+    AdamW, get_cosine_with_hard_restarts_schedule_with_warmup)
 
-from model.models import AlbertCSQA
-from utils.common import mkdir_if_notexist
 from csqa_task import data_processor
+from csqa_task.controller import MultipleChoice
 from csqa_task.trainer import Trainer
-from csqa_task.task import MultipleChoice
+from model.models import AlbertCSQA, AlbertAddTFM
+from utils.common import mkdir_if_notexist
 
+
+def select_tokenizer(args):
+    # import pdb; pdb.set_trace()
+    if "albert" in args.pretrained_model_dir:
+        return AlbertTokenizer.from_pretrained(args.pretrained_model_dir)
+    elif "electra" in args.pretrained_model_dir:
+        return ElectraTokenizerFast.from_pretrained(args.pretrained_model_dir)
+    else:
+        print('tokenizer load error')
+
+def select_model(args):
+    if args.task_name == "MS_baseline":
+        return AlbertCSQA
+    elif args.task_name == "AlbertAddTFM":
+        return AlbertAddTFM
+    
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 def main(args):
     start = time.time()
+    set_seed(args.seed)
     print("start in {}".format(start))
-
-    # set seed
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
 
     # load data and preprocess
     print("loading tokenizer")
-    tokenizer = ElectraTokenizerFast.from_pretrained(args.pretrained_vocab_dir)
-    # tokenizer = AlbertTokenizer.from_pretrained(args.pretrained_vocab_dir)
+    tokenizer = select_tokenizer(args)
 
     if args.mission == 'train':
         print("loading train set")
@@ -50,17 +67,15 @@ def main(args):
     processor.load_data()
     deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
+    # choose model and initalize controller
+    controller = MultipleChoice(args)
+    controller.init(select_model(args))     
+
     # run task accroading to mission
-    task = MultipleChoice(args)
     if args.mission == 'train':
-        task.init(AlbertCSQA)
-        # task.init(AlbertAddTFM)
-        # task.init(ElectraCSQA)
-        task.train(train_dataloader, deval_dataloader, save_last=False)
-    
+        controller.train(train_dataloader, deval_dataloader, save_last=False)
     elif args.mission == 'test':
-        task.init(AlbertCSQA)
-        idx, result, label, predict = task.trial(deval_dataloader)
+        idx, result, label, predict = controller.predict(deval_dataloader)
         content = ''
         length = len(result)
         right = 0
@@ -87,6 +102,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_train_epochs', type=int, default=5)
     parser.add_argument('--warmup_proportion', type=float, default=0.1)
     parser.add_argument('--weight_decay', type=float, default=0.1)
+    parser.add_argument('--fp16', type=int, default=0)
 
     # path param
     parser.add_argument('--train_file_name', type=str)      # train_data.json
@@ -95,16 +111,18 @@ if __name__ == "__main__":
     parser.add_argument('--pred_file_name', type=str)       # output of predict file
     parser.add_argument('--output_model_dir', type=str)     # 
     parser.add_argument('--pretrained_model_dir', type=str)
-    parser.add_argument('--pretrained_vocab_dir', type=str)
 
     # other param
     parser.add_argument('--print_step', type=int, default=250)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--mission', type=str, choices=['train','test'])
-    parser.add_argument('--fp16', type=int, default=0)
+    parser.add_argument('--task_name', type=str, default='MS_baseline')
 
-    args = parser.parse_args()
+
+    # args = parser.parse_args()
+    args = parser.parse_args('--batch_size 2 --lr 1e-5 --num_train_epochs 1 --warmup_proportion 0.1 --weight_decay 0.1 --gpu_ids 0 --fp16 0 --print_step 100 --mission train --train_file_name DATA/csqa/train_data.json --dev_file_name DATA/csqa/dev_data.json --test_file_name DATA/csqa/trial_data.json --pred_file_name  DATA/result/task_result.json --output_model_dir DATA/result/model/ --pretrained_model_dir DATA/model/albert-large-v2/'.split())
+
     print(args)
 
     main(args)

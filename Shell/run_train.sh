@@ -14,4 +14,3 @@ python3 run_task.py\
     --pred_file_name  DATA/result/task_result.json\
     --output_model_dir /content/drive/MyDrive/CSQA/Models/albert-xxlarge\
     --pretrained_model_dir albert-xxlarge-v2\
-    --pretrained_vocab_dir albert-xxlarge-v2
