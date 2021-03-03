@@ -6,11 +6,11 @@ python3 run_task.py\
     --warmup_proportion 0.1\
     --weight_decay 0.1\
     --fp16 0\
-    --print_step 10\
+    --print_step 500\
     --mission train\
     --train_file_name DATA/csqa/train_data.json\
     --dev_file_name DATA/csqa/dev_data.json\
     --test_file_name DATA/csqa/trial_data.json\
-    --pred_file_name  DATA/result/task_result.json\
+    --pred_file_name  /content/drive/MyDrive/CSQA/Models/task_result.json\
     --output_model_dir /content/drive/MyDrive/CSQA/Models/albert-xxlarge\
     --pretrained_model_dir albert-xxlarge-v2\

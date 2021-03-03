@@ -5,15 +5,10 @@
 @Contact :   
 @Dscpt   :   
 """
-
-import pdb
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import (AlbertModel, AlbertPreTrainedModel, BertModel,
-                          BertPreTrainedModel)
-from transformers.modeling_utils import SequenceSummary
+from transformers import BertModel, BertPreTrainedModel
 
 
 class SelfAttention(nn.Module):
@@ -58,7 +53,6 @@ class BertAttRanker(BertPreTrainedModel):
         output_attentions=False,
     ):
         batch_size,input_size = input_ids.shape[:2]
-        # pdb.set_trace()
         num_choices = int(input_size/self.cs_len)
         input_ids = input_ids.view(-1, input_ids.size(-1)) if input_ids is not None else None
         attention_mask = attention_mask.view(-1, attention_mask.size(-1)) if attention_mask is not None else None

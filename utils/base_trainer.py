@@ -39,7 +39,6 @@ class BaseTrainer:
         self.multi_gpu = multi_gpu
         self.print_step = print_step
         self.output_model_dir = output_model_dir
-
         self.vn = vn
         self.train_record = Vn(vn)
 
@@ -70,7 +69,6 @@ class BaseTrainer:
                 self.model.train()
                 self._step(batch)
                 if self.global_step % self.print_step == 0:
-                    import pdb; pdb.set_trace()
 
                     dev_record = self.evaluate(dev_dataloader)
                     self.model.zero_grad()
@@ -83,13 +81,19 @@ class BaseTrainer:
                     current_acc = dev_record.list()[1]
                     # print("current_acc is {}".format(current_acc))
                     # print("best_dev_acc is {}".format(best_dev_acc))
-                    if current_acc > best_dev_acc:
+
+                    if not save_last and current_acc > best_dev_acc:
                         best_dev_acc = current_acc
                         self.save_model()
 
                     self.train_record.init()
 
         dev_record = self.evaluate(dev_dataloader)
+        current_acc = dev_record.list()[1]
+        if current_acc > best_dev_acc:
+            best_dev_acc = current_acc
+            self.save_model()
+
         self._report(self.train_record, dev_record)
 
         if save_last:

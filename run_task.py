@@ -16,31 +16,33 @@ logger = logging.getLogger(__name__)
 import numpy as np
 import torch
 from tqdm import tqdm
-from transformers import AlbertTokenizer, ElectraTokenizerFast
-from transformers.optimization import (
-    AdamW, get_cosine_with_hard_restarts_schedule_with_warmup)
+from transformers import AlbertTokenizer, ElectraTokenizerFast, BertTokenizer
 
 from csqa_task import data_processor
 from csqa_task.controller import MultipleChoice
 from csqa_task.trainer import Trainer
 from model.AttnMerge import AlbertCSQA, AlbertAddTFM
+from model.HeadHunter import BertAttRanker
 from utils.common import mkdir_if_notexist
 
 
 def select_tokenizer(args):
-    # import pdb; pdb.set_trace()
     if "albert" in args.pretrained_model_dir:
         return AlbertTokenizer.from_pretrained(args.pretrained_model_dir)
     elif "electra" in args.pretrained_model_dir:
         return ElectraTokenizerFast.from_pretrained(args.pretrained_model_dir)
+    elif "bert" in args.pretrained_model_dir:
+        return BertTokenizer.from_pretrained(args.pretrained_model_dir)
     else:
         print('tokenizer load error')
 
-def select_model(args):
-    if args.task_name == "MS_baseline":
-        return AlbertCSQA
-    elif args.task_name == "AlbertAddTFM":
-        return AlbertAddTFM
+def select_task(args):
+    if args.task_name == "AlbertAttnMerge":
+        return AlbertCSQA, data_processor.Baseline_Processor
+    elif args.task_name == "AlbertAttnMergeAddTFM":
+        return AlbertAddTFM, data_processor.Baseline_Processor
+    elif args.task_name == "BertAttRanker":
+        return BertAttRanker
     
 def set_seed(seed):
     random.seed(seed)
@@ -55,21 +57,22 @@ def main(args):
     # load data and preprocess
     print("loading tokenizer")
     tokenizer = select_tokenizer(args)
+    model, Processor = select_task(args)
 
     if args.mission == 'train':
         print("loading train set")
-        processor = data_processor.MSBaseline_Processor('DATA', 'train')
+        processor = Processor('DATA', 'train')
         processor.load_data()
         train_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
     print('loading dev set')
-    processor = data_processor.MSBaseline_Processor('DATA', 'dev')
+    processor = Processor('DATA', 'dev')
     processor.load_data()
     deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
     # choose model and initalize controller
     controller = MultipleChoice(args)
-    controller.init(select_model(args))     
+    controller.init(model)
 
     # run task accroading to mission
     if args.mission == 'train':
@@ -119,7 +122,7 @@ if __name__ == "__main__":
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--mission', type=str, choices=['train','test'])
-    parser.add_argument('--task_name', type=str, default='MS_baseline')
+    parser.add_argument('--task_name', type=str, default='AlbertAttnMerge')
 
 
     args = parser.parse_args()

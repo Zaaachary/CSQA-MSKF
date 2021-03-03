@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 
 from csqa_task.example import CSQAExample
 
-class MSBaseline_Processor():
+class Baseline_Processor():
     
     def __init__(self, data_dir, dataset_type):
         self.data_dir = data_dir
@@ -73,6 +73,15 @@ class MSBaseline_Processor():
 
         return dataloader
 
+
+class OMCS_Processor():
+
+    
+    
+
+
+
+
 if __name__ == "__main__":
-    a = CSQAProcessor('DATA\\', 'dev')
+    a = MSBaseline_Processor('DATA\\', 'dev')
     a.load_data()
