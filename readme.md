@@ -19,4 +19,7 @@ input_ids `[B, 5, L]` -> flat_input_ids `[B*5, L]` -ALBERT-> ouput[0] `[B*5, L, 
 
 dropout + linear `[B*5, H]` -linear-> `[B*5, 1]` -> [B, 5]`
 
-## 
+
+## Dev LOG
+
+1. result 去掉 idx

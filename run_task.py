@@ -76,10 +76,10 @@ def main(args):
 
     # run task accroading to mission
     if args.mission == 'train':
-        controller.train(train_dataloader, deval_dataloader, save_last=False)
+        controller.train(train_dataloader, deval_dataloader, save_last=args.save_last)
 
     elif args.mission == 'test':
-        idx, result, label, predict = controller.predict(deval_dataloader)
+        result, label, predict = controller.predict(deval_dataloader)
         content = ''
         length = len(result)
         right = 0
@@ -107,7 +107,6 @@ if __name__ == "__main__":
     parser.add_argument('--num_train_epochs', type=int, default=5)
     parser.add_argument('--warmup_proportion', type=float, default=0.1)
     parser.add_argument('--weight_decay', type=float, default=0.1)
-    parser.add_argument('--fp16', type=int, default=0)
 
     # path param
     parser.add_argument('--train_file_name', type=str)      # train_data.json
@@ -118,7 +117,9 @@ if __name__ == "__main__":
     parser.add_argument('--pretrained_model_dir', type=str)
 
     # other param
+    parser.add_argument('--fp16', type=int, default=0)
     parser.add_argument('--print_step', type=int, default=250)
+    parser.add_argument('--save_last', type=bool, default=True)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--mission', type=str, choices=['train','test'])

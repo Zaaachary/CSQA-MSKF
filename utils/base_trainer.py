@@ -28,19 +28,19 @@ class BaseTrainer:
     9. self._report()
     0. self._forward()
     """
-    def __init__(self, model, multi_gpu, device, print_step, output_model_dir, vn):
+    def __init__(self, model, multi_gpu, device, print_step, output_model_dir, v_num):
         """
         device: 主device
         multi_gpu: 是否使用了多个gpu
-        vn: 显示的变量数
+        v_num: 显示的变量数
         """
         self.model = model.to(device)
         self.device = device
         self.multi_gpu = multi_gpu
         self.print_step = print_step
         self.output_model_dir = output_model_dir
-        self.vn = vn
-        self.train_record = Vn(vn)
+        self.v_num = v_num
+        self.train_record = Vn(v_num)
 
     def set_optimizer(self, optimizer):
         if self.fp16:
@@ -70,27 +70,21 @@ class BaseTrainer:
                 self._step(batch)
                 if self.global_step % self.print_step == 0:
 
-                    dev_record = self.evaluate(dev_dataloader)
-                    self.model.zero_grad()
-
-                    self._report(self.train_record, dev_record)
+                    self._report(self.train_record, mode='single')
+                    self.train_record.init()
 
                     # if not save_last and (dev_record.avg()[0] < best_dev_loss):
                     #     best_dev_loss = dev_record.avg()[0]
                     #     self.save_model()
-                    current_acc = dev_record.list()[1]
                     # print("current_acc is {}".format(current_acc))
                     # print("best_dev_acc is {}".format(best_dev_acc))
 
-                    if not save_last and current_acc > best_dev_acc:
-                        best_dev_acc = current_acc
-                        self.save_model()
-
-                    self.train_record.init()
 
         dev_record = self.evaluate(dev_dataloader)
         current_acc = dev_record.list()[1]
-        if current_acc > best_dev_acc:
+        self.model.zero_grad()
+
+        if not save_last and current_acc > best_dev_acc:
             best_dev_acc = current_acc
             self.save_model()
 
@@ -101,7 +95,7 @@ class BaseTrainer:
 
     def _forward(self, batch, record):
         """
-        针对实际情况，需要重写
+        rewrite accroding to actual situation
         """
         batch = tuple(t.to(self.device) for t in batch)
         loss, acc = self.model(*batch)
@@ -130,7 +124,7 @@ class BaseTrainer:
         self.global_step += 1
 
     def evaluate(self, dataloader, desc='Eval'):
-        record = Vn(self.vn)
+        record = Vn(self.v_num)
 
         # for batch in tqdm(dataloader, desc, miniters=10):
         for batch in dataloader:
@@ -141,6 +135,9 @@ class BaseTrainer:
         return record
 
     def _report(self, train_record, devlp_record):
+        '''
+        rewrite accroding to actual situation
+        '''
         tloss, tacc = train_record.avg()
         dloss, dacc = devlp_record.avg()
         print("\t\tTrain loss %.4f acc %.4f | Dev loss %.4f acc %.4f" % (

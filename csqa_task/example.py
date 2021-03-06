@@ -24,7 +24,7 @@ class CSQAExample:
         '''
         通过 json 构造一个 CSQA Example
         '''
-        example_id = json_obj['idx']
+        example_id = json_obj['id']
         question = json_obj['question']['stem']
         question_concept = json_obj['question']['question_concept']
         choices = json_obj['question']['choices']

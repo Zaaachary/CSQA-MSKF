@@ -25,7 +25,7 @@ class Baseline_Processor(object):
         data = []
 
         # load raw data
-        f = open(os.path.join(self.data_dir, 'csqa', f"{self.dataset_type}_rand_split.json"), 'r', encoding='utf-8')
+        f = open(os.path.join(self.data_dir, 'csqa', f"{self.dataset_type}_rand_split.jsonl"), 'r', encoding='utf-8')
         for line in f:
             data.append(line.strip())
         f.close()
@@ -54,14 +54,13 @@ class Baseline_Processor(object):
         tensors = []
 
         features = self.data[0]     # tensor, label
-        all_idx = torch.tensor([[f.idx for f in fs] for fs in features], dtype=torch.long)
         all_input_ids = torch.tensor([[f.input_ids for f in fs] for fs in features], dtype=torch.long)
         all_input_mask = torch.tensor([[f.input_mask for f in fs] for fs in features], dtype=torch.long)
         all_segment_ids = torch.tensor([[f.segment_ids for f in fs] for fs in features], dtype=torch.long)
 
         # features
         # tensors.extend((all_input_ids, all_input_mask, all_segment_ids))
-        tensors.extend((all_idx, all_input_ids, all_input_mask, all_segment_ids))
+        tensors.extend((all_input_ids, all_input_mask, all_segment_ids))
         
         # labels
         tensors.append(torch.tensor(self.data[1], dtype=torch.long))

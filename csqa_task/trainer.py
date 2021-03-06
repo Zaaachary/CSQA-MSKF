@@ -6,7 +6,7 @@
 @Dscpt   :   
 """
 import logging; logging.getLogger("transformers").setLevel(logging.WARNING)
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level = logging.INFO,format = '\n%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 import torch
@@ -19,7 +19,7 @@ class Trainer(BaseTrainer):
         print_step, output_model_dir, fp16):
 
         super(Trainer, self).__init__(
-            model, multi_gpu, device, print_step, output_model_dir, vn=3
+            model, multi_gpu, device, print_step, output_model_dir, v_num=3
         )
 
         self.fp16 = fp16
@@ -30,7 +30,7 @@ class Trainer(BaseTrainer):
         find the longest seq_len in the batch, and cut all sequence to seq_len
         """
         # print("batch size is {}".format(len(batch[0])))
-        idx, input_ids, attention_mask, token_type_ids, labels = batch
+        input_ids, attention_mask, token_type_ids, labels = batch
         # [batch_size, 5, max_seq_len]
         batch_size = input_ids.size(0)
         while True:
@@ -52,7 +52,7 @@ class Trainer(BaseTrainer):
         attention_mask = attention_mask[:, :, :max_seq_length]
         token_type_ids = token_type_ids[:, :, :max_seq_length]
         
-        return idx, input_ids, attention_mask, token_type_ids, labels
+        return input_ids, attention_mask, token_type_ids, labels
          
     def _step(self, batch):
         loss = self._forward(batch, self.train_record)
@@ -83,19 +83,27 @@ class Trainer(BaseTrainer):
         batch = tuple(t.to(self.device) for t in batch)
         result = self.model(*batch)
         result = self._mean(result)
-        # record
-        # import pdb; pdb.set_trace()
-        record.inc([it.item() for it in result])
-        return result[0]
 
-    def _report(self, train_record, devlp_record):
+        # statistic
+        result_n = [it.item() for it in result]   # tensor 2 int
+        batch_size = batch[0].shape[0]
+        result_n.append(batch_size)
+        record.inc(result_n)
+
+        return result[0]    # loss
+
+    def _report(self, train_record, devlp_record=None, mode='both'):
         # record: loss, right_num, all_num
         # import pdb; pdb.set_trace()
         train_loss = train_record[0].avg()  # utils.common.AvgVar
-        devlp_loss = devlp_record[0].avg()
+        trn, tan = train_record.list()[1:]  # right_num, batch_size
+        train_str = f"Train: loss {train_loss:.4f}; acc {int(trn)/int(tan):.4f} ({int(trn)}/{int(tan)})"
+        
+        if mode == 'both':
+            devlp_loss = devlp_record[0].avg()
+            drn, dan = devlp_record.list()[1:]  # 335 1221
+            devlp_str = f"| Dev: loss {devlp_loss:.4f}; acc {int(trn)/int(tan):.4f} ({int(drn)}/{int(dan)})"
+        else:
+            devlp_str = ""
 
-        trn, tan = train_record.list()[1:]  # 76, 400  Vn -> list  [29.43147110939026, 6, 40.0]
-        drn, dan = devlp_record.list()[1:]  # 335 1221
-
-        logger.info(f'\n____Train: loss {train_loss:.4f} {int(trn)}/{int(tan)} = {int(trn)/int(tan):.4f} |'
-              f' Devlp: loss {devlp_loss:.4f} {int(drn)}/{int(dan)} = {int(drn)/int(dan):.4f}')
+        logger.info(f'{train_str} {devlp_str}')
