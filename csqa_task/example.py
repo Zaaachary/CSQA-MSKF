@@ -37,3 +37,23 @@ class CSQAExample:
         return cls(example_id, label, text_list)
 
 
+class OMCSExample(object):
+
+    def __init__(self, example_id, label, content_dict):
+        self.example_id = example_id
+        self.label = label
+        self.content_dict = content_dict
+        self.text_list = []
+    
+    def make_text(self):
+        """
+        organize the content_dict to text_list; rewrite !
+        """
+        pass
+
+    @classmethod
+    def load_from_json(cls, json_obj):
+        """
+        通过 json 构造一个 OMCS Example
+        """
+        pass

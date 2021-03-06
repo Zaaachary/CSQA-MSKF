@@ -62,12 +62,12 @@ def main(args):
     if args.mission == 'train':
         print("loading train set")
         processor = Processor('DATA', 'train')
-        processor.load_data()
+        processor.load_csqa()
         train_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
     print('loading dev set')
     processor = Processor('DATA', 'dev')
-    processor.load_data()
+    processor.load_csqa()
     deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
 
     # choose model and initalize controller
@@ -125,8 +125,8 @@ if __name__ == "__main__":
     parser.add_argument('--task_name', type=str, default='AlbertAttnMerge')
 
 
-    args = parser.parse_args()
-    # args = parser.parse_args('--batch_size 2 --lr 1e-5 --num_train_epochs 1 --warmup_proportion 0.1 --weight_decay 0.1 --gpu_ids 0 --fp16 0 --print_step 100 --mission train --train_file_name DATA/csqa/train_data.json --dev_file_name DATA/csqa/dev_data.json --test_file_name DATA/csqa/trial_data.json --pred_file_name  DATA/result/task_result.json --output_model_dir DATA/result/model/ --pretrained_model_dir DATA/model/albert-large-v2/'.split())
+    # args = parser.parse_args()
+    args = parser.parse_args('--batch_size 2 --lr 1e-5 --num_train_epochs 1 --warmup_proportion 0.1 --weight_decay 0.1 --gpu_ids 0 --fp16 0 --print_step 100 --mission train --train_file_name DATA/csqa/train_data.json --dev_file_name DATA/csqa/dev_data.json --test_file_name DATA/csqa/trial_data.json --pred_file_name  DATA/result/task_result.json --output_model_dir DATA/result/model/ --pretrained_model_dir DATA/model/albert-large-v2/'.split())
 
     print(args)
 

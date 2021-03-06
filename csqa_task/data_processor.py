@@ -12,16 +12,16 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 
-from csqa_task.example import CSQAExample
+from csqa_task.example import CSQAExample, OMCSExample
 
-class Baseline_Processor():
+class Baseline_Processor(object):
     
     def __init__(self, data_dir, dataset_type):
         self.data_dir = data_dir
         self.dataset_type = dataset_type
         self.data = None
 
-    def load_data(self):
+    def load_csqa(self):
         data = []
 
         # load raw data
@@ -75,6 +75,51 @@ class Baseline_Processor():
 
 
 class OMCS_Processor():
+    
+    def __init__(self, args, data_dir, dataset_type):
+        self.args = args
+        self.data_dir = data_dir
+        self.dataset_type = dataset_type
+        self.data = None
+
+    def load_csqa(self):
+        data = []
+
+        # load raw data
+        f = open(os.path.join(self.data_dir, 'csqa', f"{self.dataset_type}_rand_split.json"), 'r', encoding='utf-8')
+        for line in f:
+            data.append(line.strip())
+        f.close()
+
+        # convert raw data 2 OMCSExample
+        for index, case in enumerate(data):
+            case = json.loads(case)
+            example = OMCSExample.load_from_json(case)
+            data[index] = example
+
+        self.data = data
+
+    def load_omcs(self):
+        omcs_file = os.path.join(self.data_dir, 'omcs', "omcs-free-origin.json")
+        with open(omcs_file, 'r', encoding='utf-8') as f:
+            self.omcs_cropus = json.load(f)
+    
+    def load_csqa_omcs_result(self):
+        cs_result_file = os.path.join(self.data_dir, 'omcs', f'{self.dataset_type}_QAconcept-Match_omcs_of_dataset')
+        with open(cs_result_file, 'r', encoding='utf-8') as f:
+            cs_data = json.load(f)
+        # self.
+
+    def insert_commonsense(self):
+        pass
+
+    def make_dataloader(self):
+        pass
+
+    def _convert_to_tensor(self):
+        pass
+
+        
 
     
     
@@ -83,5 +128,6 @@ class OMCS_Processor():
 
 
 if __name__ == "__main__":
-    a = MSBaseline_Processor('DATA\\', 'dev')
-    a.load_data()
+    # a = Baseline_Processor('DATA\\', 'dev')
+    # a.load_data()
+    b = OMCS_Processor('DATA\\', 'dev')

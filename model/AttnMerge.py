@@ -14,9 +14,7 @@ from transformers import AlbertModel, AlbertPreTrainedModel
 
 
 class AttentionMerge(nn.Module):
-    """
-    H (B, L, hidden_size) => h (B, hidden_size)
-    """
+
     def __init__(self, input_size, attention_size, dropout_prob):
         super(AttentionMerge, self).__init__()
         self.attention_size = attention_size
@@ -28,7 +26,7 @@ class AttentionMerge(nn.Module):
 
     def forward(self, values, mask=None):
         """
-        (b, l, h) -> (b, h)
+        H (B, L, hidden_size) => h (B, hidden_size)
         """
         if mask is None:
             mask = torch.zeros_like(values)
