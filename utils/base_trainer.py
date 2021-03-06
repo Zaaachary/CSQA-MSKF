@@ -79,16 +79,15 @@ class BaseTrainer:
                     # print("current_acc is {}".format(current_acc))
                     # print("best_dev_acc is {}".format(best_dev_acc))
 
+            dev_record = self.evaluate(dev_dataloader)
+            current_acc = dev_record.list()[1]
+            self.model.zero_grad()
 
-        dev_record = self.evaluate(dev_dataloader)
-        current_acc = dev_record.list()[1]
-        self.model.zero_grad()
+            if not save_last and current_acc > best_dev_acc:
+                best_dev_acc = current_acc
+                self.save_model()
 
-        if not save_last and current_acc > best_dev_acc:
-            best_dev_acc = current_acc
-            self.save_model()
-
-        self._report(self.train_record, dev_record)
+            self._report(self.train_record, dev_record)
 
         if save_last:
             self.save_model()
@@ -167,7 +166,7 @@ class BaseTrainer:
 
     def save_model(self):
         mkdir_if_notexist(self.output_model_dir)
-        logger.info('保存模型 {}'.format(self.output_model_dir))
+        logger.info('save model to {}'.format(self.output_model_dir))
         self.model.save_pretrained(self.output_model_dir)
 
     @classmethod

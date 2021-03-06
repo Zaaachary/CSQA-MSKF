@@ -66,11 +66,11 @@ class AlbertCSQA(AlbertPreTrainedModel):
 
     def forward(self, input_ids, attention_mask, token_type_ids, labels):
         """
-        input_ids: [B, 2, L]
+        input_ids: [B, 5, L]
         labels: [B, ]
         """
         # logits: [B, 2]
-        logits = self._forward( input_ids, attention_mask, token_type_ids)
+        logits = self._forward(input_ids, attention_mask, token_type_ids)
         loss = F.cross_entropy(logits, labels)      # get the CELoss
 
         with torch.no_grad():

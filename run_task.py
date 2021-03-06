@@ -119,7 +119,7 @@ if __name__ == "__main__":
     # other param
     parser.add_argument('--fp16', type=int, default=0)
     parser.add_argument('--print_step', type=int, default=250)
-    parser.add_argument('--save_last', type=bool, default=True)
+    parser.add_argument('--save_last', action="store_true")
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--mission', type=str, choices=['train','test'])
