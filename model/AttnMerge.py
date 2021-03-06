@@ -64,13 +64,13 @@ class AlbertCSQA(AlbertPreTrainedModel):
 
         self.init_weights()
 
-    def forward(self, idx, input_ids, attention_mask, token_type_ids, labels):
+    def forward(self, input_ids, attention_mask, token_type_ids, labels):
         """
         input_ids: [B, 2, L]
         labels: [B, ]
         """
         # logits: [B, 2]
-        logits = self._forward(idx, input_ids, attention_mask, token_type_ids)
+        logits = self._forward( input_ids, attention_mask, token_type_ids)
         loss = F.cross_entropy(logits, labels)      # get the CELoss
 
         with torch.no_grad():
@@ -78,9 +78,9 @@ class AlbertCSQA(AlbertPreTrainedModel):
             predicts = torch.argmax(logits, dim=1)  # find the result
             right_num = torch.sum(predicts == labels)
 
-        return loss, right_num, self._to_tensor(idx.size(0), idx.device)
+        return loss, right_num
 
-    def _forward(self, idx, input_ids, attention_mask, token_type_ids):
+    def _forward(self, input_ids, attention_mask, token_type_ids):
         # [B, 5, L] => [B * 5, L]
         flat_input_ids = input_ids.view(-1, input_ids.size(-1))
         flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
@@ -103,11 +103,11 @@ class AlbertCSQA(AlbertPreTrainedModel):
 
     def _to_tensor(self, it, device): return torch.tensor(it, device=device, dtype=torch.float)
 
-    def predict(self, idx, input_ids, attention_mask, token_type_ids):
+    def predict(self, input_ids, attention_mask, token_type_ids):
         """
         return: [B, 5]
         """
-        return self._forward(idx, input_ids, attention_mask, token_type_ids)
+        return self._forward(input_ids, attention_mask, token_type_ids)
 
 
 class AlbertAddTFM(AlbertPreTrainedModel):
@@ -131,13 +131,13 @@ class AlbertAddTFM(AlbertPreTrainedModel):
 
         self.init_weights()
 
-    def forward(self, idx, input_ids, attention_mask, token_type_ids, labels):
+    def forward(self, input_ids, attention_mask, token_type_ids, labels):
         """
         input_ids: [B, 5, L]
         labels: [B, ]
         """
         # logits: [B, 2]
-        logits = self._forward(idx, input_ids, attention_mask, token_type_ids)
+        logits = self._forward(input_ids, attention_mask, token_type_ids)
         loss = F.cross_entropy(logits, labels)      # get the CELoss
 
         with torch.no_grad():
@@ -145,9 +145,9 @@ class AlbertAddTFM(AlbertPreTrainedModel):
             predicts = torch.argmax(logits, dim=1)  # find the result
             right_num = torch.sum(predicts == labels)
 
-        return loss, right_num, self._to_tensor(idx.size(0), idx.device)
+        return loss, right_num
 
-    def _forward(self, idx, input_ids, attention_mask, token_type_ids):
+    def _forward(self, input_ids, attention_mask, token_type_ids):
         # [B, 5, L] => [B * 5, L]
         flat_input_ids = input_ids.view(-1, input_ids.size(-1))
         flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
@@ -177,9 +177,9 @@ class AlbertAddTFM(AlbertPreTrainedModel):
 
     def _to_tensor(self, it, device): return torch.tensor(it, device=device, dtype=torch.float)
 
-    def predict(self, idx, input_ids, attention_mask, token_type_ids):
+    def predict(self, input_ids, attention_mask, token_type_ids):
         """
         return: [B, 5]
         """
-        return self._forward(idx, input_ids, attention_mask, token_type_ids)
+        return self._forward(input_ids, attention_mask, token_type_ids)
 

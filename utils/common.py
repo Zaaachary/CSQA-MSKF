@@ -14,8 +14,7 @@ def save_csv(data, path,sep=',', type='default'):
             temp = sep.join(dat) + '\n'
         with open(path, 'w', encoding='utf-8') as f:
             f.write(temp)
-            
-            
+                      
 def make_file(fileName):
     if fileName[-1] == '/':
         fileName = fileName + 'mk.txt'
@@ -29,7 +28,6 @@ def make_file(fileName):
                 fp.close()
             except:
                 pass
-
 
 def mkdir_if_notexist(dir_):
     dirname, filename = os.path.split(dir_)
@@ -63,6 +61,11 @@ class AvgVar:
     def avg(self):
         return self.var / self.steps if self.steps else 0
 
+    def __str__(self) -> str:
+        return f"var:{self.var}, steps:{self.steps}"
+
+    def __repr__(self):
+        return self.__str__()
 
 class Vn:
     """
@@ -88,6 +91,11 @@ class Vn:
     def list(self):
         return [v.var for v in self.vs]
 
+    def __str__(self):
+        return f"{self.n}, {str(self.vs)}"
+
+    def __repr__(self):
+        return self.__str__()
 
 class F1_Measure:
     """
