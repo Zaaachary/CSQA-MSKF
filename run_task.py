@@ -87,7 +87,7 @@ def main(args):
         for i, item in enumerate(tqdm(result)):
             if predict[i] == label[i]:
                 right += 1
-            content += '{},{},{},{},{},{},{},{}\n' .format(idx[i][0], item[0], item[1], item[2], item[3], item[4], label[i], predict[i])
+            content += '{},{},{},{},{},{},{}\n' .format(item[0], item[1], item[2], item[3], item[4], label[i], predict[i])
 
         logger.info("accuracy is {}".format(right/length))
         with open(args.pred_file_name, 'w', encoding='utf-8') as f:
