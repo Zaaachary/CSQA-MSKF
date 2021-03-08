@@ -38,10 +38,9 @@ class Trainer(BaseTrainer):
             end_flag = False
             for i in range(batch_size):
                 # traverse batch find if any case has reach the end
-                if input_ids[i, 0, -1] != 0:
-                    end_flag = True
-                if input_ids[i, 1, -1] != 0:
-                    end_flag = True 
+                for j in range(5):
+                    if input_ids[i, j, -1] != 0:
+                        end_flag = True 
             
             if end_flag:
                 break
