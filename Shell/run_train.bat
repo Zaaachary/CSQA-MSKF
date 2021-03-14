@@ -1,4 +1,4 @@
-python run_task.py^
+python CODE\\run_task.py^
     --batch_size 2^
     --lr 1e-5^
     --num_train_epochs 1^

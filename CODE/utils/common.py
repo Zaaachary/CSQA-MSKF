@@ -4,6 +4,8 @@ logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 import torch
+import random
+import numpy as np
 
 def save_csv(data, path,sep=',', type='default'):
     if len(data) < 1:
@@ -135,5 +137,5 @@ def set_seed(args):
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    if args.n_gpu > 0:
-        torch.cuda.manual_seed_all(args.seed)
+    # if args.n_gpu > 0:
+    #     torch.cuda.manual_seed_all(args.seed)

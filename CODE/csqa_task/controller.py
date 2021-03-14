@@ -26,8 +26,8 @@ class MultipleChoice:
         multi_gpu = (len(gpu_ids) > 1)
         self.device = get_device(gpu_ids)
 
-        print('init_model', self.config.pretrained_model_dir)
-        model = ModelClass.from_pretrained(self.config.pretrained_model_dir)
+        print('init_model', self.config.PTM_model_vocab_dir)
+        model = ModelClass.from_pretrained(self.config.PTM_model_vocab_dir)
         print(model)
 
         if multi_gpu:
@@ -35,7 +35,7 @@ class MultipleChoice:
 
         self.trainer = Trainer(
             model, multi_gpu, self.device,
-            self.config.print_step, self.config.output_model_dir, self.config.fp16)
+            self.config.print_step, self.config.model_save_dir, self.config.fp16)
         self.model = model
 
     def train(self, train_dataloader, devlp_dataloader, save_last=True):
