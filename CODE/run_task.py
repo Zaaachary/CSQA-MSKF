@@ -14,7 +14,7 @@ logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(le
 logger = logging.getLogger(__name__)
 
 from tqdm import tqdm
-from transformers import AlbertTokenizer, ElectraTokenizerFast, BertTokenizer
+from transformers import AlbertTokenizer, BertTokenizer
 
 from csqa_task import data_processor
 from csqa_task.controller import MultipleChoice
@@ -32,7 +32,7 @@ def select_tokenizer(args):
     elif "bert" in args.PTM_model_vocab_dir:
         return BertTokenizer.from_pretrained(args.PTM_model_vocab_dir)
     else:
-        print('tokenizer load error')
+        logger.error("No Tokenizer Matched")
 
 def select_task(args):
     if args.task_name == "AlbertAttnMerge":
@@ -41,8 +41,11 @@ def select_task(args):
         return AlbertBaseine, data_processor.Baseline_Processor
     elif args.task_name == "AlbertAttnMergeAddTFM":
         return AlbertAddTFM, data_processor.Baseline_Processor
-    elif args.task_name == "BertAttRanker":
-        return BertAttRanker
+    elif args.task_name == "Bert_OMCS_AttRanker":
+        return BertAttRanker, data_processor.OMCS_Processor
+    elif args.task_name == "Albert_OMCS_Baseline":
+        return AlbertBaseine, data_processor.OMCS_Processor
+        
 
 def main(args):
     start = time.time()
@@ -50,28 +53,34 @@ def main(args):
     print("start in {}".format(start))
 
     # load data and preprocess
-    print("loading tokenizer")
+    logger.info(f"select tokenizer and model for task {args.task_name}")
     tokenizer = select_tokenizer(args)
     model, Processor = select_task(args)
 
     if args.mission == 'train':
-        print("loading train set")
-        processor = Processor(args.dataset_dir, 'train')
-        processor.load_csqa()
+        processor = Processor(args, 'train')
+        processor.load_data()
         train_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
+        logger.info("train dataset loaded")
 
-        print('loading dev set')
-        processor = Processor(args.dataset_dir, 'dev')
-        processor.load_csqa()
+        processor = Processor(args, 'dev')
+        processor.load_data()
         deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
-    
-    else:
-        print('loading dev set')
-        processor = Processor(args.dataset_dir, 'dev')
-        processor.load_csqa()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
+        logger.info("dev dataset loaded")
 
-    # choose model and initalize controller
+    elif args.mission == 'eval':
+        processor = Processor(args, 'dev')
+        processor.load_data()
+        deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
+        logger.info("dev dataset loaded")
+
+    elif args.mission == 'predict':
+        processor = Processor(args, 'test')
+        processor.load_data()
+        deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
+        logger.info("test dataset loaded")
+
+    # initalize controller by model
     controller = MultipleChoice(args)
     controller.init(model)
 
@@ -79,12 +88,15 @@ def main(args):
     if args.mission == 'train':
         controller.train(train_dataloader, deval_dataloader, save_last=args.save_last)
 
-    elif args.mission == 'test':
+    elif args.mission == 'eval':
+        pass
+
+    elif args.mission == 'predict':
         pass
 
     end = time.time()
-    logger.info("start in {:.0f}, end in {:.0f}".format(start, end))
-    logger.info("运行时间:%.2f秒"%(end-start))
+    logger.info("task start in {:.0f}, end in {:.0f}".format(start, end))
+    logger.info("total run time:%.2f second"%(end-start))
 
 
 if __name__ == "__main__":
@@ -100,13 +112,15 @@ if __name__ == "__main__":
     parser.add_argument('--print_step', type=int, default=250)
     
     # hyper param
-    parser.add_argument('--lr', type=float, default=2e-5)
+    parser.add_argument('--cs_num', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
     parser.add_argument('--num_train_epochs', type=int, default=5)
+    parser.add_argument('--lr', type=float, default=2e-5)
     parser.add_argument('--warmup_proportion', type=float, default=0.1)
     parser.add_argument('--weight_decay', type=float, default=0.1)
 
-    # path param
+    # data param
     parser.add_argument('--dataset_dir', type=str, default='../DATA')
     parser.add_argument('--pred_file_dir', type=str)       # output of predict file
     parser.add_argument('--model_save_dir', type=str, default=None)     # 
@@ -124,14 +138,15 @@ if __name__ == "__main__":
     --num_train_epochs 4
     --warmup_proportion 0.1
     --weight_decay 0.1
+    --cs_num 2
 
     --dataset_dir ../DATA
     --pred_file_dir  ../DATA/result/task_result.json
     --model_save_dir ../DATA/result/TCmodel/
     --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\albert-base-v2
     """
-    args = parser.parse_args(args_str.split())
-    # args = parser.parse_args()
+    # args = parser.parse_args(args_str.split())
+    args = parser.parse_args()
     print(args)
 
     main(args)

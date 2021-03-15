@@ -36,6 +36,7 @@ class AlbertBaseine(AlbertPreTrainedModel):
         # logits: [B, 2]
         logits = self._forward(input_ids, attention_mask, token_type_ids)
         loss = F.cross_entropy(logits, labels)      # get the CELoss
+        
         with torch.no_grad():
             logits = F.softmax(logits, dim=1)       # get the score
             predicts = torch.argmax(logits, dim=1)  # find the result
@@ -58,7 +59,7 @@ class AlbertBaseine(AlbertPreTrainedModel):
         # outputs[0]: [B*5, L, H] => [B*5, H]
         pooler_output = outputs[1]
         # pooler_output = outputs.pooler_output
-        # import pdb; pdb.set_trace()
+
         # [B*5, H] => [B*5, 1] => [B, 5]
         logits = self.scorer(pooler_output).view(-1, 5)
 

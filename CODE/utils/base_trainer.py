@@ -1,14 +1,23 @@
-from .common import Vn
-from .common import mkdir_if_notexist
+#! -*- encoding:utf-8 -*-
+"""
+@File    :   base_trainer.py
+@Author  :   Zachary Li
+@Contact :   li_zaaachary@163.com
+@Dscpt   :   
 
-import torch
-from . import logger
-from transformers.optimization import AdamW
-from transformers.optimization import get_cosine_with_hard_restarts_schedule_with_warmup
-from transformers.file_utils import WEIGHTS_NAME, CONFIG_NAME
+https://huggingface.co/transformers/main_classes/optimizer_schedules.html#transformers.get_cosine_with_hard_restarts_schedule_with_warmup
+"""
 
 import os
+
+import torch
 from tqdm.autonotebook import tqdm
+from transformers.file_utils import CONFIG_NAME, WEIGHTS_NAME
+from transformers.optimization import (
+    AdamW, get_cosine_with_hard_restarts_schedule_with_warmup)
+
+from . import logger
+from .common import Vn, mkdir_if_notexist
 
 
 class BaseTrainer:

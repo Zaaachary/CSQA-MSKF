@@ -39,11 +39,13 @@ class MultipleChoice:
         self.model = model
 
     def train(self, train_dataloader, devlp_dataloader, save_last=True):
-        t_total = len(train_dataloader) * self.config.num_train_epochs
+        # t_total = train_step // args.gradient_accumulation_steps * args.num_train_epochs // device_num
+        train_step = len(train_dataloader)
+        total_training_step = train_step // self.gradient_accumulation_steps * self.config.num_train_epochs
         warmup_proportion = self.config.warmup_proportion
 
         optimizer = self.trainer.make_optimizer(self.config.weight_decay, self.config.lr)
-        scheduler = self.trainer.make_scheduler(optimizer, warmup_proportion, t_total)
+        scheduler = self.trainer.make_scheduler(optimizer, warmup_proportion, total_training_step)
 
         self.trainer.set_optimizer(optimizer)
         self.trainer.set_scheduler(scheduler)

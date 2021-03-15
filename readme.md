@@ -23,3 +23,10 @@ dropout + linear `[B*5, H]` -linear-> `[B*5, 1]` -> [B, 5]`
 ## Dev LOG
 
 1. result 去掉 idx
+
+
+## DATA Processor
+
+### OMCS
+
+1. 去掉较长的常识，使得常识长度在16 ~ 20 这个范围。
