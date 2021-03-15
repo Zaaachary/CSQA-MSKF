@@ -129,4 +129,4 @@ class OMCS_Processor():
 if __name__ == "__main__":
     # a = Baseline_Processor('DATA\\', 'dev')
     # a.load_data()
-    b = OMCS_Processor('DATA\\', 'dev')
+    b = OMCS_Processor('..\\DATA\\', 'dev')
