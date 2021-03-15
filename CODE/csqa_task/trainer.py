@@ -5,7 +5,7 @@
 @Contact :   li_zaaachary@163.com
 @Dscpt   :   
 """
-import logging; logging.getLogger("transformers").setLevel(logging.WARNING)
+import logging; logging.getLogger("trainer")
 logging.basicConfig(level = logging.INFO,format = '\n%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -53,40 +53,34 @@ class Trainer(BaseTrainer):
         
         return input_ids, attention_mask, token_type_ids, labels
          
-    def _step(self, batch):
-        loss = self._forward(batch, self.train_record)
-        if self.fp16:
-            with amp.scale_loss(loss, self.optimizer) as scaled_loss:
-                scaled_loss.backward()
-            torch.nn.utils.clip_grad_norm_(amp.master_params(self.optimizer), 1) 
-        else:
-            loss.backward()
+    # def _step(self, batch):
+    #     loss = self._forward(batch, self.train_record)
+    #     if self.fp16:
+    #         with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+    #             scaled_loss.backward()
+    #         torch.nn.utils.clip_grad_norm_(amp.master_params(self.optimizer), 1) 
+    #     else:
+    #         loss.backward()
 
-            torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(), max_norm=1)  # max_grad_norm = 1
+    #         torch.nn.utils.clip_grad_norm_(
+    #             self.model.parameters(), max_norm=1)  # max_grad_norm = 1
 
         self.optimizer.step()
         self.scheduler.step()
         self.model.zero_grad()
         self.global_step += 1
         
-    def set_optimizer(self, optimizer):
-        if self.fp16:
-            model, optimizer = amp.initialize(self.model, optimizer, opt_level='O1')
-            
-            self.model = model
-        self.optimizer = optimizer
+
 
     def _forward(self, batch, record):
         batch = self.clip_batch(batch)
         batch = tuple(t.to(self.device) for t in batch)
-        result = self.model(*batch)
-        result = self._mean(result)
+        result = self.model(*batch)  # loss, right_num
+        # result = self._mean(result)     # multi GPU mean
 
         # statistic
-        result_n = [it.item() for it in result]   # tensor 2 int
-        batch_size = batch[0].shape[0]
-        result_n.append(batch_size)
+        result_n = list(map(lambda x:x.item(), result)) # tensor 2 float
+        result_n.append(batch[0].shape[0])   # add batch_size
         record.inc(result_n)
 
         return result[0]    # loss

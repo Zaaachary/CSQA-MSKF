@@ -6,6 +6,7 @@ python CODE\\run_task.py^
     --print_step 100^
     ^
     --batch_size 4^
+    --gradient_accumulation_steps 4^
     --lr 1e-5^
     --num_train_epochs 4^
     --warmup_proportion 0.1^
@@ -14,4 +15,4 @@ python CODE\\run_task.py^
     --dataset_dir DATA^
     --pred_file_dir  DATA/result/task_result.json^
     --model_save_dir DATA/result/albert-base-v2/^
-    --PTM_model_vocab_dir D:\\CODE\\Python\\Transformers-Models\\albert-base-v2^
+    --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\albert-base-v2^

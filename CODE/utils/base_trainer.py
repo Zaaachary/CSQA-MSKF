@@ -43,25 +43,16 @@ class BaseTrainer:
         multi_gpu: 是否使用了多个gpu
         v_num: 显示的变量数
         """
-        self.model = model.to(device)
         self.device = device
         self.multi_gpu = multi_gpu
+        self.model = model.to(device)
         self.print_step = print_step
         self.output_model_dir = output_model_dir
         self.v_num = v_num
         self.train_record = Vn(v_num)
 
-    def set_optimizer(self, optimizer):
-        if self.fp16:
-            model, optimizer = amp.initialize(self.model, optimizer, opt_level='O1')
-            self.model = model
-        self.optimizer = optimizer
-
-    def set_scheduler(self, scheduler):
-        self.scheduler = scheduler
-
-    def train(self, epoch_num, train_dataloader, dev_dataloader,
-              save_last=True):
+    def train(self, epoch_num, gradient_accumulation_steps, 
+        train_dataloader, dev_dataloader, save_last=True):
         """
         save_last: 直到最后才保存模型，否则保存验证集上loss最低的模型
         """
@@ -73,20 +64,16 @@ class BaseTrainer:
         self.model.zero_grad()
 
         for epoch in range(int(epoch_num)):
-            print(f'---- Epoch: {epoch+1:02} ----')
+            # print(f'---- Epoch: {epoch+1:02} ----')
+            logger.info(f'Epoch: {epoch+1:02}')
             for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
                 self.model.train()
-                self._step(batch)
+                self._step(batch, gradient_accumulation_steps)
+
                 if self.global_step % self.print_step == 0:
 
                     self._report(self.train_record, mode='single')
                     self.train_record.init()
-
-                    # if not save_last and (dev_record.avg()[0] < best_dev_loss):
-                    #     best_dev_loss = dev_record.avg()[0]
-                    #     self.save_model()
-                    # print("current_acc is {}".format(current_acc))
-                    # print("best_dev_acc is {}".format(best_dev_acc))
 
             dev_record = self.evaluate(dev_dataloader)
             current_acc = dev_record.list()[1]
@@ -100,6 +87,27 @@ class BaseTrainer:
 
         if save_last:
             self.save_model()
+
+    def _step(self, batch, gradient_accumulation_steps):
+        loss = self._forward(batch, self.train_record)
+
+        loss = loss / gradient_accumulation_steps
+
+        if self.fp16:
+            with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                scaled_loss.backward()
+            torch.nn.utils.clip_grad_norm_(amp.master_params(self.optimizer), 1) 
+        else:
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), max_norm=1)  # max_grad_norm = 1
+
+        if (self.global_step + 1) % gradient_accumulation_steps == 0:
+            self.optimizer.step()
+            self.scheduler.step()
+            self.model.zero_grad()
+
+        self.global_step += 1
 
     def _forward(self, batch, record):
         """
@@ -118,18 +126,6 @@ class BaseTrainer:
         if self.multi_gpu:
             return tuple(v.mean() for v in tuples)
         return tuples
-
-    def _step(self, batch):
-        loss = self._forward(batch, self.train_record)
-        loss.backward()
-
-        torch.nn.utils.clip_grad_norm_(
-            self.model.parameters(), max_norm=1)  # max_grad_norm = 1
-
-        self.optimizer.step()
-        self.scheduler.step()
-        self.model.zero_grad()
-        self.global_step += 1
 
     def evaluate(self, dataloader, desc='Eval'):
         record = Vn(self.v_num)
@@ -150,6 +146,20 @@ class BaseTrainer:
         dloss, dacc = devlp_record.avg()
         print("\t\tTrain loss %.4f acc %.4f | Dev loss %.4f acc %.4f" % (
                 tloss, tacc, dloss, dacc))
+
+    def save_model(self):
+        mkdir_if_notexist(self.output_model_dir)
+        logger.info('save model to {}'.format(self.output_model_dir))
+        self.model.save_pretrained(self.output_model_dir)
+
+    def set_optimizer(self, optimizer):
+        if self.fp16:
+            model, optimizer = amp.initialize(self.model, optimizer, opt_level='O1')
+            self.model = model
+        self.optimizer = optimizer
+
+    def set_scheduler(self, scheduler):
+        self.scheduler = scheduler
 
     def make_optimizer(self, weight_decay, lr):
         params = list(self.model.named_parameters())
@@ -172,11 +182,6 @@ class BaseTrainer:
         return get_cosine_with_hard_restarts_schedule_with_warmup(
           optimizer, num_warmup_steps=warmup_proportion * t_total,
           num_training_steps=t_total)
-
-    def save_model(self):
-        mkdir_if_notexist(self.output_model_dir)
-        logger.info('save model to {}'.format(self.output_model_dir))
-        self.model.save_pretrained(self.output_model_dir)
 
     @classmethod
     def load_model(cls, ConfigClass, ModelClass,
