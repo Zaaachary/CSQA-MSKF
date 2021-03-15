@@ -20,7 +20,9 @@ from csqa_task import data_processor
 from csqa_task.controller import MultipleChoice
 from csqa_task.trainer import Trainer
 from utils.common import mkdir_if_notexist, set_seed
+
 from model.AttnMerge import AlbertCSQA, AlbertAddTFM
+from model.Baselines import AlbertBaseine
 from model.HeadHunter import BertAttRanker
 
 
@@ -35,6 +37,8 @@ def select_tokenizer(args):
 def select_task(args):
     if args.task_name == "AlbertAttnMerge":
         return AlbertCSQA, data_processor.Baseline_Processor
+    if args.task_name == "AlbertBaseine":
+        return AlbertBaseine, data_processor.Baseline_Processor
     elif args.task_name == "AlbertAttnMergeAddTFM":
         return AlbertAddTFM, data_processor.Baseline_Processor
     elif args.task_name == "BertAttRanker":
@@ -109,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument('--PTM_model_vocab_dir', type=str, default=None)
 
     args_str = r"""
-    --task_name AlbertAttnMerge
+    --task_name AlbertBaseine
     --mission train
     --fp16 0
     --gpu_ids -1

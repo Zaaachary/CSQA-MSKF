@@ -1,16 +1,16 @@
 python CODE\\run_task.py^
-    --batch_size 2^
-    --lr 1e-5^
-    --num_train_epochs 1^
-    --warmup_proportion 0.1^
-    --weight_decay 0.1^
+    --task_name AlbertBaseine^
+    --mission train^
     --fp16 0^
     --gpu_ids 0^
-    --print_step 500^
-    --mission train^
-    --train_file_name DATA/csqa/train_data.json^
-    --dev_file_name DATA/csqa/dev_data.json^
-    --test_file_name DATA/csqa/trial_data.json^
-    --pred_file_name  DATA/result/task_result.json^
-    --pretrained_model_dir DATA/model/albert-large-v2/^
-    --output_model_dir DATA/result/model/
+    --print_step 100^
+    ^
+    --batch_size 4^
+    --lr 1e-5^
+    --num_train_epochs 4^
+    --warmup_proportion 0.1^
+    --weight_decay 0.1^
+    ^
+    --pred_file_dir  ../DATA/result/task_result.json^
+    --model_save_dir ../DATA/result/TCmodel/^
+    --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\albert-base-v2^
