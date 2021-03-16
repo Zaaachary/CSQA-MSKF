@@ -125,7 +125,7 @@ class BaseTrainer:
             return tuple(v.mean() for v in tuples)
         return tuples
 
-    def evaluate(self, dataloader, desc='Eval'):
+    def evaluate(self, dataloader):
         record = Vn(self.v_num)
 
         # for batch in tqdm(dataloader, desc, miniters=10):

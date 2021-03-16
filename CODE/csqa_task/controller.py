@@ -22,12 +22,20 @@ class MultipleChoice:
         self.config = args
 
     def init(self, ModelClass):
+        '''
+        ModelClass: e.g. modelTC
+        '''
         gpu_ids = list(map(int, self.config.gpu_ids.split()))
         multi_gpu = (len(gpu_ids) > 1)
         self.device = get_device(gpu_ids)
 
-        print('init_model', self.config.PTM_model_vocab_dir)
-        model = ModelClass.from_pretrained(self.config.PTM_model_vocab_dir)
+        if self.config.mission == "train":
+            model_dir = self.config.PTM_model_vocab_dir
+        else:
+            model_dir = self.config.model_save_dir
+
+        # logger.info('init_model', model_dir)
+        model = ModelClass.from_pretrained(model_dir)
         print(model)
 
         if multi_gpu:
