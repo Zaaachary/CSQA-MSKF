@@ -61,6 +61,12 @@ class MultipleChoice:
         self.trainer.train(
             self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, devlp_dataloader, save_last=save_last)
 
+    def evaluate(self, dataloader):
+        record = self.trainer.evaluate(dataloader)
+        eval_loss = record[0].avg()
+        drn, dan = record.list()[1:]
+        print(f"Test: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
+
     def predict(self, dataloader):
         result = []
         idx = []

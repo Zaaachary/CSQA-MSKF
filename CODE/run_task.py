@@ -88,7 +88,7 @@ def main(args):
         controller.train(train_dataloader, deval_dataloader, save_last=args.save_last)
 
     elif args.mission == 'eval':
-        controller.eval(deval_dataloader)
+        controller.evaluate(deval_dataloader)
 
     elif args.mission == 'predict':
         pass
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     # other param
     parser.add_argument('--task_name', type=str, default='AlbertAttnMerge')
-    parser.add_argument('--mission', type=str, choices=['train','eval', 'predict'])
+    parser.add_argument('--mission', type=str, choices=['train', 'eval', 'predict'])
     parser.add_argument('--fp16', type=int, default=0)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
