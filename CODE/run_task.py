@@ -35,15 +35,15 @@ def select_tokenizer(args):
         logger.error("No Tokenizer Matched")
 
 def select_task(args):
-    if args.task_name == "AlbertAttnMerge":
+    if args.task_name == "Albert_AttnMerge":
         return AlbertCSQA, data_processor.Baseline_Processor
-    if args.task_name == "AlbertBaseline":
+    if args.task_name == "Albert_Baseline":
         return AlbertBaseline, data_processor.Baseline_Processor
-    elif args.task_name == "AlbertAttnMergeAddTFM":
+    elif args.task_name == "Albert_AttnMergeAddTFM":
         return AlbertAddTFM, data_processor.Baseline_Processor
-    elif args.task_name == "Bert_OMCS_AttRanker":
+    elif args.task_name == "OMCS_Bert_AttRanker":
         return BertAttRanker, data_processor.OMCS_Processor
-    elif args.task_name == "Albert_OMCS_Baseline":
+    elif args.task_name == "OMCS_Albert_Baseline":
         return AlbertBaseline, data_processor.OMCS_Processor
         
 
@@ -60,24 +60,24 @@ def main(args):
     if args.mission == 'train':
         processor = Processor(args, 'train')
         processor.load_data()
-        train_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
+        train_dataloader = processor.make_dataloader(tokenizer, args.train_batch_size, False, 128)
         logger.info("train dataset loaded")
 
         processor = Processor(args, 'dev')
         processor.load_data()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
+        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128)
         logger.info("dev dataset loaded")
 
     elif args.mission == 'eval':
         processor = Processor(args, 'dev')
         processor.load_data()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128, False)
+        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128, False)
         logger.info("dev dataset loaded")
 
     elif args.mission == 'predict':
         processor = Processor(args, 'test')
         processor.load_data()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
+        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128)
         logger.info("test dataset loaded")
 
     # initalize controller by model
@@ -113,7 +113,8 @@ if __name__ == "__main__":
     
     # hyper param
     parser.add_argument('--cs_num', type=int, default=0)
-    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--train_batch_size', type=int, default=4)
+    parser.add_argument('--evltest_batch_size', type=int, default=4)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
     parser.add_argument('--num_train_epochs', type=int, default=5)
     parser.add_argument('--lr', type=float, default=2e-5)
@@ -127,18 +128,20 @@ if __name__ == "__main__":
     parser.add_argument('--PTM_model_vocab_dir', type=str, default=None)
 
     args_str = r"""
-    --task_name AlbertBaseline
+    --task_name OMCS_Albert_Baseline
     --mission train
     --fp16 0
     --gpu_ids -1
     --print_step 100
 
-    --batch_size 4
-    --lr 1e-5
+    --cs_num 2
+    --train_batch_size 4
+    --evltest_batch_size 16
+    --gradient_accumulation_steps
     --num_train_epochs 4
+    --lr 1e-5
     --warmup_proportion 0.1
     --weight_decay 0.1
-    --cs_num 2
 
     --dataset_dir ../DATA
     --pred_file_dir  ../DATA/result/task_result.json

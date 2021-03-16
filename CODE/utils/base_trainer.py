@@ -150,7 +150,14 @@ class BaseTrainer:
     def save_model(self):
         mkdir_if_notexist(self.output_model_dir)
         logger.info('save model to {}'.format(self.output_model_dir))
-        self.model.save_pretrained(self.output_model_dir)
+        # self.model.save_pretrained(self.output_model_dir)
+
+        output_model_file = os.path.join(self.model_save_dir, WEIGHTS_NAME)
+        output_config_file = os.path.join(self.model_save_dir, CONFIG_NAME)
+    
+        torch.save(self.model.state_dict(), output_model_file)
+        self.model.config.to_json_file(output_config_file)
+        # tokenizer.save_vocabulary(output_dir)
 
     def set_optimizer(self, optimizer):
         if self.fp16:
