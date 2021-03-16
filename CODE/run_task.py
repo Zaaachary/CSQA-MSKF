@@ -22,7 +22,7 @@ from csqa_task.trainer import Trainer
 from utils.common import mkdir_if_notexist, set_seed
 
 from model.AttnMerge import AlbertCSQA, AlbertAddTFM
-from model.Baselines import AlbertBaseine
+from model.Baselines import AlbertBaseline
 from model.HeadHunter import BertAttRanker
 
 
@@ -37,14 +37,14 @@ def select_tokenizer(args):
 def select_task(args):
     if args.task_name == "AlbertAttnMerge":
         return AlbertCSQA, data_processor.Baseline_Processor
-    if args.task_name == "AlbertBaseine":
-        return AlbertBaseine, data_processor.Baseline_Processor
+    if args.task_name == "AlbertBaseline":
+        return AlbertBaseline, data_processor.Baseline_Processor
     elif args.task_name == "AlbertAttnMergeAddTFM":
         return AlbertAddTFM, data_processor.Baseline_Processor
     elif args.task_name == "Bert_OMCS_AttRanker":
         return BertAttRanker, data_processor.OMCS_Processor
     elif args.task_name == "Albert_OMCS_Baseline":
-        return AlbertBaseine, data_processor.OMCS_Processor
+        return AlbertBaseline, data_processor.OMCS_Processor
         
 
 def main(args):
@@ -71,7 +71,7 @@ def main(args):
     elif args.mission == 'eval':
         processor = Processor(args, 'dev')
         processor.load_data()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128)
+        deval_dataloader = processor.make_dataloader(tokenizer, args.batch_size, False, 128, False)
         logger.info("dev dataset loaded")
 
     elif args.mission == 'predict':
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     parser.add_argument('--PTM_model_vocab_dir', type=str, default=None)
 
     args_str = r"""
-    --task_name AlbertBaseine
+    --task_name AlbertBaseline
     --mission train
     --fp16 0
     --gpu_ids -1

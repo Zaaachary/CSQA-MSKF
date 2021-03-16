@@ -95,7 +95,7 @@ class Trainer(BaseTrainer):
         if mode == 'both':
             devlp_loss = devlp_record[0].avg()
             drn, dan = devlp_record.list()[1:]  # 335 1221
-            devlp_str = f"| Dev: loss {devlp_loss:.4f}; acc {int(trn)/int(tan):.4f} ({int(drn)}/{int(dan)})"
+            devlp_str = f"| Dev: loss {devlp_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})"
         else:
             devlp_str = ""
 

@@ -14,10 +14,10 @@ import torch.nn.functional as F
 from transformers import AlbertModel, AlbertPreTrainedModel
 
 
-class AlbertBaseine(AlbertPreTrainedModel):
+class AlbertBaseline(AlbertPreTrainedModel):
 
     def __init__(self, config):
-        super(AlbertBaseine, self).__init__(config)
+        super(AlbertBaseline, self).__init__(config)
 
         self.albert = AlbertModel(config)
 
@@ -36,7 +36,7 @@ class AlbertBaseine(AlbertPreTrainedModel):
         # logits: [B, 2]
         logits = self._forward(input_ids, attention_mask, token_type_ids)
         loss = F.cross_entropy(logits, labels)      # get the CELoss
-        
+
         with torch.no_grad():
             logits = F.softmax(logits, dim=1)       # get the score
             predicts = torch.argmax(logits, dim=1)  # find the result

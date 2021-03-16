@@ -141,11 +141,12 @@ class OMCS_Processor():
         all_attention_mask = torch.stack(all_attention_mask)
         all_label = torch.tensor(all_label, dtype=torch.long)
 
-        data = (all_input_ids, all_token_type_ids, all_attention_mask, all_label)
+        data = (all_input_ids, all_attention_mask, all_token_type_ids, all_label)
 
         dataset = TensorDataset(*data)
         sampler = RandomSampler(dataset) if shuffle else None
-        dataLoader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, drop_last=drop_last)
+        dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, drop_last=drop_last)
 
-        return dataLoader
+        # import pdb; pdb.set_trace()
+        return dataloader
         

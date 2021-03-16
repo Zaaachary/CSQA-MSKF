@@ -5,13 +5,13 @@ python CODE\\run_task.py^
     --gpu_ids 0^
     --print_step 100^
     ^
-    --batch_size 2^
-    --gradient_accumulation_steps 8^
+    --cs_num 0^
+    --batch_size 3^
+    --gradient_accumulation_steps 10^
     --lr 2e-5^
-    --num_train_epochs 4^
+    --num_train_epochs 10^
     --warmup_proportion 0.1^
     --weight_decay 0.1^
-    --cs_num 0^
     ^
     --dataset_dir DATA^
     --pred_file_dir  DATA/result/task_result.json^
