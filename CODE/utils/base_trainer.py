@@ -37,7 +37,7 @@ class BaseTrainer:
     9. self._report()
     0. self._forward()
     """
-    def __init__(self, model, multi_gpu, device, print_step, output_model_dir, v_num):
+    def __init__(self, model, multi_gpu, device, print_step, model_save_dir, v_num):
         """
         device: 主device
         multi_gpu: 是否使用了多个gpu
@@ -47,7 +47,7 @@ class BaseTrainer:
         self.multi_gpu = multi_gpu
         self.model = model.to(device)
         self.print_step = print_step
-        self.output_model_dir = output_model_dir
+        self.model_save_dir = model_save_dir
         self.v_num = v_num
         self.train_record = Vn(v_num)
 
@@ -61,10 +61,8 @@ class BaseTrainer:
         best_dev_acc = 0
         self.global_step = 0
         self.train_record.init()
-        self.model.zero_grad()
 
         for epoch in range(int(epoch_num)):
-            # print(f'---- Epoch: {epoch+1:02} ----')
             logger.info(f'Epoch: {epoch+1:02}')
             for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
                 self.model.train()
@@ -111,7 +109,7 @@ class BaseTrainer:
 
     def _forward(self, batch, record):
         """
-        rewrite accroding to actual situation
+        rewrite! accroding to actual situation
         """
         batch = tuple(t.to(self.device) for t in batch)
         loss, acc = self.model(*batch)
@@ -140,7 +138,7 @@ class BaseTrainer:
 
     def _report(self, train_record, devlp_record):
         '''
-        rewrite accroding to actual situation
+        rewrite! accroding to actual situation
         '''
         tloss, tacc = train_record.avg()
         dloss, dacc = devlp_record.avg()
@@ -148,9 +146,9 @@ class BaseTrainer:
                 tloss, tacc, dloss, dacc))
 
     def save_model(self):
-        mkdir_if_notexist(self.output_model_dir)
-        logger.info('save model to {}'.format(self.output_model_dir))
-        # self.model.save_pretrained(self.output_model_dir)
+        mkdir_if_notexist(self.model_save_dir)
+        logger.info('save model to {}'.format(self.model_save_dir))
+        # self.model.save_pretrained(self.model_save_dir)
 
         output_model_file = os.path.join(self.model_save_dir, WEIGHTS_NAME)
         output_config_file = os.path.join(self.model_save_dir, CONFIG_NAME)
@@ -191,6 +189,7 @@ class BaseTrainer:
           num_training_steps=t_total)
 
     @classmethod
+    # TODO
     def load_model(cls, ConfigClass, ModelClass,
                    multi_gpu, device, print_step, output_model_dir,fp16,  **params):
 

@@ -45,7 +45,6 @@ def select_task(args):
         return BertAttRanker, data_processor.OMCS_Processor
     elif args.task_name == "OMCS_Albert_Baseline":
         return AlbertBaseline, data_processor.OMCS_Processor
-        
 
 def main(args):
     start = time.time()
@@ -89,7 +88,7 @@ def main(args):
         controller.train(train_dataloader, deval_dataloader, save_last=args.save_last)
 
     elif args.mission == 'eval':
-        pass
+        controller.eval(deval_dataloader)
 
     elif args.mission == 'predict':
         pass
