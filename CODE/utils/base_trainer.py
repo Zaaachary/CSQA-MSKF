@@ -64,25 +64,27 @@ class BaseTrainer:
 
         for epoch in range(int(epoch_num)):
             logger.info(f'Epoch: {epoch+1:02}')
+
             for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
                 self.model.train()
+
                 self._step(batch, gradient_accumulation_steps)
 
                 if self.global_step % self.print_step == 0:
-
                     self._report(self.train_record, mode='single')
                     self.train_record.init()
-
+            
+            # end of epoch, do eval and report
             dev_record = self.evaluate(dev_dataloader)
             current_acc = dev_record.list()[1]
             self.model.zero_grad()
+            self._report(self.train_record, dev_record)
 
+            # save model if better than before
             if not save_last and current_acc > best_dev_acc:
                 best_dev_acc = current_acc
                 self.save_model()
-
-            self._report(self.train_record, dev_record)
-
+        # end of train
         if save_last:
             self.save_model()
 
@@ -129,7 +131,7 @@ class BaseTrainer:
         record = Vn(self.v_num)
 
         # for batch in tqdm(dataloader, desc, miniters=10):
-        for batch in dataloader:
+        for batch in tqdm(dataloader):
             self.model.eval()
             with torch.no_grad():
                 self._forward(batch, record)

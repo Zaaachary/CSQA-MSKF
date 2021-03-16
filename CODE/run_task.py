@@ -59,12 +59,12 @@ def main(args):
     if args.mission == 'train':
         processor = Processor(args, 'train')
         processor.load_data()
-        train_dataloader = processor.make_dataloader(tokenizer, args.train_batch_size, False, 128)
+        train_dataloader = processor.make_dataloader(tokenizer, args.train_batch_size, False, 128, False)
         logger.info("train dataset loaded")
 
         processor = Processor(args, 'dev')
         processor.load_data()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128)
+        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128, False)
         logger.info("dev dataset loaded")
 
     elif args.mission == 'eval':
@@ -76,7 +76,7 @@ def main(args):
     elif args.mission == 'predict':
         processor = Processor(args, 'test')
         processor.load_data()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128)
+        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128, False)
         logger.info("test dataset loaded")
 
     # initalize controller by model

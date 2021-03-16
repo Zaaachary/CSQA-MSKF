@@ -52,9 +52,9 @@ class MultipleChoice:
         total_training_step = train_step // self.config.gradient_accumulation_steps * self.config.num_train_epochs
         warmup_proportion = self.config.warmup_proportion
 
+        # make and set optimizer & scheduler
         optimizer = self.trainer.make_optimizer(self.config.weight_decay, self.config.lr)
         scheduler = self.trainer.make_scheduler(optimizer, warmup_proportion, total_training_step)
-
         self.trainer.set_optimizer(optimizer)
         self.trainer.set_scheduler(scheduler)
 
