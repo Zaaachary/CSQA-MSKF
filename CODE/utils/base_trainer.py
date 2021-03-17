@@ -95,6 +95,7 @@ class BaseTrainer:
                             self._report(dev_record, 'Dev')
                             cur_loss, cur_acc = dev_record.list()[:-1]
                             self.save_or_not(cur_loss, cur_acc)
+                            bar.text(f'current best dev acc: {self.best_acc}')
                 else:
                     self._report(self.train_record)  # last steps not reach print_step
 
