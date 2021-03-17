@@ -1,11 +1,10 @@
 import os
-import logging; logging.getLogger("transformers").setLevel(logging.WARNING)
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+import json
 
 import torch
 import random
 import numpy as np
+
 
 def save_csv(data, path,sep=',', type='default'):
     if len(data) < 1:
@@ -46,6 +45,17 @@ def get_device(gpu_ids):
         print('device is cuda, # cuda is: %d' % n_gpu)
     device = torch.device(device_name)
     return device
+
+def set_seed(args):
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    # if args.n_gpu > 0:
+    #     torch.cuda.manual_seed_all(args.seed)
+
+def result_dump(args, target, file_name):
+    with open(os.path.join(args.result_dir, file_name), 'w', encoding='utf-8') as f:
+        json.dump(target, f, ensure_ascii=False, indent=4)
 
 
 class AvgVar:
@@ -98,44 +108,3 @@ class Vn:
 
     def __repr__(self):
         return self.__str__()
-
-class F1_Measure:
-    """
-    ----------------
-            真实
-            P   N
-    预   P  tp  fp
-    测   N  fn  tn
-    ----------------
-
-    prec = tp / (tp + fp)
-    recall = tp / (tp + fn)
-    f1 = 2 * prec * recall / (prec + recall)
-       = 2 * tp / (tp + fp) * tp / (tp + fn) / [ tp / (tp + fp) + tp / (tp + fn)]
-       = 2 * tp / [tp + fp + tp + fn]
-    """
-    def __init__(self):
-        self.tp = 0
-        self.tp_fp_tp_fn = 0
-
-    def inc(self, tp, tp_fp, tp_fn):
-        # tp_fp: 预测值为正的
-        # tp_fn: 真实值为正的
-        self.tp += tp
-        self.tp_fp_tp_fn += tp_fp + tp_fn
-
-    def f1(self):
-        f1 = 2 * self.tp / self.tp_fp_tp_fn if self.tp else 0
-        return f1
-
-
-def f1_measure(tp, fp, fn):
-    return 2 * tp / (tp + fp + tp + fn) if tp else 0
-
-
-def set_seed(args):
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    # if args.n_gpu > 0:
-    #     torch.cuda.manual_seed_all(args.seed)

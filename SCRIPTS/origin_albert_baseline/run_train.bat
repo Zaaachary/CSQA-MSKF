@@ -1,5 +1,5 @@
 python CODE\\run_task.py^
-    --task_name Albert_Baseline^
+    --task_name Origin_Albert_Baseline^
     --mission train^
     --fp16 0^
     --gpu_ids 0^

@@ -5,9 +5,13 @@
 @Contact :   li_zaaachary@163.com
 @Dscpt   :   
 """
-import logging; logging.getLogger("trainer")
-logging.basicConfig(level = logging.INFO,format = '\n%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+import logging
+
+logger = logging.getLogger("trainer")
+console = logging.StreamHandler();console.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console.setFormatter(formatter)
+logger.addHandler(console)
 
 import torch
 from utils.base_trainer import BaseTrainer
@@ -52,26 +56,7 @@ class Trainer(BaseTrainer):
         token_type_ids = token_type_ids[:, :, :max_seq_length]
         
         return input_ids, attention_mask, token_type_ids, labels
-         
-    # def _step(self, batch):
-    #     loss = self._forward(batch, self.train_record)
-    #     if self.fp16:
-    #         with amp.scale_loss(loss, self.optimizer) as scaled_loss:
-    #             scaled_loss.backward()
-    #         torch.nn.utils.clip_grad_norm_(amp.master_params(self.optimizer), 1) 
-    #     else:
-    #         loss.backward()
-
-    #         torch.nn.utils.clip_grad_norm_(
-    #             self.model.parameters(), max_norm=1)  # max_grad_norm = 1
-
-        self.optimizer.step()
-        self.scheduler.step()
-        self.model.zero_grad()
-        self.global_step += 1
         
-
-
     def _forward(self, batch, record):
         batch = self.clip_batch(batch)
         batch = tuple(t.to(self.device) for t in batch)
@@ -85,18 +70,15 @@ class Trainer(BaseTrainer):
 
         return result[0]    # loss
 
-    def _report(self, train_record, devlp_record=None, mode='both'):
+    def _report(self, record, mode='Train'):
+        '''
+        mode: Train, Dev
+        '''
         # record: loss, right_num, all_num
-        # import pdb; pdb.set_trace()
-        train_loss = train_record[0].avg()  # utils.common.AvgVar
-        trn, tan = train_record.list()[1:]  # right_num, batch_size
-        train_str = f"Train: loss {train_loss:.4f}; acc {int(trn)/int(tan):.4f} ({int(trn)}/{int(tan)})"
-        
-        if mode == 'both':
-            devlp_loss = devlp_record[0].avg()
-            drn, dan = devlp_record.list()[1:]  # 335 1221
-            devlp_str = f"| Dev: loss {devlp_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})"
-        else:
-            devlp_str = ""
 
-        logger.info(f'{train_str} {devlp_str}')
+        loss = record[0].avg()  # utils.common.AvgVar
+
+        right_num, all_num = record.list()[1:]  # right_num, all_num
+        output_str = f"{mode}: loss {loss:.4f}; acc {int(right_num)/int(all_num):.4f} ({int(right_num)}/{int(all_num)})"
+
+        logger.info(output_str)

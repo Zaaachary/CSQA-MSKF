@@ -9,6 +9,5 @@ python CODE\\run_task.py^
     --evltest_batch_size 12^
     ^
     --dataset_dir DATA^
-    --pred_file_dir  DATA/result/task_result.json^
-    --model_save_dir DATA/result/albert-base-v2/^
+    --saved_model_dir D:\CODE\Commonsense\CSQA_dev\DATA\result\OMCS_Albert_Baseline\albert-base-v2\Mar17-1730_lr2e-05_warm0.1_decay0.1_seed42_cs0^
     --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\albert-base-v2^

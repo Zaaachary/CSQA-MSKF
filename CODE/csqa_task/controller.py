@@ -3,11 +3,23 @@
 @File    :   controller.py
 @Author  :   Zachary Li
 @Contact :   li_zaaachary@163.com
-@Dscpt   :   程序主要控制器
+@Dscpt   :   任务控制器
+
+- load PTM model or trained model
+- train and save model by calling Trainer
+- evaluate model by calling Trainer
+- make prediction by running model
 """
+import logging
+logger = logging.getLogger("controller")
+console = logging.StreamHandler();console.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console.setFormatter(formatter)
+logger.addHandler(console)
+
 import torch
 from tqdm import tqdm
-from utils.common import get_device
+from utils.common import get_device, mkdir_if_notexist
 
 from csqa_task.trainer import Trainer
 
@@ -20,33 +32,31 @@ class MultipleChoice:
     """
     def __init__(self, args):
         self.config = args
+        gpu_ids = list(map(int, self.config.gpu_ids.split()))
+        self.multi_gpu = (len(gpu_ids) > 1)
+        self.device = get_device(gpu_ids)
 
     def init(self, ModelClass):
         '''
         ModelClass: e.g. modelTC
         '''
-        gpu_ids = list(map(int, self.config.gpu_ids.split()))
-        multi_gpu = (len(gpu_ids) > 1)
-        self.device = get_device(gpu_ids)
-
+        # load model
         if self.config.mission == "train":
             model_dir = self.config.PTM_model_vocab_dir
         else:
-            model_dir = self.config.model_save_dir
-
-        # logger.info('init_model', model_dir)
+            model_dir = self.config.saved_model_dir
         model = ModelClass.from_pretrained(model_dir)
-        print(model)
+        # print(model)
 
-        if multi_gpu:
-            model = torch.nn.DataParallel(model, device_ids=gpu_ids)
-
+        if self.multi_gpu:
+            model = torch.nn.DataParallel(model, device_ids=self.gpu_ids)
+            
         self.trainer = Trainer(
-            model, multi_gpu, self.device,
-            self.config.print_step, self.config.model_save_dir, self.config.fp16)
+            model, self.multi_gpu, self.device,
+            self.config.print_step, self.config.result_dir, self.config.fp16)
         self.model = model
 
-    def train(self, train_dataloader, devlp_dataloader, save_last=True):
+    def train(self, train_dataloader, devlp_dataloader):
         # t_total = train_step // args.gradient_accumulation_steps * args.num_train_epochs // device_num
         train_step = len(train_dataloader)
         total_training_step = train_step // self.config.gradient_accumulation_steps * self.config.num_train_epochs
@@ -59,13 +69,13 @@ class MultipleChoice:
         self.trainer.set_scheduler(scheduler)
 
         self.trainer.train(
-            self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, devlp_dataloader, save_last=save_last)
+            self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, devlp_dataloader, self.config.save_mode)
 
     def evaluate(self, dataloader):
         record = self.trainer.evaluate(dataloader)
         eval_loss = record[0].avg()
         drn, dan = record.list()[1:]
-        print(f"Test: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
+        logger.info(f"eval: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
 
     def predict(self, dataloader):
         result = []

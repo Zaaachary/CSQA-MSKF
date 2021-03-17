@@ -6,24 +6,26 @@
 @Dscpt   :   
 """
 import argparse
-import random
+import logging
+import os
 import time
-
-import logging; logging.getLogger("run_task").setLevel(logging.WARNING)
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+from pprint import pprint
 
 from tqdm import tqdm
 from transformers import AlbertTokenizer, BertTokenizer
 
 from csqa_task import data_processor
 from csqa_task.controller import MultipleChoice
-from csqa_task.trainer import Trainer
-from utils.common import mkdir_if_notexist, set_seed
-
-from model.AttnMerge import AlbertCSQA, AlbertAddTFM
+from model.AttnMerge import AlbertAddTFM, AlbertCSQA
 from model.Baselines import AlbertBaseline
 from model.HeadHunter import BertAttRanker
+from utils.common import mkdir_if_notexist, result_dump, set_seed
+
+logger = logging.getLogger("run_task")
+console = logging.StreamHandler();console.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console.setFormatter(formatter)
+logger.addHandler(console)
 
 
 def select_tokenizer(args):
@@ -35,21 +37,56 @@ def select_tokenizer(args):
         logger.error("No Tokenizer Matched")
 
 def select_task(args):
-    if args.task_name == "Albert_AttnMerge":
+    '''
+    task format: [data processor type]_[PTM model]_[model name]
+    '''
+    if args.task_name == "Origin_Albert_AttnMerge":
         return AlbertCSQA, data_processor.Baseline_Processor
-    if args.task_name == "Albert_Baseline":
+    if args.task_name == "Origin_Albert_Baseline":
         return AlbertBaseline, data_processor.Baseline_Processor
-    elif args.task_name == "Albert_AttnMergeAddTFM":
+    elif args.task_name == "Origin_Albert_AttnMergeAddTFM":
         return AlbertAddTFM, data_processor.Baseline_Processor
     elif args.task_name == "OMCS_Bert_AttRanker":
         return BertAttRanker, data_processor.OMCS_Processor
     elif args.task_name == "OMCS_Albert_Baseline":
         return AlbertBaseline, data_processor.OMCS_Processor
 
+def set_result(args):
+    '''
+    set result dir name accroding to the task
+    '''
+    if args.mission == 'train':
+        task_str = time.strftime(r'%b%d-%H%M') + f'_lr{args.lr:.0e}_warm{args.warmup_proportion:0.2}_decay{args.weight_decay:0.2}_seed{args.seed}'
+        if 'OMCS' in args.task_name:
+            task_str += f'_cs{args.cs_num}'
+
+        args.result_dir = os.path.join(
+            args.result_dir, args.task_name, 
+            os.path.basename(args.PTM_model_vocab_dir), 
+            task_str, ''
+            )
+    else:
+        args.result_dir = args.saved_model_dir
+    mkdir_if_notexist(args.result_dir)
+
+    # set logging
+    log_file_dir = os.path.join(args.result_dir, 'task_log.txt')
+    logging.basicConfig(
+        filename = log_file_dir,
+        filemode = 'a',
+        level = logging.INFO, 
+        format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt = r"%y/%m/%d %H:%M"
+        )
+
+    result_dump(args, args.__dict__, 'task_args.json')
+    pprint(args.__dict__)
+
 def main(args):
     start = time.time()
+    logger.info(f"start in {start}")
+    set_result(args)
     set_seed(args)
-    print("start in {}".format(start))
 
     # load data and preprocess
     logger.info(f"select tokenizer and model for task {args.task_name}")
@@ -85,7 +122,7 @@ def main(args):
 
     # run task accroading to mission
     if args.mission == 'train':
-        controller.train(train_dataloader, deval_dataloader, save_last=args.save_last)
+        controller.train(train_dataloader, deval_dataloader)
 
     elif args.mission == 'eval':
         controller.evaluate(deval_dataloader)
@@ -94,8 +131,7 @@ def main(args):
         pass
 
     end = time.time()
-    logger.info("task start in {:.0f}, end in {:.0f}".format(start, end))
-    logger.info("total run time:%.2f second"%(end-start))
+    logger.info("task total time:%.2f second"%(end-start))
 
 
 if __name__ == "__main__":
@@ -107,7 +143,7 @@ if __name__ == "__main__":
     parser.add_argument('--fp16', type=int, default=0)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--save_last', action="store_true")
+    parser.add_argument('--save_mode', type=str, choices=['epoch', 'step', 'end'], default='end')
     parser.add_argument('--print_step', type=int, default=250)
     
     # hyper param
@@ -122,8 +158,8 @@ if __name__ == "__main__":
 
     # data param
     parser.add_argument('--dataset_dir', type=str, default='../DATA')
-    parser.add_argument('--pred_file_dir', type=str)       # output of predict file
-    parser.add_argument('--model_save_dir', type=str, default=None)     # 
+    parser.add_argument('--result_dir', type=str, default=None)
+    parser.add_argument('--saved_model_dir', type=str, default=None)     # 
     parser.add_argument('--PTM_model_vocab_dir', type=str, default=None)
 
     args_str = r"""
@@ -147,8 +183,8 @@ if __name__ == "__main__":
     --model_save_dir ../DATA/result/TCmodel/
     --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\albert-base-v2
     """
-    # args = parser.parse_args(args_str.split())
+
     args = parser.parse_args()
-    print(args)
+    # args = parser.parse_args(args_str.split())
 
     main(args)
