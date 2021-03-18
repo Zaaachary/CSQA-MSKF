@@ -16,15 +16,10 @@ console.setFormatter(formatter)
 logger.addHandler(console)
 
 import torch
-from torch.serialization import save
 from tqdm.autonotebook import tqdm
 from transformers.file_utils import CONFIG_NAME, WEIGHTS_NAME
 from transformers.optimization import (
     AdamW, get_cosine_with_hard_restarts_schedule_with_warmup)
-
-# from alive_progress import alive_bar, config_handler, bouncing_spinner_factory
-# train_spinner = bouncing_spinner_factory('2021 NLPCC please', 15, hiding=True)
-# config_handler.set_global(spinner=train_spinner, bar='classic')
 
 from .common import Vn, mkdir_if_notexist
 
@@ -72,30 +67,24 @@ class BaseTrainer:
             self.global_step = 0
             self.train_record.init()
 
-            # for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
             total = len(train_dataloader)
             if save_mode == 'step':
                 total +=  + len(dev_dataloader) * len(train_dataloader)//self.print_step
 
-            # with alive_bar(total) as bar:
-            for step, batch in tqdm(enumerate(train_dataloader)):
-                # bar.text('train')
+            for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
                 self.model.train()
+                # import pdb; pdb.set_trace()
                 self._step(batch, gradient_accumulation_steps)
-                # bar()
-
                 # step report
                 if self.global_step % self.print_step == 0:
                     self._report(self.train_record, 'Train')
                     self.train_record.init()
 
                     if save_mode == 'step':
-                        # bar.text('dev')
                         dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
                         self._report(dev_record, 'Dev')
                         cur_loss, cur_acc = dev_record.list()[:-1]
                         self.save_or_not(cur_loss, cur_acc)
-                        # bar.text(f'current best dev acc: {self.best_acc}')
             else:
                 self._report(self.train_record)  # last steps not reach print_step
 
@@ -111,6 +100,17 @@ class BaseTrainer:
         # end of train
         if save_mode == 'end':
             self.save_model()
+
+    def evaluate(self, dataloader):
+        record = Vn(self.v_num)
+
+        logger.info('evaluate the model')
+        for batch in dataloader:
+            self.model.eval()
+            with torch.no_grad():
+                self._forward(batch, record)
+
+        return record
 
     def _step(self, batch, gradient_accumulation_steps):
         loss = self._forward(batch, self.train_record)
@@ -133,16 +133,6 @@ class BaseTrainer:
 
         self.global_step += 1
 
-    def _forward(self, batch, record):
-        """
-        rewrite! accroding to actual situation
-        """
-        batch = tuple(t.to(self.device) for t in batch)
-        loss, acc = self.model(*batch)
-        loss, acc = self._mean((loss, acc))
-        record.inc([loss.item(), acc.item()])
-        return loss
-
     def _mean(self, tuples):
         """
         vars 需要是元组
@@ -150,27 +140,6 @@ class BaseTrainer:
         if self.multi_gpu:
             return tuple(v.mean() for v in tuples)
         return tuples
-
-    def evaluate(self, dataloader, bar=None):
-        record = Vn(self.v_num)
-
-        # for batch in tqdm(dataloader, desc, miniters=10):
-        # for batch in tqdm(dataloader, desc='Dev'):
-        for batch in tqdm(dataloader):
-            # if bar:
-            #     bar()
-            self.model.eval()
-            with torch.no_grad():
-                self._forward(batch, record)
-
-        return record
-
-    def _report(self, train_record, mode='Train'):
-        '''
-        rewrite! accroding to actual situation
-        '''
-        tloss, tacc = train_record.avg()
-        print("{mode} loss %.4f acc %.4f" % (tloss, tacc))
 
     def save_or_not(self, loss, acc):
         if self.best_acc < acc:
@@ -224,3 +193,20 @@ class BaseTrainer:
         return get_cosine_with_hard_restarts_schedule_with_warmup(
           optimizer, num_warmup_steps=warmup_proportion * t_total,
           num_training_steps=t_total)
+
+    def _forward(self, batch, record):
+        """
+        rewrite! accroding to actual situation
+        """
+        batch = tuple(t.to(self.device) for t in batch)
+        loss, acc = self.model(*batch)
+        loss, acc = self._mean((loss, acc))
+        record.inc([loss.item(), acc.item()])
+        return loss
+
+    def _report(self, train_record, mode='Train'):
+        '''
+        rewrite! accroding to actual situation
+        '''
+        tloss, tacc = train_record.avg()
+        print("{mode} loss %.4f acc %.4f" % (tloss, tacc))
