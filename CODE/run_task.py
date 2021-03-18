@@ -23,7 +23,7 @@ from utils.common import mkdir_if_notexist, result_dump, set_seed
 
 logger = logging.getLogger("run_task")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 
@@ -93,45 +93,21 @@ def main(args):
     tokenizer = select_tokenizer(args)
     model, Processor = select_task(args)
 
-    if args.mission == 'train':
-        processor = Processor(args, 'train')
-        processor.load_data()
-        train_dataloader = processor.make_dataloader(tokenizer, args.train_batch_size, False, 128, False)
-        logger.info("train dataset loaded")
-
-        processor = Processor(args, 'dev')
-        processor.load_data()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128, False)
-        logger.info("dev dataset loaded")
-
-    elif args.mission == 'eval':
-        processor = Processor(args, 'dev')
-        processor.load_data()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128, False)
-        logger.info("dev dataset loaded")
-
-    elif args.mission == 'predict':
-        processor = Processor(args, 'test')
-        processor.load_data()
-        deval_dataloader = processor.make_dataloader(tokenizer, args.evltest_batch_size, False, 128, False)
-        logger.info("test dataset loaded")
-
     # initalize controller by model
     controller = MultipleChoice(args)
-    controller.init(model)
+    controller.load_model(model)
+    controller.load_data(Processor, tokenizer)
 
     # run task accroading to mission
     if args.mission == 'train':
-        controller.train(train_dataloader, deval_dataloader)
-
+        controller.train()
     elif args.mission == 'eval':
-        controller.evaluate(deval_dataloader)
-
+        controller.evaluate()
     elif args.mission == 'predict':
         pass
 
     end = time.time()
-    logger.info("task total time:%.2f second"%(end-start))
+    logger.info(f"task total run time {end-start:.2f} second")
 
 
 if __name__ == "__main__":

@@ -73,8 +73,7 @@ class Baseline_Processor(object):
 
         return dataloader
 
-
-class OMCS_Processor():
+class OMCS_Processor(object):
     
     def __init__(self, args, dataset_type):
         self.args = args

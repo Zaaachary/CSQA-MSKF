@@ -6,6 +6,10 @@ from torch.utils.data import TensorDataset
 from utils.feature import Feature
 
 class CSQAExample:
+    '''
+    "[CLS] question [SEP] question_concept [SEP] Choice [SEP]"
+    '''
+
     def __init__(self, example_id, label, text_list):
         self.example_id = example_id
         self.text_list = text_list

@@ -11,7 +11,7 @@ https://huggingface.co/transformers/main_classes/optimizer_schedules.html#transf
 import os
 import logging; logger = logging.getLogger("base_trainer")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 
@@ -73,10 +73,10 @@ class BaseTrainer:
 
             for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
                 self.model.train()
-                # import pdb; pdb.set_trace()
                 self._step(batch, gradient_accumulation_steps)
                 # step report
                 if self.global_step % self.print_step == 0:
+                    print(' ')
                     self._report(self.train_record, 'Train')
                     self.train_record.init()
 

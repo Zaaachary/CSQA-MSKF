@@ -6,14 +6,17 @@
 @Dscpt   :   任务控制器
 
 - load PTM model or trained model
+- load data by calling Processor
 - train and save model by calling Trainer
 - evaluate model by calling Trainer
 - make prediction by running model
 """
 import logging
+
+from torch.utils.data import dataloader
 logger = logging.getLogger("controller")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 
@@ -32,11 +35,16 @@ class MultipleChoice:
     """
     def __init__(self, args):
         self.config = args
+        self.model = None
+        self.train_dataloader = None
+        self.deval_dataloader = None
+        self.test_dataloader = None
+
         gpu_ids = list(map(int, self.config.gpu_ids.split()))
         self.multi_gpu = (len(gpu_ids) > 1)
         self.device = get_device(gpu_ids)
 
-    def init(self, ModelClass):
+    def load_model(self, ModelClass):
         '''
         ModelClass: e.g. modelTC
         '''
@@ -56,9 +64,41 @@ class MultipleChoice:
             self.config.print_step, self.config.result_dir, self.config.fp16)
         self.model = model
 
-    def train(self, train_dataloader, devlp_dataloader):
+    def load_data(self, ProcessorClass, tokenizer):
+        if self.config.mission == "train":
+            processor = ProcessorClass(self.config, 'train')
+            processor.load_data()
+            self.train_dataloader = processor.make_dataloader(
+                tokenizer, self.config.train_batch_size, False, 128)
+            # self.train_dataloader = processor.make_dataloader(self.tokenizer, self.config.train_batch_size, False, 128, shuffle=False)
+            logger.info("train dataset loaded")
+
+            processor = ProcessorClass(self.config, 'dev')
+            processor.load_data()
+            self.deval_dataloader = processor.make_dataloader(
+                tokenizer, self.config.train_batch_size, False, 128)
+            logger.info("dev dataset loaded")
+        
+        elif self.config.mission == "eval":
+            processor = ProcessorClass(self.config, 'dev')
+            processor.load_data()
+            self.deval_dataloader = processor.make_dataloader(
+                tokenizer, self.config.train_batch_size, False, 128)
+            logger.info("dev dataset loaded")
+
+        elif self.config.mission == 'predict':
+            processor = ProcessorClass(self.config, 'test')
+            processor.load_data()
+            self.test_dataloader = processor.make_dataloader(
+                tokenizer, self.config.evltest_batch_size, False, 128, False)
+            logger.info("test dataset loaded")
+
+    def train(self):
         # t_total = train_step // args.gradient_accumulation_steps * args.num_train_epochs // device_num
+        train_dataloader = self.train_dataloader
+        deval_dataloader = self.deval_dataloader
         train_step = len(train_dataloader)
+
         total_training_step = train_step // self.config.gradient_accumulation_steps * self.config.num_train_epochs
         warmup_proportion = self.config.warmup_proportion
 
@@ -69,19 +109,22 @@ class MultipleChoice:
         self.trainer.set_scheduler(scheduler)
 
         self.trainer.train(
-            self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, devlp_dataloader, self.config.save_mode)
+            self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, deval_dataloader, self.config.save_mode)
 
-    def evaluate(self, dataloader):
+    def evaluate(self):
+        dataloader = self.deval_dataloader
         record = self.trainer.evaluate(dataloader)
         eval_loss = record[0].avg()
         drn, dan = record.list()[1:]
         logger.info(f"eval: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
 
-    def predict(self, dataloader):
+    def predict(self):
         result = []
         idx = []
         labels = []
         predicts = []
+
+        dataloader = self.deval_dataloader
 
         for batch in tqdm(dataloader):
             self.model.eval()

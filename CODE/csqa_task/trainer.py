@@ -6,10 +6,11 @@
 @Dscpt   :   
 """
 import logging
+import pdb
 
 logger = logging.getLogger("trainer")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 
@@ -55,6 +56,8 @@ class Trainer(BaseTrainer):
         attention_mask = attention_mask[:, :, :max_seq_length]
         token_type_ids = token_type_ids[:, :, :max_seq_length]
         
+        # logger.info(f'clip batch to {max_seq_length}')
+
         return input_ids, attention_mask, token_type_ids, labels
         
     def _forward(self, batch, record):

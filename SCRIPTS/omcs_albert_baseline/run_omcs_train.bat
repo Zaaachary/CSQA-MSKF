@@ -6,7 +6,7 @@ python CODE\\run_task.py^
     --save_mode step^
     --print_step 100^
     ^
-    --cs_num 0^
+    --cs_num 4^
     --train_batch_size 2^
     --evltest_batch_size 12^
     --gradient_accumulation_steps 16^
