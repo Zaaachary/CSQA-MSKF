@@ -22,9 +22,9 @@ from transformers.file_utils import CONFIG_NAME, WEIGHTS_NAME
 from transformers.optimization import (
     AdamW, get_cosine_with_hard_restarts_schedule_with_warmup)
 
-from alive_progress import alive_bar, config_handler, bouncing_spinner_factory
-train_spinner = bouncing_spinner_factory('2021 NLPCC please', 15, hiding=True)
-config_handler.set_global(spinner=train_spinner, bar='classic')
+# from alive_progress import alive_bar, config_handler, bouncing_spinner_factory
+# train_spinner = bouncing_spinner_factory('2021 NLPCC please', 15, hiding=True)
+# config_handler.set_global(spinner=train_spinner, bar='classic')
 
 from .common import Vn, mkdir_if_notexist
 
@@ -77,27 +77,27 @@ class BaseTrainer:
             if save_mode == 'step':
                 total +=  + len(dev_dataloader) * len(train_dataloader)//self.print_step
 
-            with alive_bar(total) as bar:
-                for step, batch in enumerate(train_dataloader):
-                    bar.text('train')
-                    self.model.train()
-                    self._step(batch, gradient_accumulation_steps)
-                    bar()
+            # with alive_bar(total) as bar:
+            for step, batch in tqdm(enumerate(train_dataloader)):
+                # bar.text('train')
+                self.model.train()
+                self._step(batch, gradient_accumulation_steps)
+                # bar()
 
-                    # step report
-                    if self.global_step % self.print_step == 0:
-                        self._report(self.train_record, 'Train')
-                        self.train_record.init()
+                # step report
+                if self.global_step % self.print_step == 0:
+                    self._report(self.train_record, 'Train')
+                    self.train_record.init()
 
-                        if save_mode == 'step':
-                            bar.text('dev')
-                            dev_record = self.evaluate(dev_dataloader, bar)  # loss, right_num, all_num
-                            self._report(dev_record, 'Dev')
-                            cur_loss, cur_acc = dev_record.list()[:-1]
-                            self.save_or_not(cur_loss, cur_acc)
-                            bar.text(f'current best dev acc: {self.best_acc}')
-                else:
-                    self._report(self.train_record)  # last steps not reach print_step
+                    if save_mode == 'step':
+                        # bar.text('dev')
+                        dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
+                        self._report(dev_record, 'Dev')
+                        cur_loss, cur_acc = dev_record.list()[:-1]
+                        self.save_or_not(cur_loss, cur_acc)
+                        # bar.text(f'current best dev acc: {self.best_acc}')
+            else:
+                self._report(self.train_record)  # last steps not reach print_step
 
             # epoch report
             dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
@@ -156,9 +156,9 @@ class BaseTrainer:
 
         # for batch in tqdm(dataloader, desc, miniters=10):
         # for batch in tqdm(dataloader, desc='Dev'):
-        for batch in dataloader:
-            if bar:
-                bar()
+        for batch in tqdm(dataloader):
+            # if bar:
+            #     bar()
             self.model.eval()
             with torch.no_grad():
                 self._forward(batch, record)
