@@ -7,6 +7,7 @@ python CODE\\run_task.py^
     --print_step 100^
     ^
     --cs_num 4^
+    --max_seq_len 128^
     --train_batch_size 2^
     --evltest_batch_size 12^
     --gradient_accumulation_steps 16^

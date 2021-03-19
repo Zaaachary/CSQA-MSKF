@@ -57,7 +57,7 @@ class Trainer(BaseTrainer):
         token_type_ids = token_type_ids[:, :, :max_seq_length]
         
         # logger.info(f'clip batch to {max_seq_length}')
-
+        
         return input_ids, attention_mask, token_type_ids, labels
         
     def _forward(self, batch, record):

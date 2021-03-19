@@ -14,7 +14,7 @@ from pprint import pprint
 from tqdm import tqdm
 from transformers import AlbertTokenizer, BertTokenizer
 
-from csqa_task import data_processor
+from csqa_task.data_processor import *
 from csqa_task.controller import MultipleChoice
 from model.AttnMerge import AlbertAddTFM, AlbertCSQA
 from model.Baselines import AlbertBaseline
@@ -41,15 +41,17 @@ def select_task(args):
     task format: [data processor type]_[PTM model]_[model name]
     '''
     if args.task_name == "Origin_Albert_AttnMerge":
-        return AlbertCSQA, data_processor.Baseline_Processor
+        return AlbertCSQA, Baseline_Processor
     if args.task_name == "Origin_Albert_Baseline":
-        return AlbertBaseline, data_processor.Baseline_Processor
+        return AlbertBaseline, Baseline_Processor
     elif args.task_name == "Origin_Albert_AttnMergeAddTFM":
-        return AlbertAddTFM, data_processor.Baseline_Processor
+        return AlbertAddTFM, Baseline_Processor
     elif args.task_name == "OMCS_Bert_AttRanker":
-        return BertAttRanker, data_processor.OMCS_Processor
+        return BertAttRanker, OMCS_Processor
     elif args.task_name == "OMCS_Albert_Baseline":
-        return AlbertBaseline, data_processor.OMCS_Processor
+        return AlbertBaseline, OMCS_Processor
+    elif args.task_name == "CSLinear_Albert_Baseline":
+        return AlbertBaseline, CSLinear_Processor
 
 def set_result(args):
     '''
@@ -124,6 +126,9 @@ if __name__ == "__main__":
     
     # hyper param
     parser.add_argument('--cs_num', type=int, default=0)
+    parser.add_argument('--max_seq_len', type=int, default=None, help='used the dataprocessor that only restrain total len')
+    parser.add_argument('--max_qa_len', type=int, default=None)
+    parser.add_argument('--max_cs_len', type=int, default=None)
     parser.add_argument('--train_batch_size', type=int, default=4)
     parser.add_argument('--evltest_batch_size', type=int, default=4)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
@@ -139,24 +144,26 @@ if __name__ == "__main__":
     parser.add_argument('--PTM_model_vocab_dir', type=str, default=None)
 
     args_str = r"""
-    --task_name OMCS_Albert_Baseline
+    --task_name CSLinear_Albert_Baseline
     --mission train
     --fp16 0
-    --gpu_ids -1
+    --gpu_ids 0
+    --save_mode step
     --print_step 100
-
-    --cs_num 2
-    --train_batch_size 4
-    --evltest_batch_size 16
-    --gradient_accumulation_steps
-    --num_train_epochs 4
-    --lr 1e-5
+    
+    --cs_num 4
+    --max_qa_len 54
+    --max_cs_len 20
+    --train_batch_size 2
+    --evltest_batch_size 12
+    --gradient_accumulation_steps 16
+    --lr 2e-5
+    --num_train_epochs 2
     --warmup_proportion 0.1
     --weight_decay 0.1
-
+    
     --dataset_dir ../DATA
-    --pred_file_dir  ../DATA/result/task_result.json
-    --model_save_dir ../DATA/result/TCmodel/
+    --result_dir  ../DATA/result/
     --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\albert-base-v2
     """
 

@@ -69,28 +69,28 @@ class MultipleChoice:
             processor = ProcessorClass(self.config, 'train')
             processor.load_data()
             self.train_dataloader = processor.make_dataloader(
-                tokenizer, self.config.train_batch_size, False, 128)
+                tokenizer, self.config)
             # self.train_dataloader = processor.make_dataloader(self.tokenizer, self.config.train_batch_size, False, 128, shuffle=False)
             logger.info("train dataset loaded")
 
             processor = ProcessorClass(self.config, 'dev')
             processor.load_data()
             self.deval_dataloader = processor.make_dataloader(
-                tokenizer, self.config.train_batch_size, False, 128)
+                tokenizer, self.config)
             logger.info("dev dataset loaded")
         
         elif self.config.mission == "eval":
             processor = ProcessorClass(self.config, 'dev')
             processor.load_data()
             self.deval_dataloader = processor.make_dataloader(
-                tokenizer, self.config.train_batch_size, False, 128)
+                tokenizer, self.config)
             logger.info("dev dataset loaded")
 
         elif self.config.mission == 'predict':
             processor = ProcessorClass(self.config, 'test')
             processor.load_data()
             self.test_dataloader = processor.make_dataloader(
-                tokenizer, self.config.evltest_batch_size, False, 128, False)
+                tokenizer, self.config, shuffle=False)
             logger.info("test dataset loaded")
 
     def train(self):

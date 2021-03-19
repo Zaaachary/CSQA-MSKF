@@ -13,7 +13,7 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 
-from csqa_task.example import CSQAExample, OMCSExample
+from csqa_task.example import *
 
 class Baseline_Processor(object):
     
@@ -40,7 +40,11 @@ class Baseline_Processor(object):
 
         self.data = data
 
-    def make_dataloader(self, tokenizer, batch_size, drop_last, max_seq_len, shuffle=True):
+    def make_dataloader(self, tokenizer, args, shuffle=True):
+        max_seq_len = args.max_seq_len
+        batch_size = args.train_batch_size if self.dataset_type == 'train' else args.evltest_batch_size
+        drop_last = False
+
         T, L = [], []
 
         for example in tqdm(self.data):
@@ -73,7 +77,12 @@ class Baseline_Processor(object):
 
         return dataloader
 
+
 class OMCS_Processor(object):
+    '''
+    add multi cs at the end of the sequence.
+    cs_num, max_seq_len
+    '''
     
     def __init__(self, args, dataset_type):
         self.args = args
@@ -118,17 +127,27 @@ class OMCS_Processor(object):
                 cs_list = list(map(int, cs_index['cs'][:self.args.cs_num]))
                 cs_list = [self.omcs_cropus[cs] for cs in cs_list]
 
+                # some case don't have cs_num cs
+                temp = self.args.cs_num - len(cs_list)
+                if temp:
+                    cs_list.extend([' ']*temp)
+
                 cs4choice[cs_index['ending']] = cs_list
 
             example = OMCSExample.load_from(case, cs4choice)
             self.examples.append(example)
 
-    def make_dataloader(self, tokenizer, batch_size, drop_last, max_seq_len, shuffle=True):
+    def make_dataloader(self, tokenizer, args, shuffle=True):
+        max_seq_len = args.max_seq_len
+        batch_size = args.train_batch_size if self.dataset_type == 'train' else args.evltest_batch_size
+        drop_last = False
+
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
         all_label = []
 
         for example in tqdm(self.examples):
             # call example's tokenize function
+            # feature_dict: [5, 128], [5, 128], [5, 128]
             feature_dict = example.tokenize(tokenizer, max_seq_len)
             all_input_ids.append(feature_dict['input_ids'])
             all_token_type_ids.append(feature_dict['token_type_ids'])
@@ -149,3 +168,44 @@ class OMCS_Processor(object):
         # import pdb; pdb.set_trace()
         return dataloader
         
+
+class CSLinear_Processor(OMCS_Processor):
+    '''
+    Base on OMCS_Processor, add restriction to the sequence len.
+    question_len, cs_len, cs_num, max_qa_len 54, max_cs_len 18
+    '''
+    
+    def __init__(self, args, dataset_type):
+        super().__init__(args, dataset_type)
+        self.max_qa_len = args.max_qa_len
+        self.max_cs_len = args.max_cs_len
+    
+    def inject_commonsense(self):
+        '''
+        put commonsense into case, accroding to omcs_index (ES result)
+        '''
+        for case in self.raw_data:
+            cs4choice = {}  # {choice: csforchoice}
+            choice_csindex = self.omcs_index[case['id']]['endings']
+            for cs_index in choice_csindex:
+                # cs for single choice, choose top self.args.cs_num
+                cs_list = list(map(int, cs_index['cs'][:self.args.cs_num]))
+                cs_list = [self.omcs_cropus[cs] for cs in cs_list]
+                
+                temp = self.args.cs_num - len(cs_list)
+                if temp:
+                    cs_list.extend([' ']*temp)
+
+                cs4choice[cs_index['ending']] = cs_list
+
+            example = CSLinearExample.load_from(case, cs4choice)
+            self.examples.append(example)
+
+    def make_dataloader(self, tokenizer, args, shuffle=True):
+        args.max_seq_len = self.max_qa_len, self.max_cs_len
+        return super().make_dataloader(tokenizer, args, shuffle=shuffle)
+
+class MultiSource_Processor(OMCS_Processor):
+
+    def __init__(self, args, dataset_type):
+        super().__init__(args, dataset_type)

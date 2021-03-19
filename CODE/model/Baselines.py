@@ -57,8 +57,8 @@ class AlbertBaseline(AlbertPreTrainedModel):
         )
         
         # outputs[0]: [B*5, L, H] => [B*5, H]
-        pooler_output = outputs[1]
-        # pooler_output = outputs.pooler_output
+        # pooler_output = outputs[1]
+        pooler_output = outputs.pooler_output
 
         # [B*5, H] => [B*5, 1] => [B, 5]
         logits = self.scorer(pooler_output).view(-1, 5)
