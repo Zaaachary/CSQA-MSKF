@@ -81,14 +81,16 @@ class BaseTrainer:
                     if save_mode == 'step':
                         dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
                         self._report(dev_record, 'Dev')
+                        logger.info(f'current best dev acc: [{self.best_acc}]')
                         cur_loss, cur_acc = dev_record.list()[:-1]
                         self.save_or_not(cur_loss, cur_acc)
             else:
                 self._report(self.train_record)  # last steps not reach print_step
 
             # epoch report
-            dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
+            dev_record = self.evaluate(dev_dataloader, True)  # loss, right_num, all_num
             self._report(dev_record)
+            logger.info(f'current best dev acc: [{self.best_acc}]')
             cur_loss, cur_acc = dev_record.list()[:-1]
             if not save_mode == 'last':
                 self.save_or_not(cur_loss, cur_acc)
@@ -99,10 +101,14 @@ class BaseTrainer:
         if save_mode == 'end':
             self.save_model()
 
-    def evaluate(self, dataloader):
+    def evaluate(self, dataloader, tqdm=False):
         record = Vn(self.v_num)
 
-        logger.info('evaluate the model')
+        if tqdm:
+            dataloader = tqdm(dataloader)
+        else:
+            logger.info('evaluating')
+
         for batch in dataloader:
             self.model.eval()
             with torch.no_grad():
