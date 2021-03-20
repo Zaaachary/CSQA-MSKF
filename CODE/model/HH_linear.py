@@ -39,8 +39,8 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         # modules
         self.albert = AlbertModel(config)
         self.cross_att = AttentionLayer(config)
-        # self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
-        # self.qu_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
+        self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
+        self.qu_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
             nn.Linear(config.hidden_size * 3, 1)
