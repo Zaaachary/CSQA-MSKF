@@ -2,7 +2,9 @@ import json
 from os import truncate
 import pdb
 
+import torch
 from torch.utils.data import TensorDataset
+from utils import feature
 from utils.feature import Feature
 
 class CSQAExample:
@@ -61,14 +63,14 @@ class OMCSExample(object):
         feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
         '''
         feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation =True, return_tensors='pt')
-
+        # import pdb; pdb.set_trace()
         return feature_dict
 
     @staticmethod
     def make_text(question, choices, cs4choice, question_concept):
         """
         organize the content_dict to text_list; rewrite !
-        "[CLS] question [SEP] Choice [SEP] cs_1 [SEP] ... [SEP] cs_n [SEP]"
+        "[CLS] question [SEP] question_concept [SEP] Choice [SEP] cs_1 [SEP] ... [SEP] cs_n [SEP]"
         """
         text_list = []
         for choice in choices:
@@ -88,7 +90,80 @@ class OMCSExample(object):
         question = case['question']['stem']
         question_concept = case['question']['question_concept']
         choices = case['question']['choices']
-
+        
         text_list = cls.make_text(question, choices, cs4choice, question_concept)
         return cls(example_id, label, text_list)
         
+
+class CSLinearExample(OMCSExample):
+
+    def __init__(self, example_id, label, text_list):
+        super().__init__(example_id, label, text_list)
+
+    def tokenize(self, tokenizer, max_len_tuple):
+        '''
+        feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
+        '''
+        all_feature_dict = {}
+        max_qa_len, max_cs_len = max_len_tuple
+
+        all_feature_list = []   # [qc_featre cat cs_feature,  ...]
+        for case in self.text_list:
+            qa_list, cs_list = case
+
+            qa_feature_dict = tokenizer.encode_plus(qa_list[0], qa_list[1], add_special_tokens=True, max_length=max_qa_len+2, padding='max_length', truncation='only_first', return_tensors='pt')
+
+            cs_total_feature_dict = {}
+            # cs_total_feature_dict = {'input_ids':, 'token_type_ids', 'attention_mask'}
+            for cs in cs_list:
+                cs_feature_dict = tokenizer.encode_plus(cs, add_special_tokens=False, max_length=max_cs_len+1, padding='max_length', truncation=True, return_tensors='pt')
+
+                cs_total_feature_dict = self.concat_feature_dict(cs_total_feature_dict, cs_feature_dict)
+
+            all_feature_list.append(self.concat_feature_dict(qa_feature_dict, cs_total_feature_dict))
+
+        keys = ('input_ids', 'token_type_ids', 'attention_mask')
+        for key in keys:
+            target_list = [case[key] for case in all_feature_list]
+            # print([case.shape for case in target_list])
+            # import pdb; pdb.set_trace()
+            all_feature_dict[key] = torch.stack(target_list, dim=0)
+            all_feature_dict[key] = torch.squeeze(all_feature_dict[key], dim=1)
+        
+        return all_feature_dict
+
+    @staticmethod
+    def concat_feature_dict(feature_dict1, feature_dict2):
+        if len(feature_dict1) == 0:
+            return feature_dict2
+
+        keys = ('input_ids', 'token_type_ids', 'attention_mask')
+        for key in keys:
+            # feature_dict1[key] [1, seq_len]
+            temp_tensor = torch.cat((feature_dict1[key], feature_dict2[key]), dim=1)
+            feature_dict1[key] = temp_tensor
+
+        return feature_dict1
+            
+
+    @staticmethod
+    def make_text(question, choices, cs4choice, question_concept):
+        """
+        "[CLS] question [SEP] question_concept [SEP] Choice [SEP] cs_1 [SEP] ... [SEP] cs_n [SEP]"
+
+        return text_list: 
+        [# all qa pair
+            [ # case for a qa pair
+                ["question [SEP]", "question_concept [SEP] Choice"], 
+                ["cs_n [SEP]", ...]
+            ],
+            ...
+        ]
+        """
+        text_list = []
+        for choice in choices:
+            choice_str = choice['text']
+            qa_list = [f"{question} [SEP]", f"{question_concept} [SEP] {choice_str}"]
+            cs_list = [f"{cs} [SEP]" for cs in cs4choice[choice_str]]            
+            text_list.append((qa_list, cs_list))
+        return text_list
