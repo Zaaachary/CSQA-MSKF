@@ -21,7 +21,7 @@ from utils.common import get_device
 
 class Trainer(BaseTrainer):
     def __init__(self, model, multi_gpu, device, 
-        print_step, output_model_dir, fp16):
+        print_step, output_model_dir, fp16, clip_batch=True):
 
         super(Trainer, self).__init__(
             model, multi_gpu, device, print_step, output_model_dir, v_num=3
@@ -61,7 +61,7 @@ class Trainer(BaseTrainer):
         return input_ids, attention_mask, token_type_ids, labels
         
     def _forward(self, batch, record):
-        batch = self.clip_batch(batch)
+        # batch = self.clip_batch(batch)
         batch = tuple(t.to(self.device) for t in batch)
         result = self.model(*batch)  # loss, right_num
         # result = self._mean(result)     # multi GPU mean

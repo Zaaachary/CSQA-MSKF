@@ -33,8 +33,9 @@ class MultipleChoice:
     2. self.train(...)
     3. cls.load(...)
     """
-    def __init__(self, args):
+    def __init__(self, args, model_args={}):
         self.config = args
+        self.model_args = model_args
         self.model = None
         self.train_dataloader = None
         self.deval_dataloader = None
@@ -53,7 +54,7 @@ class MultipleChoice:
             model_dir = self.config.PTM_model_vocab_dir
         else:
             model_dir = self.config.saved_model_dir
-        model = ModelClass.from_pretrained(model_dir)
+        model = ModelClass.from_pretrained(model_dir, **self.model_args)
         # print(model)
 
         if self.multi_gpu:

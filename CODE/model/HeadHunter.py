@@ -32,9 +32,9 @@ class SelfAttention(nn.Module):
 
 
 class BertAttRanker(BertPreTrainedModel):
-    def __init__(self, config, cs_len):
+    def __init__(self, config, **kwargs):
         super().__init__(config)
-        self.cs_len = cs_len
+        self.cs_num = kwargs['cs_num']
         self.bert = BertModel(config)
         self.self_att = SelfAttention(config)
         self.classifier = nn.Linear(config.hidden_size,1)

@@ -16,9 +16,10 @@ from transformers import AlbertTokenizer, BertTokenizer
 
 from csqa_task.data_processor import *
 from csqa_task.controller import MultipleChoice
-from model.AttnMerge import AlbertAddTFM, AlbertCSQA
+from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
 from model.Baselines import AlbertBaseline
 from model.HeadHunter import BertAttRanker
+from model.HH_linear import AlbertCrossAttn
 from utils.common import mkdir_if_notexist, result_dump, set_seed
 
 logger = logging.getLogger("run_task")
@@ -38,20 +39,29 @@ def select_tokenizer(args):
 
 def select_task(args):
     '''
-    task format: [data processor type]_[PTM model]_[model name]
+    task_name format: [processor_name]_[model name]
     '''
-    if args.task_name == "Origin_Albert_AttnMerge":
-        return AlbertCSQA, Baseline_Processor
-    if args.task_name == "Origin_Albert_Baseline":
-        return AlbertBaseline, Baseline_Processor
-    elif args.task_name == "Origin_Albert_AttnMergeAddTFM":
-        return AlbertAddTFM, Baseline_Processor
-    elif args.task_name == "OMCS_Bert_AttRanker":
-        return BertAttRanker, OMCS_Processor
-    elif args.task_name == "OMCS_Albert_Baseline":
-        return AlbertBaseline, OMCS_Processor
-    elif args.task_name == "CSLinear_Albert_Baseline":
-        return AlbertBaseline, CSLinear_Processor
+    model_dict = {
+        "Albert_Baseline": (AlbertBaseline, []),
+        "Albert_AttnMerge": (AlbertAttnMerge, []),
+        "Albert_AttnMergeAddTFM": (AlbertAddTFM, []),
+        "Albert_CrossAttn": (AlbertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
+    }
+
+    processor_dict = {
+        "Origin": Baseline_Processor,
+        "OMCS": OMCS_Processor,
+        "CSLinear": CSLinear_Processor
+    }
+
+    processor_name, model_name = args.task_name.split('_',maxsplit=1)
+    ModelClass, args_list = model_dict[model_name]
+    ProcessorClass = processor_dict[processor_name]
+
+    model_args = {arg: args.__dict__[arg] for arg in args_list}
+
+
+    return ModelClass, ProcessorClass, model_args
 
 def set_result(args):
     '''
@@ -93,10 +103,10 @@ def main(args):
     # load data and preprocess
     logger.info(f"select tokenizer and model for task {args.task_name}")
     tokenizer = select_tokenizer(args)
-    model, Processor = select_task(args)
+    model, Processor, model_args = select_task(args)
 
     # initalize controller by model
-    controller = MultipleChoice(args)
+    controller = MultipleChoice(args, model_args)
     controller.load_model(model)
     controller.load_data(Processor, tokenizer)
 

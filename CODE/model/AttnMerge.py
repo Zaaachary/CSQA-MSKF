@@ -48,9 +48,9 @@ class AttentionMerge(nn.Module):
         return context
 
 
-class AlbertCSQA(AlbertPreTrainedModel):
-    def __init__(self, config):
-        super(AlbertCSQA, self).__init__(config)
+class AlbertAttnMerge(AlbertPreTrainedModel):
+    def __init__(self, config, **kwargs):
+        super(AlbertAttnMerge, self).__init__(config)
 
         self.albert = AlbertModel(config)
 
@@ -111,7 +111,7 @@ class AlbertCSQA(AlbertPreTrainedModel):
 
 
 class AlbertAddTFM(AlbertPreTrainedModel):
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
         super(AlbertAddTFM, self).__init__(config)
 
         self.albert = AlbertModel(config)

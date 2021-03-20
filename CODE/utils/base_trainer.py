@@ -27,7 +27,6 @@ from .common import Vn, mkdir_if_notexist
 class BaseTrainer:
     """
     train & evaluate
-
     1. self.train(...)
     2. self.evaluate(...)
     3. self.set_optimizer(optimizer)
@@ -35,7 +34,6 @@ class BaseTrainer:
     5. self.make_optimizer(...)
     6. self.make_scheduler(...)
     7. self.save_model()
-
     rewrite ↓
     8. self._report()
     9. self._forward()

@@ -103,6 +103,7 @@ class CSLinearExample(OMCSExample):
     def tokenize(self, tokenizer, max_len_tuple):
         '''
         feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
+        [CLS] question [SEP] question_concept [SEP] Choice [SEP] PADDING cs_1 [SEP] ... [SEP] cs_n [SEP]
         '''
         all_feature_dict = {}
         max_qa_len, max_cs_len = max_len_tuple
@@ -111,12 +112,13 @@ class CSLinearExample(OMCSExample):
         for case in self.text_list:
             qa_list, cs_list = case
 
-            qa_feature_dict = tokenizer.encode_plus(qa_list[0], qa_list[1], add_special_tokens=True, max_length=max_qa_len+2, padding='max_length', truncation='only_first', return_tensors='pt')
+            qa_feature_dict = tokenizer.encode_plus(qa_list[0], qa_list[1], add_special_tokens=True, max_length=max_qa_len, padding='max_length', truncation='only_first', return_tensors='pt')
+            # import pdb; pdb.set_trace()
 
             cs_total_feature_dict = {}
             # cs_total_feature_dict = {'input_ids':, 'token_type_ids', 'attention_mask'}
             for cs in cs_list:
-                cs_feature_dict = tokenizer.encode_plus(cs, add_special_tokens=False, max_length=max_cs_len+1, padding='max_length', truncation=True, return_tensors='pt')
+                cs_feature_dict = tokenizer.encode_plus(cs, add_special_tokens=False, max_length=max_cs_len, padding='max_length', truncation=True, return_tensors='pt')
 
                 cs_total_feature_dict = self.concat_feature_dict(cs_total_feature_dict, cs_feature_dict)
 

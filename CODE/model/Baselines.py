@@ -5,9 +5,6 @@
 @Contact :   li_zaaachary@163.com
 @Dscpt   :   
 """
-import math
-import pdb
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,9 +13,8 @@ from transformers import AlbertModel, AlbertPreTrainedModel
 
 class AlbertBaseline(AlbertPreTrainedModel):
 
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
         super(AlbertBaseline, self).__init__(config)
-
         self.albert = AlbertModel(config)
 
         self.scorer = nn.Sequential(
@@ -56,9 +52,7 @@ class AlbertBaseline(AlbertPreTrainedModel):
             token_type_ids=flat_token_type_ids
         )
         
-        # outputs[0]: [B*5, L, H] => [B*5, H]
-        # pooler_output = outputs[1]
-        pooler_output = outputs.pooler_output
+        pooler_output = outputs.pooler_output  # [CLS]
 
         # [B*5, H] => [B*5, 1] => [B, 5]
         logits = self.scorer(pooler_output).view(-1, 5)
