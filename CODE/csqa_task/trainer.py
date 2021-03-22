@@ -81,7 +81,6 @@ class Trainer(BaseTrainer):
         mode: Train, Dev
         '''
         # record: loss, right_num, all_num
-
         loss = record[0].avg()  # utils.common.AvgVar
 
         right_num, all_num = record.list()[1:]  # right_num, all_num

@@ -55,7 +55,6 @@ class MultipleChoice:
         else:
             model_dir = self.config.saved_model_dir
         model = ModelClass.from_pretrained(model_dir, **self.model_args)
-        # print(model)
 
         if self.multi_gpu:
             model = torch.nn.DataParallel(model, device_ids=self.gpu_ids)

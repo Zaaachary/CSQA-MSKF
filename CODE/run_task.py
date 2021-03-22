@@ -18,9 +18,9 @@ from transformers import AlbertTokenizer, BertTokenizer
 from csqa_task.data_processor import *
 from csqa_task.controller import MultipleChoice
 from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
-from model.Baselines import AlbertBaseline
+from model.Baselines import AlbertBaseline, BertBaseline
 from model.HeadHunter import BertAttRanker
-from model.HH_linear import AlbertCrossAttn
+from model.HH_linear import AlbertCrossAttn, BertCrossAttn
 from utils.common import mkdir_if_notexist, result_dump, set_seed
 
 logger = logging.getLogger("run_task")
@@ -43,10 +43,12 @@ def select_task(args):
     task_name format: [processor_name]_[model name]
     '''
     model_dict = {
+        "Bert_Baseline": (BertBaseline, []),
         "Albert_Baseline": (AlbertBaseline, []),
         "Albert_AttnMerge": (AlbertAttnMerge, []),
         "Albert_AttnMergeAddTFM": (AlbertAddTFM, []),
         "Albert_CrossAttn": (AlbertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
+        "Bert_CrossAttn": (BertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
     }
 
     processor_dict = {
@@ -60,7 +62,6 @@ def select_task(args):
     ProcessorClass = processor_dict[processor_name]
 
     model_args = {arg: args.__dict__[arg] for arg in args_list}
-
 
     return ModelClass, ProcessorClass, model_args
 

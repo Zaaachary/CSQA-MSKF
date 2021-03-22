@@ -80,11 +80,11 @@ class BaseTrainer:
                 if self.global_step % self.print_step == 0:
                     print(' ')
                     self._report(self.train_record, 'Train')
+                    right, all_num = self.train_record.list()[1:]
+                    train_acc = right / all_num
                     self.train_record.init()
 
                     # do eval only when train_acc greater than eval_after_tacc
-                    right, all_num = self.train_record.list()[1:]
-                    train_acc = right / all_num
                     if save_mode == 'step' and train_acc >= self.eval_after_tacc:
                         dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
                         self._report(dev_record, 'Dev')
@@ -138,6 +138,7 @@ class BaseTrainer:
                 self.model.parameters(), max_norm=1)  # max_grad_norm = 1
 
         if (self.global_step + 1) % gradient_accumulation_steps == 0:
+            # import pdb; pdb.set_trace()
             self.optimizer.step()
             self.scheduler.step()
             self.model.zero_grad()
