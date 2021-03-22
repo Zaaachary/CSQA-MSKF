@@ -114,8 +114,6 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         return logits
 
 
-
-
 class AttentionMerge(nn.Module):
 
     def __init__(self, input_size, attention_size, dropout_prob=0.1):

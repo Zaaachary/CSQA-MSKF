@@ -38,7 +38,10 @@ class BaseTrainer:
     8. self._report()
     9. self._forward()
     """
-    def __init__(self, model, multi_gpu, device, print_step, model_save_dir, v_num):
+    def __init__(self, 
+        model, multi_gpu, device, 
+        print_step, eval_after_tacc, 
+        model_save_dir, v_num):
         """
         device: 主device
         multi_gpu: 是否使用了多个gpu
@@ -47,10 +50,11 @@ class BaseTrainer:
         self.device = device
         self.multi_gpu = multi_gpu
         self.model = model.to(device)
-        self.print_step = print_step
         self.model_save_dir = model_save_dir
         self.v_num = v_num
         self.train_record = Vn(v_num)
+        self.print_step = print_step
+        self.eval_after_tacc = eval_after_tacc
 
     def train(self, epoch_num, gradient_accumulation_steps, 
         train_dataloader, dev_dataloader, save_mode='epoch'):
@@ -60,7 +64,7 @@ class BaseTrainer:
         self.best_loss, self.best_acc = float('inf'), 0
 
         for epoch in range(int(epoch_num)):
-            logger.info(f'Epoch: {epoch+1:02}')
+            logger.info(f'---------Epoch: {epoch+1:02}---------')
             self.model.zero_grad()
             self.global_step = 0
             self.train_record.init()
@@ -78,22 +82,25 @@ class BaseTrainer:
                     self._report(self.train_record, 'Train')
                     self.train_record.init()
 
-                    if save_mode == 'step':
+                    # do eval only when train_acc greater than eval_after_tacc
+                    right, all_num = self.train_record.list()[1:]
+                    train_acc = right / all_num
+                    if save_mode == 'step' and train_acc >= self.eval_after_tacc:
                         dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
                         self._report(dev_record, 'Dev')
                         cur_loss, cur_acc = dev_record.list()[:-1]
                         self.save_or_not(cur_loss, cur_acc)
-                        logger.info(f'current best dev acc: [{self.best_acc}]')
+                        logger.info(f'current best dev acc: [{self.best_acc/len(dev_dataloader):.4f}]')
             else:
                 self._report(self.train_record)  # last steps not reach print_step
 
             # epoch report
             dev_record = self.evaluate(dev_dataloader, True)  # loss, right_num, all_num
             self._report(dev_record, 'dev')
-            logger.info(f'current best dev acc: [{self.best_acc}]')
             cur_loss, cur_acc = dev_record.list()[:-1]
             if not save_mode == 'last':
                 self.save_or_not(cur_loss, cur_acc)
+            logger.info(f'current best dev acc: [{self.best_acc}]')
 
             self.model.zero_grad()
                 

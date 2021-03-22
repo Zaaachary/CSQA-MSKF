@@ -7,6 +7,7 @@
 """
 import argparse
 import logging
+from math import floor
 import os
 import time
 from pprint import pprint
@@ -24,7 +25,7 @@ from utils.common import mkdir_if_notexist, result_dump, set_seed
 
 logger = logging.getLogger("run_task")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
+formatter = logging.Formatter('%(asctime)s %(name)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 
@@ -68,7 +69,7 @@ def set_result(args):
     set result dir name accroding to the task
     '''
     if args.mission == 'train':
-        task_str = time.strftime(r'%b%d-%H%M') + f'_lr{args.lr:.0e}_warm{args.warmup_proportion:0.2}_decay{args.weight_decay:0.2}_seed{args.seed}'
+        task_str = time.strftime(r'%b%d-%H%M') + f'_lr{args.learning_rate:.0e}_warm{args.warmup_proportion:0.2}_decay{args.weight_decay:0.2}_seed{args.seed}'
         if 'OMCS' in args.task_name:
             task_str += f'_cs{args.cs_num}'
 
@@ -87,7 +88,7 @@ def set_result(args):
         filename = log_file_dir,
         filemode = 'a',
         level = logging.INFO, 
-        format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        format = '%(asctime)s %(name)s - %(message)s',
         datefmt = r"%y/%m/%d %H:%M"
         )
 
@@ -126,31 +127,33 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # other param
-    parser.add_argument('--task_name', type=str, default='AlbertAttnMerge')
+    parser.add_argument('--task_name', type=str, help="model & processor will be selected according to task")
     parser.add_argument('--mission', type=str, choices=['train', 'eval', 'predict'])
     parser.add_argument('--fp16', type=int, default=0)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--save_mode', type=str, choices=['epoch', 'step', 'end'], default='end')
     parser.add_argument('--print_step', type=int, default=250)
+    parser.add_argument('--eval_after_tacc', type=float, default=0.7)
+    parser.add_argument('--evltest_batch_size', type=int, default=8)
+    parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     
     # hyper param
-    parser.add_argument('--cs_num', type=int, default=0)
-    parser.add_argument('--max_seq_len', type=int, default=None, help='used the dataprocessor that only restrain total len')
+    parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
+    parser.add_argument('--max_seq_len', type=int, default=None, help='used where dataprocessor restrain total len')
     parser.add_argument('--max_qa_len', type=int, default=None)
     parser.add_argument('--max_cs_len', type=int, default=None)
     parser.add_argument('--train_batch_size', type=int, default=4)
-    parser.add_argument('--evltest_batch_size', type=int, default=4)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
     parser.add_argument('--num_train_epochs', type=int, default=5)
-    parser.add_argument('--lr', type=float, default=2e-5)
+    parser.add_argument('--learning_rate', type=float, default=2e-5)
     parser.add_argument('--warmup_proportion', type=float, default=0.1)
     parser.add_argument('--weight_decay', type=float, default=0.1)
 
     # data param
     parser.add_argument('--dataset_dir', type=str, default='../DATA')
     parser.add_argument('--result_dir', type=str, default=None)
-    parser.add_argument('--saved_model_dir', type=str, default=None)     # 
+    parser.add_argument('--saved_model_dir', type=str, default=None)
     parser.add_argument('--PTM_model_vocab_dir', type=str, default=None)
 
     args_str = r"""
@@ -160,6 +163,7 @@ if __name__ == "__main__":
     --gpu_ids 0
     --save_mode step
     --print_step 100
+    --clip_batch_off
     
     --cs_num 4
     --max_qa_len 54
@@ -167,7 +171,7 @@ if __name__ == "__main__":
     --train_batch_size 2
     --evltest_batch_size 12
     --gradient_accumulation_steps 16
-    --lr 2e-5
+    --learning_rate 2e-5
     --num_train_epochs 2
     --warmup_proportion 0.1
     --weight_decay 0.1

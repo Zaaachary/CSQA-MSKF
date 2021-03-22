@@ -11,7 +11,7 @@ python CODE\\run_task.py^
     --train_batch_size 2^
     --evltest_batch_size 12^
     --gradient_accumulation_steps 16^
-    --lr 2e-5^
+    --learning_rate 2e-5^
     --num_train_epochs 2^
     --warmup_proportion 0.1^
     --weight_decay 0.1^

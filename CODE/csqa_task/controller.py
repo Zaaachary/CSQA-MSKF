@@ -35,7 +35,7 @@ class MultipleChoice:
     """
     def __init__(self, args, model_args={}):
         self.config = args
-        self.model_args = model_args
+        self.model_args = model_args    # args for model like cs_num
         self.model = None
         self.train_dataloader = None
         self.deval_dataloader = None
@@ -62,7 +62,9 @@ class MultipleChoice:
             
         self.trainer = Trainer(
             model, self.multi_gpu, self.device,
-            self.config.print_step, self.config.result_dir, self.config.fp16)
+            self.config.print_step, self.config.eval_after_tacc,
+            self.config.result_dir,
+            self.config.fp16, self.config.clip_batch_off)
         self.model = model
 
     def load_data(self, ProcessorClass, tokenizer):
@@ -104,7 +106,7 @@ class MultipleChoice:
         warmup_proportion = self.config.warmup_proportion
 
         # make and set optimizer & scheduler
-        optimizer = self.trainer.make_optimizer(self.config.weight_decay, self.config.lr)
+        optimizer = self.trainer.make_optimizer(self.config.weight_decay, self.config.learning_rate)
         scheduler = self.trainer.make_scheduler(optimizer, warmup_proportion, total_training_step)
         self.trainer.set_optimizer(optimizer)
         self.trainer.set_scheduler(scheduler)
