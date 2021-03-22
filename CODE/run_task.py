@@ -113,7 +113,7 @@ def main(args):
     controller.load_data(Processor, tokenizer)
 
     # run task accroading to mission
-    if args.mission == 'train':
+    if args.mission in ('train', 'conti-train'):
         controller.train()
     elif args.mission == 'eval':
         controller.evaluate()
@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
     # other param
     parser.add_argument('--task_name', type=str, help="model & processor will be selected according to task")
-    parser.add_argument('--mission', type=str, choices=['train', 'eval', 'predict'])
+    parser.add_argument('--mission', type=str, choices=['train', 'eval', 'predict', 'conti-train'])
     parser.add_argument('--fp16', type=int, default=0)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
