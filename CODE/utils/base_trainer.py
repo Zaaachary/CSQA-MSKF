@@ -88,19 +88,19 @@ class BaseTrainer:
                     if save_mode == 'step' and train_acc >= self.eval_after_tacc:
                         dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
                         self._report(dev_record, 'Dev')
-                        cur_loss, cur_acc = dev_record.list()[:-1]
-                        self.save_or_not(cur_loss, cur_acc)
-                        logger.info(f'current best dev acc: [{self.best_acc/len(dev_dataloader):.4f}]')
+                        cur_loss, right_num, all_num = dev_record.list()
+                        self.save_or_not(cur_loss, right_num)
+                        logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
             else:
                 self._report(self.train_record)  # last steps not reach print_step
 
             # epoch report
             dev_record = self.evaluate(dev_dataloader, True)  # loss, right_num, all_num
             self._report(dev_record, 'dev')
-            cur_loss, cur_acc = dev_record.list()[:-1]
+            cur_loss, right_num, all_num  = dev_record.list()
             if not save_mode == 'last':
-                self.save_or_not(cur_loss, cur_acc)
-            logger.info(f'current best dev acc: [{self.best_acc}]')
+                self.save_or_not(cur_loss, right_num)
+            logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
 
             self.model.zero_grad()
                 

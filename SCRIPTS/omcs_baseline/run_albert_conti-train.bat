@@ -6,6 +6,7 @@ python CODE\\run_task.py^
     --save_mode step^
     --print_step 100^
     --evltest_batch_size 12^
+    --eval_after_tacc 0.2^
     ^
     --cs_num 4^
     --max_seq_len 128^
