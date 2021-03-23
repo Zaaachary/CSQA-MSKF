@@ -111,9 +111,8 @@ class CSLinearExample(OMCSExample):
         all_feature_list = []   # [qc_featre cat cs_feature,  ...]
         for case in self.text_list:
             qa_list, cs_list = case
-
-            qa_feature_dict = tokenizer.encode_plus(qa_list[0], qa_list[1], add_special_tokens=True, max_length=max_qa_len, padding='max_length', truncation='only_first', return_tensors='pt')
             # import pdb; pdb.set_trace()
+            qa_feature_dict = tokenizer.encode_plus(qa_list[0], qa_list[1], add_special_tokens=True, max_length=max_qa_len, padding='max_length', truncation='only_first', return_tensors='pt')
 
             cs_total_feature_dict = {}
             # cs_total_feature_dict = {'input_ids':, 'token_type_ids', 'attention_mask'}
@@ -165,7 +164,7 @@ class CSLinearExample(OMCSExample):
         text_list = []
         for choice in choices:
             choice_str = choice['text']
-            qa_list = [f"{question} [SEP]", f"{question_concept} [SEP] {choice_str}"]
+            qa_list = [f"{question}", f"{question_concept} [SEP] {choice_str}"]
             cs_list = [f"{cs} [SEP]" for cs in cs4choice[choice_str]]            
             text_list.append((qa_list, cs_list))
         return text_list

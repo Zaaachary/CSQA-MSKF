@@ -16,7 +16,7 @@ import logging
 from torch.utils.data import dataloader
 logger = logging.getLogger("controller")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
+formatter = logging.Formatter('%(asctime)s %(name)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 
@@ -67,7 +67,7 @@ class MultipleChoice:
         self.model = model
 
     def load_data(self, ProcessorClass, tokenizer):
-        if self.config.mission == "train":
+        if self.config.mission in ("train", 'conti-train'):
             processor = ProcessorClass(self.config, 'train')
             processor.load_data()
             self.train_dataloader = processor.make_dataloader(

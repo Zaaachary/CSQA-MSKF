@@ -14,7 +14,6 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import CrossEntropyLoss
 from transformers import AlbertPreTrainedModel, AlbertModel, BertPreTrainedModel, BertModel
 
 
@@ -39,8 +38,8 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         # modules
         self.albert = AlbertModel(config)
         self.cross_att = AttentionLayer(config)
-        self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//2)
-        self.qu_merge = AttentionMerge(config.hidden_size, config.hidden_size//2)
+        self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
+        self.qu_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
             nn.Linear(config.hidden_size * 3, 1)
@@ -77,6 +76,7 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         # [C] Q [S] QC [S] C [S] PADDING  ←qa_seq_len  
         # cs_1 PADDING [S] ←cs_seq_len cs2 PADDING ... [S]
 
+        import pdb; pdb.set_trace()
         cs_encoding_list = []
         for i in range(self.cs_num):
             start = self.qa_seq_len + i*self.cs_seq_len

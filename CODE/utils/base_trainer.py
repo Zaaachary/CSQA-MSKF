@@ -11,7 +11,7 @@ https://huggingface.co/transformers/main_classes/optimizer_schedules.html#transf
 import os
 import logging; logger = logging.getLogger("base_trainer")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
+formatter = logging.Formatter('%(asctime)s %(name)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 

@@ -69,7 +69,7 @@ def set_result(args):
     '''
     set result dir name accroding to the task
     '''
-    if args.mission == 'train':
+    if args.mission in ('train', 'conti-train'):
         task_str = time.strftime(r'%b%d-%H%M') + f'_lr{args.learning_rate:.0e}_warm{args.warmup_proportion:0.2}_decay{args.weight_decay:0.2}_seed{args.seed}'
         if 'OMCS' in args.task_name:
             task_str += f'_cs{args.cs_num}'
