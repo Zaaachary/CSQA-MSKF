@@ -37,7 +37,9 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
 
         # modules
         self.albert = AlbertModel(config)
+        # TODO
         self.cross_att = AttentionLayer(config)
+
         self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
         self.qu_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
         self.scorer = nn.Sequential(
@@ -54,8 +56,7 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         with torch.no_grad():
             logits = F.softmax(logits, dim=1)
             predicts = torch.argmax(logits, dim=1)
-            right_num = torch.sum(predicts == labels)
-    
+            right_num = torch.sum(predicts == labels)    
         return loss, right_num
 
     def _forward(self, input_ids=None, attention_mask=None, token_type_ids=None):
@@ -73,10 +74,11 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         pooler_output = outputs.pooler_output   # outputs[1]  CLS token    [5b, hidden]
         last_hidden_state = outputs.last_hidden_state   # outputs[0]     [5b, seq_len, hidden] 
         # separate query and commonsense encoding        
-        # [C] Q [S] QC [S] C [S] PADDING  ←qa_seq_len  
-        # cs_1 PADDING [S] ←cs_seq_len cs2 PADDING ... [S]
-
+        # [C] Q [S] QC [S] C [S] cs_1 [S] ←cs_seq_len cs2 ...[S]
         import pdb; pdb.set_trace()
+
+        #TODO
+
         cs_encoding_list = []
         for i in range(self.cs_num):
             start = self.qa_seq_len + i*self.cs_seq_len

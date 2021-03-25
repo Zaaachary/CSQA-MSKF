@@ -18,7 +18,8 @@ class CSQAExample:
         self.text_list = text_list
         self.label = label
 
-    def tokenize(self, tokenizer, max_seq_len):
+    def tokenize(self, tokenizer, args):
+        max_seq_len = args.max_seq_len
         feature_list = []
         for text in self.text_list:
             tokens = tokenizer.tokenize(text)   # 分词 
@@ -63,7 +64,7 @@ class OMCSExample(object):
         '''
         feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
         '''
-        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation =True, return_tensors='pt')
+        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
         # import pdb; pdb.set_trace()
         return feature_dict
 
@@ -101,51 +102,37 @@ class CSLinearExample(OMCSExample):
     def __init__(self, example_id, label, text_list):
         super().__init__(example_id, label, text_list)
 
-    def tokenize(self, tokenizer, max_len_tuple):
+    def tokenize(self, tokenizer, args):
         '''
         feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
         [CLS] question [SEP] question_concept [SEP] Choice [SEP] PADDING cs_1 [SEP] ... [SEP] cs_n [SEP]
         '''
-        all_feature_dict = {}
-        max_qa_len, max_cs_len, max_seq_len = max_len_tuple
-        self.split_text(tokenizer, max_qa_len, max_cs_len)
-        import pdb; pdb.set_trace()
-        # all_feature_list = []   # [qc_featre cat cs_feature,  ...]
-        # for case in self.text_list:
-        #     qa_list, cs_list = case
+        max_qa_len = args.max_qa_len
+        max_cs_len = args.max_cs_len
+        max_seq_len = args.max_seq_len
+        self.cut_add(tokenizer, max_qa_len, max_cs_len)
 
-        #     qa_feature_dict = tokenizer.encode_plus(qa_list[0], qa_list[1], add_special_tokens=True, max_length=max_qa_len, truncation='only_first', return_tensors='pt')
+        all_qa_ids = [case[0] for case in self.text_list]
+        all_cs_ids = [case[1] for case in self.text_list]
 
-        #     cs_total_feature_dict = {}
-        #     # cs_total_feature_dict = {'input_ids':, 'token_type_ids', 'attention_mask'}
-        #     for cs in cs_list:
-        #         cs_feature_dict = tokenizer.encode_plus(cs, add_special_tokens=False, max_length=max_cs_len, truncation=True, return_tensors='pt')
+        feature_dict = tokenizer.batch_encode_plus(list(zip(all_qa_ids, all_cs_ids)), add_special_tokens=True, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
 
-        #         cs_total_feature_dict = self.concat_feature_dict(cs_total_feature_dict, cs_feature_dict)
+        return feature_dict
 
-        #     all_feature_list.append(self.concat_feature_dict(qa_feature_dict, cs_total_feature_dict))
-
-        # keys = ('input_ids', 'token_type_ids', 'attention_mask')
-        # for key in keys:
-        #     target_list = [case[key] for case in all_feature_list]
-        #     all_feature_dict[key] = torch.stack(target_list, dim=0)
-        #     all_feature_dict[key] = torch.squeeze(all_feature_dict[key], dim=1)
-        
-        return all_feature_dict
-
-    def split_text(self, tokenizer, max_qa_len, max_cs_len):
+    def cut_add(self, tokenizer, max_qa_len, max_cs_len):
         sep = tokenizer.sep_token
 
         for index, case in enumerate(self.text_list):
             qa_list, cs_list = case
-
-            qa_ids = tokenizer.tokenize(f" {sep} ".join(qa_list))
+            qa_ids = tokenizer.tokenize(f' {sep} '.join(qa_list))
             if len(qa_ids) > max_qa_len:
                 qa_ids = qa_ids[len(qa_ids)-max_qa_len:]
             
             cs_ids = []
-            for cs in cs_list:
-                temp = tokenizer.tokenize(cs + f' {sep}')
+            for j, cs in enumerate(cs_list):
+                if j != len(cs_list)-1:
+                    cs = cs + f' {sep}'
+                temp = tokenizer.tokenize(cs)
                 temp = temp[:max_cs_len]
                 cs_ids.extend(temp)
 
@@ -179,13 +166,13 @@ class CSLinearExampleV1(OMCSExample):
     def __init__(self, example_id, label, text_list):
         super().__init__(example_id, label, text_list)
 
-    def tokenize(self, tokenizer, max_len_tuple):
+    def tokenize(self, tokenizer, args):
         '''
         feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
         [CLS] question [SEP] question_concept [SEP] Choice [SEP] PADDING cs_1 [SEP] ... [SEP] cs_n [SEP]
         '''
         all_feature_dict = {}
-        max_qa_len, max_cs_len = max_len_tuple
+        max_qa_len, max_cs_len = args.max_qa_len, args.max_cs_len
 
         all_feature_list = []   # [qc_featre cat cs_feature,  ...]
         for case in self.text_list:

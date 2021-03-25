@@ -138,7 +138,6 @@ class OMCS_Processor(object):
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        max_seq_len = args.max_seq_len
         batch_size = args.train_batch_size if self.dataset_type == 'train' else args.evltest_batch_size
         drop_last = False
 
@@ -148,15 +147,15 @@ class OMCS_Processor(object):
         for example in tqdm(self.examples):
             # call example's tokenize function
             # feature_dict: [5, 128], [5, 128], [5, 128]
-            feature_dict = example.tokenize(tokenizer, max_seq_len)
+            feature_dict = example.tokenize(tokenizer, args)
             all_input_ids.append(feature_dict['input_ids'])
             all_token_type_ids.append(feature_dict['token_type_ids'])
             all_attention_mask.append(feature_dict['attention_mask'])
             all_label.append(example.label)
         
         all_input_ids = torch.stack(all_input_ids)
-        all_token_type_ids = torch.stack(all_token_type_ids)
         all_attention_mask = torch.stack(all_attention_mask)
+        all_token_type_ids = torch.stack(all_token_type_ids)
         all_label = torch.tensor(all_label, dtype=torch.long)
 
         data = (all_input_ids, all_attention_mask, all_token_type_ids, all_label)
@@ -205,7 +204,6 @@ class CSLinear_Processor(OMCS_Processor):
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        args.max_seq_len = self.max_qa_len, self.max_cs_len, self.max_seq_len
         return super().make_dataloader(tokenizer, args, shuffle=shuffle)
 
 
