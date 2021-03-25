@@ -110,6 +110,7 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
 
         return logits
 
+
 class BertCrossAttn(BertPreTrainedModel):
     '''
     input_ids [b, 5, seq_len] => [5b, seq_len]

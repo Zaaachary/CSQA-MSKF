@@ -15,7 +15,7 @@ from pprint import pprint
 from tqdm import tqdm
 from transformers import AlbertTokenizer, BertTokenizer
 
-from csqa_task.data_processor import *
+from csqa_task.data import *
 from csqa_task.controller import MultipleChoice
 from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
 from model.Baselines import AlbertBaseline, BertBaseline
