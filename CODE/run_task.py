@@ -158,7 +158,7 @@ if __name__ == "__main__":
     parser.add_argument('--PTM_model_vocab_dir', type=str, default=None)
 
     args_str = r"""
-    --task_name CSLinear_Albert_Baseline
+    --task_name CSLinear_Albert_CrossAttn
     --mission train
     --fp16 0
     --gpu_ids 0
@@ -166,11 +166,11 @@ if __name__ == "__main__":
     --print_step 100
     --evltest_batch_size 12
     --cs_num 4
-    --max_qa_len 54
+    --max_qa_len 56
     --max_cs_len 20
     --max_seq_len 140
     --train_batch_size 2
-    --gradient_accumulation_steps 16
+    --gradient_accumulation_steps 8
     --learning_rate 2e-5
     --num_train_epochs 2
     --warmup_proportion 0.1

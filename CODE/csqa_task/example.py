@@ -121,6 +121,7 @@ class CSLinearExample(OMCSExample):
 
     def cut_add(self, tokenizer, max_qa_len, max_cs_len):
         sep = tokenizer.sep_token
+        max_qa_len -= 2  # current qa doesn't contain cls and endsep
 
         for index, case in enumerate(self.text_list):
             qa_list, cs_list = case
@@ -130,10 +131,10 @@ class CSLinearExample(OMCSExample):
             
             cs_ids = []
             for j, cs in enumerate(cs_list):
-                if j != len(cs_list)-1:
-                    cs = cs + f' {sep}'
                 temp = tokenizer.tokenize(cs)
-                temp = temp[:max_cs_len]
+                temp = temp[:max_cs_len-1] # last place for sep
+                if j != len(cs_list)-1:
+                    temp = temp + [tokenizer.sep_token]
                 cs_ids.extend(temp)
 
             self.text_list[index] = qa_ids, cs_ids

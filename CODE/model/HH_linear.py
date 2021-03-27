@@ -32,13 +32,14 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         super(AlbertCrossAttn, self).__init__(config)
         # length config
         self.cs_num = kwargs['cs_num']
-        self.cs_seq_len = kwargs['max_cs_len']
-        self.qa_seq_len  = kwargs['max_qa_len']
+        self.max_cs_len = kwargs['max_cs_len']
+        self.max_qa_len  = kwargs['max_qa_len']
 
         # modules
         self.albert = AlbertModel(config)
         # TODO
-        self.cross_att = AttentionLayer(config)
+        # self.cross_att = AttentionLayer(config)
+        self.cross_att = AttentionLayer(config, self.cs_num)
 
         self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
         self.qu_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
@@ -75,35 +76,25 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         last_hidden_state = outputs.last_hidden_state   # outputs[0]     [5b, seq_len, hidden] 
         # separate query and commonsense encoding        
         # [C] Q [S] QC [S] C [S] cs_1 [S] ←cs_seq_len cs2 ...[S]
-        import pdb; pdb.set_trace()
 
-        #TODO
+        cs_encoding, qa_encoding = self._pad_qacs_to_maxlen(flat_input_ids, last_hidden_state)
 
-        cs_encoding_list = []
-        for i in range(self.cs_num):
-            start = self.qa_seq_len + i*self.cs_seq_len
-            end = start + self.cs_seq_len
-            cs_encoding_list.append(last_hidden_state[:,start:end,:])
-        cs_encoding_stack = torch.stack(cs_encoding_list, dim=1)
-
-        qa_encoding = last_hidden_state[:,:self.qa_seq_len,:]
-        qa_encoding = qa_encoding.unsqueeze(1) # [5B, 1, qa_len, H]
-        qa_encoding_expand = qa_encoding.expand(-1, self.cs_num, -1, -1)
+        # TODO
 
         # cross-attn
         # [5b, cs_len, query_seq_len, hidden]
-        qc_attoutput, _ = self.cross_att(qa_encoding_expand, cs_encoding_stack)
+        qc_attn_output, qc_attn_weights = self.cross_att(qa_encoding, cs_encoding)
         # [5b, cs_len, cs_seq_len, hidden]
-        cq_attoutput, _ = self.cross_att(cs_encoding_stack, qa_encoding_expand)
+        cq_attn_output, cq_attn_weights = self.cross_att(cs_encoding, qa_encoding)
 
         # [5b, cs_len, cs_seq_len, hidden] => [5b, cs_seq_len, hidden]
         # [5b, cs_seq_len, hidden] => [5b, hidden]
-        cs_rep = self.cs_merge(cq_attoutput)
+        cs_rep = self.cs_merge(cq_attn_output)
         # cs_rep = torch.mean(cq_attoutput,dim = -3)
         cs_rep = torch.mean(cs_rep, dim = -2)
 
         # mean pooling query encoding
-        qu_rep = self.qu_merge(qc_attoutput)
+        qu_rep = self.qu_merge(qc_attn_output)
         # qu_rep = torch.mean(qc_attoutput, dim = -3)
         qu_rep = torch.mean(qu_rep, dim = -2)
 
@@ -111,6 +102,68 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         logits = self.scorer(final_rep).view(-1, 5)
 
         return logits
+
+    def _pad_qacs_to_maxlen(self, flat_input_ids, last_hidden_state):
+        '''
+        input
+        - last_hidden_state [5B, seq_len, hidden] 
+
+        return
+        - cs_range_list: [B*5, cs_num]  (start, end)  sep+1, sep
+        - qa_range_list: [B*5]  (end)
+        - cs_encoding: [B*5, cs_num, max_cs_len, H]
+        - qa_encoding: [B*5, cs_num, max_qa_len, H]
+        - attn_mask
+        '''
+        input_ids = flat_input_ids.cpu().clone().detach().numpy()
+        sep_ids = input_ids == 3    # sep toekn in albert is 3
+        sep_locate = [[] for _ in range(len(sep_ids))]  # [B*5, seq_num]
+
+        for index_1, case in enumerate(sep_ids):
+            for index_2, token in enumerate(case):
+                if token:
+                    sep_locate[index_1].append(index_2)
+        
+        cs_range_list = [[] for _ in range(len(sep_ids))]   # [B*5, cs_num]
+        qa_range_list = []
+        for index, case in enumerate(sep_locate):
+            # Q [S] QC [S] Choice [S] cs_1[S] cs_2[S]    
+            # qa: Q [S] QC [S] Choice [S]; cs: cs_1[S]
+            qa_range_list.append(case[2]+1)
+            start = case[2]
+            for end in case[3:]:
+                cs_tuple = (start+1, end+1)
+                start = end
+                cs_range_list[index].append(cs_tuple)
+
+        hidden_size = last_hidden_state.shape[-1]
+        cs_batch_list = []
+        for index, case in enumerate(cs_range_list):
+            cs_case_list = []
+            for cs in case:
+                start, end = cs
+                cs = last_hidden_state[index, start:end, :]
+                pad_len = self.max_cs_len - (end-start)
+                zero = torch.zeros(pad_len, hidden_size, dtype=last_hidden_state.dtype)
+                zero = zero.to(last_hidden_state.device)
+                cs_case_list.append(torch.cat((cs, zero), dim=-2))
+            
+            cs_batch_list.append(torch.stack(cs_case_list))
+        
+        cs_encoding = torch.stack(cs_batch_list)
+
+        qa_batch_list = []
+        for index, case in enumerate(qa_range_list):
+            end = case
+            qa = last_hidden_state[index, 1:end, :]  # [CLS] -> [SEP]  doesn't contain CLS
+            pad_len = self.max_qa_len - (end-1)
+            zero = torch.zeros(pad_len, hidden_size, dtype=last_hidden_state.dtype)
+            zero = zero.to(last_hidden_state.device)
+            qa_batch_list.append(torch.cat((qa, zero), dim=-2))
+        qa_encoding = torch.stack(qa_batch_list)
+        qa_encoding = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
+
+        return cs_encoding, qa_encoding
 
 
 class BertCrossAttn(BertPreTrainedModel):
@@ -244,6 +297,46 @@ class AttentionMerge(nn.Module):
 
 
 class AttentionLayer(nn.Module):
+    
+    def __init__(self, config, cs_num):
+        super().__init__()
+        self.hidden_size = config.hidden_size
+        self.cs_num = cs_num
+        self.mult_attn = nn.MultiheadAttention(self.hidden_size, num_heads=1)
+        # self.query = nn.Linear(config.hidden_size,config.hidden_size)
+        # self.key = nn.Linear(config.hidden_size,config.hidden_size)
+        # self.value = nn.Linear(config.hidden_size,config.hidden_size)
+        # self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
+
+    def forward(self, query, keyvalue):
+        '''
+        input:
+        - query: [b, cs_num, Lq, hidden]
+        - keyvalue: [b, cs_num, Lkv, hidden]
+        
+        output:
+        - attn_output_weights: [B, cs_num, Lq, Lkv]
+        - attn_output: [B, cs_num, Lq, H]
+        '''
+        q_origin_shape = query.shape
+        # [B, cs_num, L, H] -> [B * cs_num, L, H] -> [L, B*cs_num, H]
+        query = query.contiguous().view(-1, query.size(-2), query.size(-1))
+        query = query.transpose(0, 1)
+        keyvalue = keyvalue.contiguous().view(-1, keyvalue.size(-2), keyvalue.size(-1))
+        keyvalue = keyvalue.transpose(0, 1)
+
+        # [Lq, B*cs_num, H], [B*cs_num, Lq, Ls]
+        attn_output, attn_output_weights = self.mult_attn(query, keyvalue, keyvalue, attn_mask=None)
+        
+        # [Lq, B*cs_num, H] -> [B*cs_num, Lq, H] -> [B, cs_num, Lq, H]
+        attn_output = attn_output.transpose(0, 1)
+        attn_output = attn_output.view(q_origin_shape)
+
+        attn_output_weights = attn_output_weights.view(q_origin_shape[0], self.cs_num, -1)
+        return attn_output, attn_output_weights
+
+
+class AttentionLayer2(nn.Module):
     def __init__(self,config):
         super().__init__()
         self.query = nn.Linear(config.hidden_size,config.hidden_size)
