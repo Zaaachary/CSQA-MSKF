@@ -38,7 +38,6 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         # modules
         self.albert = AlbertModel(config)
         # TODO
-        # self.cross_att = AttentionLayer(config)
         self.cross_att = AttentionLayer(config, self.cs_num)
 
         self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
@@ -77,15 +76,15 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         # separate query and commonsense encoding        
         # [C] Q [S] QC [S] C [S] cs_1 [S] ←cs_seq_len cs2 ...[S]
 
-        cs_encoding, qa_encoding = self._pad_qacs_to_maxlen(flat_input_ids, last_hidden_state)
+        cs_encoding, cs_padding_mask, qa_encoding, qa_padding_mask = self._pad_qacs_to_maxlen(flat_input_ids, last_hidden_state)
+        # import pdb; pdb.set_trace()
 
         # TODO
-
         # cross-attn
-        # [5b, cs_len, query_seq_len, hidden]
-        qc_attn_output, qc_attn_weights = self.cross_att(qa_encoding, cs_encoding)
-        # [5b, cs_len, cs_seq_len, hidden]
-        cq_attn_output, cq_attn_weights = self.cross_att(cs_encoding, qa_encoding)
+        # [5b, cs_len, query_seq_len, H]
+        qc_attn_output, qc_attn_weights = self.cross_att(qa_encoding, cs_encoding, cs_padding_mask)
+        # [5b, cs_len, cs_seq_len, H]
+        cq_attn_output, cq_attn_weights = self.cross_att(cs_encoding, qa_encoding, qa_padding_mask)
 
         # [5b, cs_len, cs_seq_len, hidden] => [5b, cs_seq_len, hidden]
         # [5b, cs_seq_len, hidden] => [5b, hidden]
@@ -113,17 +112,18 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
         - qa_range_list: [B*5]  (end)
         - cs_encoding: [B*5, cs_num, max_cs_len, H]
         - qa_encoding: [B*5, cs_num, max_qa_len, H]
-        - attn_mask
+        - cs_attn_mask
+        - qa_attn_mask
         '''
+        # Locate SEP token
         input_ids = flat_input_ids.cpu().clone().detach().numpy()
         sep_ids = input_ids == 3    # sep toekn in albert is 3
         sep_locate = [[] for _ in range(len(sep_ids))]  # [B*5, seq_num]
-
         for index_1, case in enumerate(sep_ids):
             for index_2, token in enumerate(case):
                 if token:
                     sep_locate[index_1].append(index_2)
-        
+        # Get CS, QA range
         cs_range_list = [[] for _ in range(len(sep_ids))]   # [B*5, cs_num]
         qa_range_list = []
         for index, case in enumerate(sep_locate):
@@ -136,34 +136,52 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
                 start = end
                 cs_range_list[index].append(cs_tuple)
 
+        # Get CS and stack to tensor
         hidden_size = last_hidden_state.shape[-1]
-        cs_batch_list = []
+        cs_batch_list, cs_padding_batch_list = [],[]
         for index, case in enumerate(cs_range_list):
             cs_case_list = []
+            cs_padding_list = []
             for cs in case:
                 start, end = cs
-                cs = last_hidden_state[index, start:end, :]
                 pad_len = self.max_cs_len - (end-start)
+
+                cs = last_hidden_state[index, start:end, :]
                 zero = torch.zeros(pad_len, hidden_size, dtype=last_hidden_state.dtype)
                 zero = zero.to(last_hidden_state.device)
                 cs_case_list.append(torch.cat((cs, zero), dim=-2))
-            
-            cs_batch_list.append(torch.stack(cs_case_list))
-        
-        cs_encoding = torch.stack(cs_batch_list)
 
-        qa_batch_list = []
+                mask = torch.cat((torch.zeros(cs.shape[:-1]), torch.ones(pad_len))).bool()
+                mask = mask.to(last_hidden_state.device)
+                cs_padding_list.append(mask)
+
+            cs_batch_list.append(torch.stack(cs_case_list))
+            cs_padding_batch_list.append(torch.stack(cs_padding_list))
+
+        cs_encoding = torch.stack(cs_batch_list)
+        cs_padding_mask = torch.stack(cs_padding_batch_list)
+
+        # Get QA and stack to tensor
+        qa_batch_list, qa_padding_batch_list = [], []
         for index, case in enumerate(qa_range_list):
             end = case
-            qa = last_hidden_state[index, 1:end, :]  # [CLS] -> [SEP]  doesn't contain CLS
             pad_len = self.max_qa_len - (end-1)
+
+            qa = last_hidden_state[index, 1:end, :]  # [CLS] -> [SEP]  doesn't contain CLS
             zero = torch.zeros(pad_len, hidden_size, dtype=last_hidden_state.dtype)
             zero = zero.to(last_hidden_state.device)
             qa_batch_list.append(torch.cat((qa, zero), dim=-2))
+
+            mask = torch.cat((torch.zeros(qa.shape[:-1]), torch.ones(pad_len))).bool()
+            mask = mask.to(last_hidden_state.device)
+            qa_padding_batch_list.append(mask)
+
         qa_encoding = torch.stack(qa_batch_list)
         qa_encoding = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
+        qa_padding_mask = torch.stack(qa_padding_batch_list)
+        qa_padding_mask = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
 
-        return cs_encoding, qa_encoding
+        return cs_encoding, cs_padding_mask, qa_encoding, qa_padding_mask
 
 
 class BertCrossAttn(BertPreTrainedModel):
@@ -308,7 +326,7 @@ class AttentionLayer(nn.Module):
         # self.value = nn.Linear(config.hidden_size,config.hidden_size)
         # self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
 
-    def forward(self, query, keyvalue):
+    def forward(self, query, keyvalue, attn_mask):
         '''
         input:
         - query: [b, cs_num, Lq, hidden]
@@ -324,9 +342,12 @@ class AttentionLayer(nn.Module):
         query = query.transpose(0, 1)
         keyvalue = keyvalue.contiguous().view(-1, keyvalue.size(-2), keyvalue.size(-1))
         keyvalue = keyvalue.transpose(0, 1)
+        
+        # [B, cs_num, L] -> [B*cs_num, L]
+        attn_mask = attn_mask.contiguous().view(-1, attn_mask.size(-1))
 
         # [Lq, B*cs_num, H], [B*cs_num, Lq, Ls]
-        attn_output, attn_output_weights = self.mult_attn(query, keyvalue, keyvalue, attn_mask=None)
+        attn_output, attn_output_weights = self.mult_attn(query, keyvalue, keyvalue, key_padding_mask=attn_mask)
         
         # [Lq, B*cs_num, H] -> [B*cs_num, Lq, H] -> [B, cs_num, Lq, H]
         attn_output = attn_output.transpose(0, 1)
@@ -335,34 +356,3 @@ class AttentionLayer(nn.Module):
         attn_output_weights = attn_output_weights.view(q_origin_shape[0], self.cs_num, -1)
         return attn_output, attn_output_weights
 
-
-class AttentionLayer2(nn.Module):
-    def __init__(self,config):
-        super().__init__()
-        self.query = nn.Linear(config.hidden_size,config.hidden_size)
-        self.key = nn.Linear(config.hidden_size,config.hidden_size)
-        self.value = nn.Linear(config.hidden_size,config.hidden_size)
-        # self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
-
-    def forward(self,query,source):
-        '''
-        input:
-        - query: [b, cs_len, L1, hidden]
-        - source: [b, cs_len, L2, hidden]
-        
-        output:
-        - attention_scores: [b, cs_len, L2]     <= sum of attention_prob [b, cs_len, L1, L2]
-        - context_layer: [b, cs_len, L1, hidden]
-        '''
-        # hidden_states should be (batch_size,document_length,hidden_size)
-        query_layer = self.query(query)
-        key_layer = self.key(source)
-        value_layer = self.value(source)
-        
-        attention_probs = torch.matmul(query_layer, key_layer.transpose(-1, -2)) # Q @ K
-        # attention_probs /= query.shape[-1]**(1/2)   # scale
-        attention_probs = nn.Softmax(dim=-1)(attention_probs)   # softmax [b, cs_len, L1, L2]
-        attention_scores = torch.sum(attention_probs,dim = -2)  # [b, cs_len, L2]
-        # attention_scores = torch.sum(attention_probs,dim = -1)  # [b, cs_len, L1]
-        context_layer = torch.matmul(attention_probs, value_layer)  # softmax @ V [b, cs_len, L1, hidden]
-        return context_layer,attention_scores
