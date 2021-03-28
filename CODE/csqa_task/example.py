@@ -7,6 +7,7 @@ from torch.utils.data import TensorDataset
 from utils import feature
 from utils.feature import Feature
 
+
 class CSQAExample:
     '''
     "[CLS] question [SEP] question_concept [SEP] Choice [SEP]"
@@ -17,14 +18,15 @@ class CSQAExample:
         self.text_list = text_list
         self.label = label
 
-    def tokenize(self, tokenizer, max_seq_len):
+    def tokenize(self, tokenizer, args):
+        max_seq_len = args.max_seq_len
         feature_list = []
         for text in self.text_list:
             tokens = tokenizer.tokenize(text)   # 分词 
             # 转换到 feature: (idx, input_ids, input_mask, segment_ids)
             feature = Feature.make_single(self.example_id, tokens, tokenizer, max_seq_len)
             feature_list.append(feature)
-        # import pdb; pdb.set_trace()
+
         return feature_list, self.label
         
     @classmethod
@@ -62,7 +64,7 @@ class OMCSExample(object):
         '''
         feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
         '''
-        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation =True, return_tensors='pt')
+        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
         # import pdb; pdb.set_trace()
         return feature_dict
 
@@ -100,23 +102,89 @@ class CSLinearExample(OMCSExample):
     def __init__(self, example_id, label, text_list):
         super().__init__(example_id, label, text_list)
 
-    def tokenize(self, tokenizer, max_len_tuple):
+    def tokenize(self, tokenizer, args):
         '''
         feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
+        [CLS] question [SEP] question_concept [SEP] Choice [SEP] PADDING cs_1 [SEP] ... [SEP] cs_n [SEP]
+        '''
+        max_qa_len = args.max_qa_len
+        max_cs_len = args.max_cs_len
+        max_seq_len = args.max_seq_len
+        self.cut_add(tokenizer, max_qa_len, max_cs_len)
+
+        all_qa_ids = [case[0] for case in self.text_list]
+        all_cs_ids = [case[1] for case in self.text_list]
+
+        feature_dict = tokenizer.batch_encode_plus(list(zip(all_qa_ids, all_cs_ids)), add_special_tokens=True, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
+
+        return feature_dict
+
+    def cut_add(self, tokenizer, max_qa_len, max_cs_len):
+        sep = tokenizer.sep_token
+        max_qa_len -= 2  # current qa doesn't contain cls and endsep
+
+        for index, case in enumerate(self.text_list):
+            qa_list, cs_list = case
+            qa_ids = tokenizer.tokenize(f' {sep} '.join(qa_list))
+            if len(qa_ids) > max_qa_len:
+                qa_ids = qa_ids[len(qa_ids)-max_qa_len:]
+            
+            cs_ids = []
+            for j, cs in enumerate(cs_list):
+                temp = tokenizer.tokenize(cs)
+                temp = temp[:max_cs_len-1] # last place for sep
+                if j != len(cs_list)-1:
+                    temp = temp + [tokenizer.sep_token]
+                cs_ids.extend(temp)
+
+            self.text_list[index] = qa_ids, cs_ids
+
+    @staticmethod
+    def make_text(question, choices, cs4choice, question_concept):
+        """
+        "[CLS] question [SEP] question_concept [SEP] Choice [SEP] cs_1 [SEP] ... [SEP] cs_n [SEP]"
+
+        return text_list: 
+        [# all qa pair
+            [ # case for a qa pair
+                ["question [SEP]", "question_concept [SEP] Choice"], 
+                ["cs_n [SEP]", ...]
+            ],
+            ...
+        ]
+        """
+        text_list = []
+        for choice in choices:
+            choice_str = choice['text']
+            qa_list = [question, question_concept, choice_str]
+            cs_list = [cs for cs in cs4choice[choice_str]]
+            text_list.append((qa_list, cs_list))
+        return text_list
+
+
+class CSLinearExampleV1(OMCSExample):
+
+    def __init__(self, example_id, label, text_list):
+        super().__init__(example_id, label, text_list)
+
+    def tokenize(self, tokenizer, args):
+        '''
+        feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
+        [CLS] question [SEP] question_concept [SEP] Choice [SEP] PADDING cs_1 [SEP] ... [SEP] cs_n [SEP]
         '''
         all_feature_dict = {}
-        max_qa_len, max_cs_len = max_len_tuple
+        max_qa_len, max_cs_len = args.max_qa_len, args.max_cs_len
 
         all_feature_list = []   # [qc_featre cat cs_feature,  ...]
         for case in self.text_list:
             qa_list, cs_list = case
 
-            qa_feature_dict = tokenizer.encode_plus(qa_list[0], qa_list[1], add_special_tokens=True, max_length=max_qa_len+2, padding='max_length', truncation='only_first', return_tensors='pt')
+            qa_feature_dict = tokenizer.encode_plus(qa_list[0], qa_list[1], add_special_tokens=True, max_length=max_qa_len, truncation='only_first', return_tensors='pt')
 
             cs_total_feature_dict = {}
             # cs_total_feature_dict = {'input_ids':, 'token_type_ids', 'attention_mask'}
             for cs in cs_list:
-                cs_feature_dict = tokenizer.encode_plus(cs, add_special_tokens=False, max_length=max_cs_len+1, padding='max_length', truncation=True, return_tensors='pt')
+                cs_feature_dict = tokenizer.encode_plus(cs, add_special_tokens=False, max_length=max_cs_len, truncation=True, return_tensors='pt')
 
                 cs_total_feature_dict = self.concat_feature_dict(cs_total_feature_dict, cs_feature_dict)
 
@@ -125,8 +193,6 @@ class CSLinearExample(OMCSExample):
         keys = ('input_ids', 'token_type_ids', 'attention_mask')
         for key in keys:
             target_list = [case[key] for case in all_feature_list]
-            # print([case.shape for case in target_list])
-            # import pdb; pdb.set_trace()
             all_feature_dict[key] = torch.stack(target_list, dim=0)
             all_feature_dict[key] = torch.squeeze(all_feature_dict[key], dim=1)
         
@@ -163,7 +229,7 @@ class CSLinearExample(OMCSExample):
         text_list = []
         for choice in choices:
             choice_str = choice['text']
-            qa_list = [f"{question} [SEP]", f"{question_concept} [SEP] {choice_str}"]
+            qa_list = [f"{question}", f"{question_concept} [SEP] {choice_str}"]
             cs_list = [f"{cs} [SEP]" for cs in cs4choice[choice_str]]            
             text_list.append((qa_list, cs_list))
         return text_list

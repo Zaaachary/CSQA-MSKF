@@ -138,7 +138,6 @@ class OMCS_Processor(object):
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        max_seq_len = args.max_seq_len
         batch_size = args.train_batch_size if self.dataset_type == 'train' else args.evltest_batch_size
         drop_last = False
 
@@ -148,15 +147,15 @@ class OMCS_Processor(object):
         for example in tqdm(self.examples):
             # call example's tokenize function
             # feature_dict: [5, 128], [5, 128], [5, 128]
-            feature_dict = example.tokenize(tokenizer, max_seq_len)
+            feature_dict = example.tokenize(tokenizer, args)
             all_input_ids.append(feature_dict['input_ids'])
             all_token_type_ids.append(feature_dict['token_type_ids'])
             all_attention_mask.append(feature_dict['attention_mask'])
             all_label.append(example.label)
         
         all_input_ids = torch.stack(all_input_ids)
-        all_token_type_ids = torch.stack(all_token_type_ids)
         all_attention_mask = torch.stack(all_attention_mask)
+        all_token_type_ids = torch.stack(all_token_type_ids)
         all_label = torch.tensor(all_label, dtype=torch.long)
 
         data = (all_input_ids, all_attention_mask, all_token_type_ids, all_label)
@@ -165,7 +164,6 @@ class OMCS_Processor(object):
         sampler = RandomSampler(dataset) if shuffle else None
         dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, drop_last=drop_last)
 
-        # import pdb; pdb.set_trace()
         return dataloader
         
 
@@ -179,6 +177,7 @@ class CSLinear_Processor(OMCS_Processor):
         super().__init__(args, dataset_type)
         self.max_qa_len = args.max_qa_len
         self.max_cs_len = args.max_cs_len
+        self.max_seq_len = args.max_seq_len
     
     def inject_commonsense(self):
         '''
@@ -192,6 +191,9 @@ class CSLinear_Processor(OMCS_Processor):
                 cs_list = list(map(int, cs_index['cs'][:self.args.cs_num]))
                 cs_list = [self.omcs_cropus[cs] for cs in cs_list]
                 
+                cs_list.sort(key=lambda x:len(x)) # sort by cs_len
+
+                # check empty cs and add
                 temp = self.args.cs_num - len(cs_list)
                 if temp:
                     cs_list.extend([' ']*temp)
@@ -202,8 +204,8 @@ class CSLinear_Processor(OMCS_Processor):
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        args.max_seq_len = self.max_qa_len, self.max_cs_len
         return super().make_dataloader(tokenizer, args, shuffle=shuffle)
+
 
 class MultiSource_Processor(OMCS_Processor):
 

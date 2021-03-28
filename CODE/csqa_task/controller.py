@@ -16,7 +16,7 @@ import logging
 from torch.utils.data import dataloader
 logger = logging.getLogger("controller")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
+formatter = logging.Formatter('%(asctime)s %(name)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 
@@ -33,8 +33,9 @@ class MultipleChoice:
     2. self.train(...)
     3. cls.load(...)
     """
-    def __init__(self, args):
+    def __init__(self, args, model_args={}):
         self.config = args
+        self.model_args = model_args    # args for model like cs_num
         self.model = None
         self.train_dataloader = None
         self.deval_dataloader = None
@@ -53,19 +54,20 @@ class MultipleChoice:
             model_dir = self.config.PTM_model_vocab_dir
         else:
             model_dir = self.config.saved_model_dir
-        model = ModelClass.from_pretrained(model_dir)
-        # print(model)
+        model = ModelClass.from_pretrained(model_dir, **self.model_args)
 
         if self.multi_gpu:
             model = torch.nn.DataParallel(model, device_ids=self.gpu_ids)
             
         self.trainer = Trainer(
             model, self.multi_gpu, self.device,
-            self.config.print_step, self.config.result_dir, self.config.fp16)
+            self.config.print_step, self.config.eval_after_tacc,
+            self.config.result_dir,
+            self.config.fp16, self.config.clip_batch_off)
         self.model = model
 
     def load_data(self, ProcessorClass, tokenizer):
-        if self.config.mission == "train":
+        if self.config.mission in ("train", 'conti-train'):
             processor = ProcessorClass(self.config, 'train')
             processor.load_data()
             self.train_dataloader = processor.make_dataloader(
@@ -103,7 +105,7 @@ class MultipleChoice:
         warmup_proportion = self.config.warmup_proportion
 
         # make and set optimizer & scheduler
-        optimizer = self.trainer.make_optimizer(self.config.weight_decay, self.config.lr)
+        optimizer = self.trainer.make_optimizer(self.config.weight_decay, self.config.learning_rate)
         scheduler = self.trainer.make_scheduler(optimizer, warmup_proportion, total_training_step)
         self.trainer.set_optimizer(optimizer)
         self.trainer.set_scheduler(scheduler)

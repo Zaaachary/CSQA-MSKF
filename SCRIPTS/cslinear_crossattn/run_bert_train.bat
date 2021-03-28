@@ -1,16 +1,16 @@
 python CODE\\run_task.py^
-    --task_name CSLinear_Albert_Baseline^
+    --task_name CSLinear_Bert_CrossAttn^
     --mission train^
     --fp16 0^
     --gpu_ids 0^
     --save_mode step^
     --print_step 100^
+    --clip_batch_off^
     --evltest_batch_size 12^
     ^
     --cs_num 4^
-    --max_qa_len 54^
+    --max_qa_len 56^
     --max_cs_len 20^
-    --max_seq_len 140^
     --train_batch_size 2^
     --gradient_accumulation_steps 16^
     --learning_rate 2e-5^
@@ -20,4 +20,4 @@ python CODE\\run_task.py^
     ^
     --dataset_dir DATA^
     --result_dir  DATA/result/^
-    --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\albert-base-v2^
+    --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\bert-base-cased^

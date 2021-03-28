@@ -1,17 +1,19 @@
 python CODE\\run_task.py^
-    --task_name OMCS_Albert_Baseline^
+    --task_name CSLinear_Albert_CrossAttn^
     --mission train^
     --fp16 0^
     --gpu_ids 0^
     --save_mode step^
     --print_step 100^
+    --evltest_batch_size 12^
     ^
     --cs_num 4^
-    --max_seq_len 128^
+    --max_qa_len 58^
+    --max_cs_len 20^
+    --max_seq_len 140^
     --train_batch_size 2^
-    --evltest_batch_size 12^
-    --gradient_accumulation_steps 16^
-    --lr 2e-5^
+    --gradient_accumulation_steps 8^
+    --learning_rate 2e-5^
     --num_train_epochs 2^
     --warmup_proportion 0.1^
     --weight_decay 0.1^

@@ -11,7 +11,7 @@ https://huggingface.co/transformers/main_classes/optimizer_schedules.html#transf
 import os
 import logging; logger = logging.getLogger("base_trainer")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
+formatter = logging.Formatter('%(asctime)s %(name)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 
@@ -27,7 +27,6 @@ from .common import Vn, mkdir_if_notexist
 class BaseTrainer:
     """
     train & evaluate
-
     1. self.train(...)
     2. self.evaluate(...)
     3. self.set_optimizer(optimizer)
@@ -35,12 +34,14 @@ class BaseTrainer:
     5. self.make_optimizer(...)
     6. self.make_scheduler(...)
     7. self.save_model()
-
     rewrite ↓
     8. self._report()
     9. self._forward()
     """
-    def __init__(self, model, multi_gpu, device, print_step, model_save_dir, v_num):
+    def __init__(self, 
+        model, multi_gpu, device, 
+        print_step, eval_after_tacc, 
+        model_save_dir, v_num):
         """
         device: 主device
         multi_gpu: 是否使用了多个gpu
@@ -49,10 +50,11 @@ class BaseTrainer:
         self.device = device
         self.multi_gpu = multi_gpu
         self.model = model.to(device)
-        self.print_step = print_step
         self.model_save_dir = model_save_dir
         self.v_num = v_num
         self.train_record = Vn(v_num)
+        self.print_step = print_step
+        self.eval_after_tacc = eval_after_tacc
 
     def train(self, epoch_num, gradient_accumulation_steps, 
         train_dataloader, dev_dataloader, save_mode='epoch'):
@@ -62,7 +64,7 @@ class BaseTrainer:
         self.best_loss, self.best_acc = float('inf'), 0
 
         for epoch in range(int(epoch_num)):
-            logger.info(f'Epoch: {epoch+1:02}')
+            logger.info(f'---------Epoch: {epoch+1:02}---------')
             self.model.zero_grad()
             self.global_step = 0
             self.train_record.init()
@@ -78,22 +80,27 @@ class BaseTrainer:
                 if self.global_step % self.print_step == 0:
                     print(' ')
                     self._report(self.train_record, 'Train')
+                    right, all_num = self.train_record.list()[1:]
+                    train_acc = right / all_num
                     self.train_record.init()
 
-                    if save_mode == 'step':
+                    # do eval only when train_acc greater than eval_after_tacc
+                    if save_mode == 'step' and train_acc >= self.eval_after_tacc:
                         dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
                         self._report(dev_record, 'Dev')
-                        cur_loss, cur_acc = dev_record.list()[:-1]
-                        self.save_or_not(cur_loss, cur_acc)
+                        cur_loss, right_num, all_num = dev_record.list()
+                        self.save_or_not(cur_loss, right_num)
+                        logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
             else:
                 self._report(self.train_record)  # last steps not reach print_step
 
             # epoch report
-            dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
-            self._report(dev_record)
-            cur_loss, cur_acc = dev_record.list()[:-1]
+            dev_record = self.evaluate(dev_dataloader, True)  # loss, right_num, all_num
+            self._report(dev_record, 'dev')
+            cur_loss, right_num, all_num  = dev_record.list()
             if not save_mode == 'last':
-                self.save_or_not(cur_loss, cur_acc)
+                self.save_or_not(cur_loss, right_num)
+            logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
 
             self.model.zero_grad()
                 
@@ -101,10 +108,14 @@ class BaseTrainer:
         if save_mode == 'end':
             self.save_model()
 
-    def evaluate(self, dataloader):
+    def evaluate(self, dataloader, use_tqdm=False):
         record = Vn(self.v_num)
 
-        logger.info('evaluate the model')
+        if use_tqdm:
+            dataloader = tqdm(dataloader)
+        else:
+            logger.info('evaluating')
+
         for batch in dataloader:
             self.model.eval()
             with torch.no_grad():
@@ -127,6 +138,7 @@ class BaseTrainer:
                 self.model.parameters(), max_norm=1)  # max_grad_norm = 1
 
         if (self.global_step + 1) % gradient_accumulation_steps == 0:
+            # import pdb; pdb.set_trace()
             self.optimizer.step()
             self.scheduler.step()
             self.model.zero_grad()
