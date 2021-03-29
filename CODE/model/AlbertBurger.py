@@ -21,12 +21,7 @@ class AlbertBurger(AlbertPreTrainedModel):
     '''
     input_ids [b, 5, seq_len] => [5b, seq_len]
     => PTM
-    cs_encoding [5b, cs_len, cs_seq_len, hidden]
-    query_encoding [5b, query_len, hidden] => [5b, cs_len, query_len, hidden]
-    => attn
-    qc_attoutput  [5b, cs_len, query_seq_len, hidden]
-    cq_attoutput  [5b, cs_len, cs_seq_len, hidden]
-    
+    cs_encoding [5b, cs_num, cs_seq_len, hidden]
     '''
     def __init__(self, config, **kwargs):
         super(AlbertBurger, self).__init__(config)
@@ -84,11 +79,7 @@ class AlbertBurger(AlbertPreTrainedModel):
         attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
         last_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, last_hidden_state)
 
-        # method 1
-
-        # hidden_state = qa_encoding
-        # merge = self.attention_merge(last_hidden_state)
-        merge = self.attention_merge(last_hidden_state)
+        merge = self.attention_merge(last_hidden_state, flat_attention_mask)
 
         logits = self.scorer(merge).view(-1,5)
 
@@ -186,9 +177,6 @@ class AlbertBurger(AlbertPreTrainedModel):
         return last_hidden_state
             
         
-
-
-
 class AttentionLayer(nn.Module):
     
     def __init__(self, config, cs_num):
