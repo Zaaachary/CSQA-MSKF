@@ -36,7 +36,7 @@ class AlbertCrossAttn(AlbertPreTrainedModel):
 
         # modules
         self.albert = AlbertModel(config)
-        self.cross_att = AttentionLayer(config, self.cs_num)
+        self.cross_att = AttentionLayer(config.hidden_size, self.cs_num)
 
         self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
         self.qu_merge = AttentionMerge(config.hidden_size, config.hidden_size//4)
@@ -201,7 +201,7 @@ class BertCrossAttn(BertPreTrainedModel):
 
         # modules
         self.bert = BertModel(config)
-        self.cross_att = AttentionLayer(config, self.cs_num)
+        self.cross_att = AttentionLayer(config.hidden_size, self.cs_num)
 
         self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//2)
         self.qu_merge = AttentionMerge(config.hidden_size, config.hidden_size//2)
@@ -384,15 +384,11 @@ class AttentionMerge(nn.Module):
 
 class AttentionLayer(nn.Module):
     
-    def __init__(self, config, cs_num):
+    def __init__(self, hidden_size, cs_num):
         super().__init__()
-        self.hidden_size = config.hidden_size
+        self.hidden_size = hidden_size
         self.cs_num = cs_num
         self.mult_attn = nn.MultiheadAttention(self.hidden_size, num_heads=1)
-        # self.query = nn.Linear(config.hidden_size,config.hidden_size)
-        # self.key = nn.Linear(config.hidden_size,config.hidden_size)
-        # self.value = nn.Linear(config.hidden_size,config.hidden_size)
-        # self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
 
     def forward(self, query, keyvalue, attn_mask):
         '''

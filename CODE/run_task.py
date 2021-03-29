@@ -19,8 +19,8 @@ from csqa_task.data import *
 from csqa_task.controller import MultipleChoice
 from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
 from model.Baselines import AlbertBaseline, BertBaseline
-from model.HeadHunter import BertAttRanker
 from model.HH_linear import AlbertCrossAttn, BertCrossAttn
+from model.AlbertBurger import AlbertBurger
 from utils.common import mkdir_if_notexist, result_dump, set_seed
 
 logger = logging.getLogger("run_task")
@@ -49,6 +49,7 @@ def select_task(args):
         "Albert_AttnMergeAddTFM": (AlbertAddTFM, []),
         "Albert_CrossAttn": (AlbertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
         "Bert_CrossAttn": (BertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
+        "Albert_Burger": (AlbertBurger, ['cs_num', 'max_qa_len', 'max_cs_len'])
     }
 
     processor_dict = {

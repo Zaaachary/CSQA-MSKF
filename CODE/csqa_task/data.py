@@ -41,14 +41,13 @@ class Baseline_Processor(object):
         self.data = data
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        max_seq_len = args.max_seq_len
         batch_size = args.train_batch_size if self.dataset_type == 'train' else args.evltest_batch_size
         drop_last = False
 
         T, L = [], []
 
         for example in tqdm(self.data):
-            text_list, label = example.tokenize(tokenizer, max_seq_len)
+            text_list, label = example.tokenize(tokenizer, args)
             T.append(text_list)
             L.append(label)
         
@@ -138,7 +137,7 @@ class OMCS_Processor(object):
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        batch_size = args.train_batch_size if self.dataset_type == 'train' else args.evltest_batch_size
+        batch_size = args.train_batch_size if self.dataset_type in ['train', 'conti-trian'] else args.evltest_batch_size
         drop_last = False
 
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
