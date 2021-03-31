@@ -34,7 +34,7 @@ class AlbertBurger(AlbertPreTrainedModel):
         self.albert = AlbertModel(config)
         self.cs_attention_scorer = AttentionLayer(config, self.cs_num)
         # self.albert2 = AlbertModel(config)
-        self.attention_merge = AttentionMerge(config.hidden_size, 1024, 0.1)
+        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
 
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
@@ -64,7 +64,6 @@ class AlbertBurger(AlbertPreTrainedModel):
             attention_mask=flat_attention_mask,
             token_type_ids=flat_token_type_ids
         )
-        # import pdb; pdb.set_trace()
         # pooler_output = outputs.pooler_output   # outputs[1]  [5B, H]
         last_hidden_state = outputs.last_hidden_state   # outputs[0]  [5B, L, H] 
 
@@ -77,9 +76,9 @@ class AlbertBurger(AlbertPreTrainedModel):
         # import pdb; pdb.set_trace()
         # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
         attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
-        last_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, last_hidden_state)
+        new_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, last_hidden_state)
 
-        merge = self.attention_merge(last_hidden_state, flat_attention_mask)
+        merge = self.attention_merge(new_hidden_state, flat_attention_mask)
 
         logits = self.scorer(merge).view(-1,5)
 
@@ -246,7 +245,7 @@ class AttentionMerge(nn.Module):
         # (b, l, h) + (h, 1) -> (b, l, 1)
         attention_probs = keys @ self.query_ / math.sqrt(self.attention_size * query_var)
         # attention_probs = keys @ self.query_ / math.sqrt(self.attention_size)
-
+        import pdb; pdb.set_trace()
         attention_probs = F.softmax(attention_probs * mask, dim=1)  # [batch*5, len, 1]
         attention_probs = self.dropout(attention_probs)
 
