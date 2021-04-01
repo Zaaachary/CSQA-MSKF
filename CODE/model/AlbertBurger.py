@@ -7,7 +7,7 @@
 """
 
 import math
-import copy
+from copy import deepcopy
 import pdb
 
 import torch
@@ -21,53 +21,114 @@ from .AlbertModel import AlbertModel
 from utils import common
 
 
-class AlbertBurger():
+class AlbertBurgerBeta(nn.Module):
 
     def __init__(self, config, **kwargs):
-        self.cs_num = None
-        self.max_cs_len = None
-        self.max_qa_len  = None
 
-        config1 = copy.deepcopy(config)
-        config1.num_hidden_layers = 6
-        config1.without_embedding = False
-        
-        config2 = copy.deepcopy(config)
-        config2.num_hidden_layers = 6
-        config2.without_embedding = True
+        super(AlbertBurgerBeta, self).__init__()
 
+        albert1_layers = kwargs['albert1_layers']
 
-        # modules
-        self.albert = AlbertModel(config1)
-        self.cs_attention_scorer = AttentionLayer(config, self.cs_num)
-        self.albert2 = AlbertModel(config2)
-        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
+        self.config1 = deepcopy(config)
+        self.config1.num_hidden_layers = albert1_layers
+        self.config2 = deepcopy(config)
+        self.config2.num_hidden_layers = config.num_hidden_layers - albert1_layers
+        self.config2.without_embedding = True
+
+        self.albert1 = AlbertModel(self.config1)
+        self.albert2 = AlbertModel(self.config2)
 
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
             nn.Linear(config.hidden_size, 1)
         )
 
-        self.init_weights()
+        self.apply(self.init_weights)
+
+    def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
+        """
+        input_ids: [B, 5, L]
+        labels: [B, ]
+        """
+        # logits: [B, 2]
+        logits = self._forward(input_ids, attention_mask, token_type_ids)
+        loss = F.cross_entropy(logits, labels)      # get the CELoss
+
+        with torch.no_grad():
+            logits = F.softmax(logits, dim=1)       # get the score
+            predicts = torch.argmax(logits, dim=1)  # find the result
+            right_num = torch.sum(predicts == labels)
+
+        return loss, right_num
+
+    def _forward(self, input_ids, attention_mask, token_type_ids):
+        # [B, 5, L] => [B * 5, L]
+        flat_input_ids = input_ids.view(-1, input_ids.size(-1))
+        flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
+        flat_token_type_ids = token_type_ids.view(-1, token_type_ids.size(-1))
+
+        outputs = self.albert1(
+            input_ids = flat_input_ids,
+            attention_mask = flat_attention_mask,
+            token_type_ids = flat_token_type_ids
+        )
+        hidden_state_1 = outputs.last_hidden_state
+        outputs = self.albert2(inputs_embeds=hidden_state_1)
+        pooler_output = outputs.pooler_output  # [CLS]
+
+        # [B*5, H] => [B*5, 1] => [B, 5]
+        logits = self.scorer(pooler_output).view(-1, 5)
+
+        return logits
+
+    @staticmethod
+    def init_weights(module):
+        if isinstance(module, nn.Linear):
+            module.weight.data.normal_(mean=0.0, std=0.02)
+            if module.bias is not None:
+                module.bias.data.zero_()
 
     @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path, **kwargs):
-        cls()
+    def from_pretrained(cls, model_path_or_name, **kwargs):
 
-    def forward(self):
-        pass
+        config = AlbertConfig()
+        config.without_embedding = False
+        if "xxlarge" in model_path_or_name:
+            config.hidden_size = 4096
+            config.intermediate_size = 16384
+            config.num_attention_heads = 64
+            config.num_hidden_layers = 12
+        elif "xlarge" in model_path_or_name:
+            config.hidden_size = 2048
+            config.intermediate_size = 8192
+            config.num_attention_heads = 16
+            config.num_hidden_layers = 24
+        elif "large" in model_path_or_name:
+            config.hidden_size = 1024
+            config.intermediate_size = 4096
+            config.num_attention_heads = 16
+            config.num_hidden_layers = 24
+        elif "base" in model_path_or_name:
+            config.hidden_size = 768
+            config.intermediate_size = 3072
+            config.num_attention_heads = 12
+            config.num_hidden_layers = 12
+
+        model = cls(config, **kwargs)
+        model.albert1 = model.albert1.from_pretrained(model_path_or_name, config=model.config1)
+        model.albert2 = model.albert2.from_pretrained(model_path_or_name, config=model.config2)
+
+        return model
 
 
-
-
-class AlbertBurger_alpha(AlbertPreTrainedModel):
+class AlbertBurgerAlpha(AlbertPreTrainedModel):
     '''
     input_ids [b, 5, seq_len] => [5b, seq_len]
     => PTM
     cs_encoding [5b, cs_num, cs_seq_len, hidden]
     '''
     def __init__(self, config, **kwargs):
-        super(AlbertBurger, self).__init__(config)
+        super(AlbertBurgerAlpha, self).__init__(config)
         # length config
         self.cs_num = kwargs['cs_num']
         self.max_cs_len = kwargs['max_cs_len']

@@ -16,7 +16,9 @@ from transformers import AlbertModel, AlbertPreTrainedModel
 class AttentionMerge(nn.Module):
 
     def __init__(self, input_size, attention_size, dropout_prob):
+
         super(AttentionMerge, self).__init__()
+        
         self.attention_size = attention_size
         self.hidden_layer = nn.Linear(input_size, self.attention_size)
         self.query_ = nn.Parameter(torch.Tensor(self.attention_size, 1))

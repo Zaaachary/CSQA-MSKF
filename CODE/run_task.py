@@ -20,7 +20,7 @@ from csqa_task.controller import MultipleChoice
 from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
 from model.Baselines import AlbertBaseline, BertBaseline
 from model.HH_linear import AlbertCrossAttn, BertCrossAttn
-from model.AlbertBurger import AlbertBurger
+from model.AlbertBurger import AlbertBurgerAlpha, AlbertBurgerBeta
 from utils.common import mkdir_if_notexist, result_dump, set_seed
 
 logger = logging.getLogger("run_task")
@@ -49,7 +49,8 @@ def select_task(args):
         "Albert_AttnMergeAddTFM": (AlbertAddTFM, []),
         "Albert_CrossAttn": (AlbertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
         "Bert_CrossAttn": (BertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
-        "Albert_Burger": (AlbertBurger, ['cs_num', 'max_qa_len', 'max_cs_len'])
+        "Albert_BurgerAlpha": (AlbertBurgerAlpha, ['cs_num', 'max_qa_len', 'max_cs_len']),
+        "Albert_BurgerBeta": (AlbertBurgerBeta, ['albert1_layers'])
     }
 
     processor_dict = {
@@ -62,9 +63,9 @@ def select_task(args):
     ModelClass, args_list = model_dict[model_name]
     ProcessorClass = processor_dict[processor_name]
 
-    model_args = {arg: args.__dict__[arg] for arg in args_list}
+    model_kwargs = {arg: args.__dict__[arg] for arg in args_list}
 
-    return ModelClass, ProcessorClass, model_args
+    return ModelClass, ProcessorClass, model_kwargs
 
 def set_result(args):
     '''
@@ -140,11 +141,14 @@ if __name__ == "__main__":
     parser.add_argument('--evltest_batch_size', type=int, default=8)
     parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     
-    # hyper param
+    # task-specific hyper param
+    parser.add_argument('--albert1_layers', type=int, default=0)
     parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
     parser.add_argument('--max_seq_len', type=int, default=None, help='used where dataprocessor restrain total len')
     parser.add_argument('--max_qa_len', type=int, default=None)
     parser.add_argument('--max_cs_len', type=int, default=None)
+    
+    # train hyper param
     parser.add_argument('--train_batch_size', type=int, default=4)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
     parser.add_argument('--num_train_epochs', type=int, default=5)

@@ -24,7 +24,6 @@ class AlbertTransformer(nn.Module):
 
         self.without_embedding = getattr(config, "without_embedding", False)
 
-
     def forward(
         self,
         hidden_states,
@@ -105,7 +104,8 @@ class AlbertModel(AlbertPreTrainedModel):
         super().__init__(config)
 
         self.config = config
-        self.embeddings = AlbertEmbeddings(config)
+        if not getattr(self.config, 'without_embedding', False):
+            self.embeddings = AlbertEmbeddings(config)
         self.encoder = AlbertTransformer(config)
         if add_pooling_layer:
             self.pooler = nn.Linear(config.hidden_size, config.hidden_size)
@@ -117,10 +117,12 @@ class AlbertModel(AlbertPreTrainedModel):
         self.init_weights()
 
     def get_input_embeddings(self):
-        return self.embeddings.word_embeddings
+        if not getattr(self.config, 'without_embedding', False):
+            return self.embeddings.word_embeddings
 
     def set_input_embeddings(self, value):
-        self.embeddings.word_embeddings = value
+        if not getattr(self.config, 'without_embedding', False):
+            self.embeddings.word_embeddings = value
 
     def _prune_heads(self, heads_to_prune):
         """
