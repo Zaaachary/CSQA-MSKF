@@ -106,10 +106,10 @@ def main(args):
     # load data and preprocess
     logger.info(f"select tokenizer and model for task {args.task_name}")
     tokenizer = select_tokenizer(args)
-    model, Processor, model_args = select_task(args)
+    model, Processor, model_kwargs = select_task(args)
 
     # initalize controller by model
-    controller = MultipleChoice(args, model_args)
+    controller = MultipleChoice(args, model_kwargs)
     controller.load_model(model)
     controller.load_data(Processor, tokenizer)
 

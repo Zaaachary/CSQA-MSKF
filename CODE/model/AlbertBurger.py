@@ -7,17 +7,60 @@
 """
 
 import math
+import copy
 import pdb
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import (AlbertModel, AlbertPreTrainedModel, BertModel,
-                          BertPreTrainedModel)
+# from transformers import AlbertModel as tfms_AlbertModel
+from transformers import AlbertPreTrainedModel, AlbertConfig
+from .AlbertModel import AlbertModel
+
 
 from utils import common
 
-class AlbertBurger(AlbertPreTrainedModel):
+
+class AlbertBurger():
+
+    def __init__(self, config, **kwargs):
+        self.cs_num = None
+        self.max_cs_len = None
+        self.max_qa_len  = None
+
+        config1 = copy.deepcopy(config)
+        config1.num_hidden_layers = 6
+        config1.without_embedding = False
+        
+        config2 = copy.deepcopy(config)
+        config2.num_hidden_layers = 6
+        config2.without_embedding = True
+
+
+        # modules
+        self.albert = AlbertModel(config1)
+        self.cs_attention_scorer = AttentionLayer(config, self.cs_num)
+        self.albert2 = AlbertModel(config2)
+        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
+
+        self.scorer = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(config.hidden_size, 1)
+        )
+
+        self.init_weights()
+
+    @classmethod
+    def from_pretrained(cls, pretrained_model_name_or_path, **kwargs):
+        cls()
+
+    def forward(self):
+        pass
+
+
+
+
+class AlbertBurger_alpha(AlbertPreTrainedModel):
     '''
     input_ids [b, 5, seq_len] => [5b, seq_len]
     => PTM
