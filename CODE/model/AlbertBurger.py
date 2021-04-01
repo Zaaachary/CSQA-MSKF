@@ -21,18 +21,19 @@ from .AlbertModel import AlbertModel
 from utils import common
 
 
-class AlbertBurgerBeta(nn.Module):
+class AlbertBurgerAlpha1(nn.Module):
 
     def __init__(self, config, **kwargs):
 
-        super(AlbertBurgerBeta, self).__init__()
+        super(AlbertBurgerAlpha1, self).__init__()
 
-        albert1_layers = kwargs['albert1_layers']
+        self.albert1_layers = kwargs['albert1_layers']
 
+        self.config = config
         self.config1 = deepcopy(config)
-        self.config1.num_hidden_layers = albert1_layers
+        self.config1.num_hidden_layers = self.albert1_layers
         self.config2 = deepcopy(config)
-        self.config2.num_hidden_layers = config.num_hidden_layers - albert1_layers
+        self.config2.num_hidden_layers = config.num_hidden_layers - self.albert1_layers
         self.config2.without_embedding = True
 
         self.albert1 = AlbertModel(self.config1)
@@ -121,14 +122,14 @@ class AlbertBurgerBeta(nn.Module):
         return model
 
 
-class AlbertBurgerAlpha(AlbertPreTrainedModel):
+class AlbertBurgerAlpha0(AlbertPreTrainedModel):
     '''
     input_ids [b, 5, seq_len] => [5b, seq_len]
     => PTM
     cs_encoding [5b, cs_num, cs_seq_len, hidden]
     '''
     def __init__(self, config, **kwargs):
-        super(AlbertBurgerAlpha, self).__init__(config)
+        super(AlbertBurgerAlpha0, self).__init__(config)
         # length config
         self.cs_num = kwargs['cs_num']
         self.max_cs_len = kwargs['max_cs_len']

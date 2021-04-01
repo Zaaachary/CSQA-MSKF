@@ -1,5 +1,5 @@
 python CODE\\run_task.py^
-    --task_name Origin_Albert_BurgerBeta^
+    --task_name Origin_Albert_BurgerAlpha1^
     --mission train^
     --fp16 0^
     --gpu_ids 0^
@@ -9,7 +9,7 @@ python CODE\\run_task.py^
     --evltest_batch_size 12^
     ^
     --max_seq_len 128^
-    --albert1_layers 6^
+    --albert1_layers 10^
     ^
     --train_batch_size 4^
     --gradient_accumulation_steps 4^

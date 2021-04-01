@@ -1,12 +1,12 @@
 python CODE\\run_task.py^
-    --task_name Origin_albert_Baseline^
+    --task_name Origin_Albert_Baseline^
     --mission train^
     --fp16 0^
     --gpu_ids 0^
     --save_mode step^
     --print_step 100^
     ^
-    --max_seq_len 128^
+    --max_seq_len 140^
     --train_batch_size 4^
     --evltest_batch_size 12^
     --gradient_accumulation_steps 8^
