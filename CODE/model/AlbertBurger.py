@@ -349,7 +349,7 @@ class AttentionMerge(nn.Module):
         # (b, l, h) + (h, 1) -> (b, l, 1)
         attention_probs = keys @ self.query_ / math.sqrt(self.attention_size * query_var)
         # attention_probs = keys @ self.query_ / math.sqrt(self.attention_size)
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         attention_probs = F.softmax(attention_probs * mask, dim=1)  # [batch*5, len, 1]
         attention_probs = self.dropout(attention_probs)
 
