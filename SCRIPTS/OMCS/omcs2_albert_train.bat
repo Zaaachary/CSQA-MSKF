@@ -12,8 +12,8 @@ python CODE/run_task.py^
     --cs_num 4^
     --max_seq_len 128^
     ^
-    --train_batch_size 8^
-    --gradient_accumulation_steps 1^
+    --train_batch_size 2^
+    --gradient_accumulation_steps 4^
     --learning_rate 2e-5^
     --num_train_epochs 8^
     --warmup_proportion 0.1^

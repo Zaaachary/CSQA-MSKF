@@ -7,12 +7,10 @@
 """
 import argparse
 import logging
-from math import floor
 import os
 import time
 from pprint import pprint
 
-from tqdm import tqdm
 from transformers import AlbertTokenizer, BertTokenizer
 
 from csqa_task.data import *

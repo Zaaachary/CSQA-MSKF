@@ -138,10 +138,11 @@ class BaseTrainer:
                 self.model.parameters(), max_norm=1)  # max_grad_norm = 1
 
         if (self.global_step + 1) % gradient_accumulation_steps == 0:
-            # import pdb; pdb.set_trace()
             self.optimizer.step()
             self.scheduler.step()
             self.model.zero_grad()
+            # lr = self.scheduler.get_lr()[1]
+            # logger.info(f"learning rate: {lr}")
 
         self.global_step += 1
 
