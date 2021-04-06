@@ -19,6 +19,6 @@ python CODE/run_task.py\
     --warmup_proportion 0.1\
     --weight_decay 0.1\
     \
-   --dataset_dir DATA\
+    --dataset_dir DATA\
     --result_dir  /data/zhifli/model_save\
     --PTM_model_vocab_dir /home/zhifli/DATA/transformers-models/albert-base-v2\

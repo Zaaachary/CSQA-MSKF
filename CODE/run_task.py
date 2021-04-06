@@ -57,6 +57,7 @@ def select_task(args):
     processor_dict = {
         "Origin": Baseline_Processor,
         "OMCS": OMCS_Processor,
+        "OMCS2": OMCS_Processor,
         "CSLinear": CSLinear_Processor
     }
 

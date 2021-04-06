@@ -177,6 +177,7 @@ class OMCS_Processor(object):
         for example in tqdm(self.examples):
             # call example's tokenize function
             # feature_dict: [5, 128], [5, 128], [5, 128]
+            # import pdb; pdb.set_trace()
             feature_dict = example.tokenize(tokenizer, args)
             all_input_ids.append(feature_dict['input_ids'])
             all_token_type_ids.append(feature_dict['token_type_ids'])

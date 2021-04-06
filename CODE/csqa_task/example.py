@@ -60,10 +60,11 @@ class OMCSExample(object):
     def __repr__(self) -> str:
         return f'{self.example_id}: {self.label}'
 
-    def tokenize(self, tokenizer, max_seq_len):
+    def tokenize(self, tokenizer, args):
         '''
         feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
         '''
+        max_seq_len = args.max_seq_len
         feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
         # import pdb; pdb.set_trace()
         return feature_dict
