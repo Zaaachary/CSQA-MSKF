@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 
 from csqa_task.example import *
 
+
 class Baseline_Processor(object):
     
     def __init__(self, args, dataset_type):
@@ -87,6 +88,7 @@ class OMCS_Processor(object):
         self.args = args
         self.dataset_dir = args.dataset_dir
         self.dataset_type = dataset_type
+        self.version = 2 if '2' in args.task_name else 1
         self.raw_data = []
         self.examples = []
         self.omcs_cropus = None
@@ -94,9 +96,14 @@ class OMCS_Processor(object):
 
     def load_data(self):
         self.load_csqa()    # csqa dataset
-        self.load_omcs()    # omcs free text
-        self.load_csqa_omcs_index() # csqa -ESindex-> omcs
-        self.inject_commonsense()
+
+        if self.version == 2:
+            self.load_omcs()    # omcs free text
+            self.load_csqa_omcs_index() # csqa -ESindex-> omcs
+            self.inject_commonsense()
+        else:
+            self.load_omcsv2()
+            self.inject_commonsensev2()
 
     def load_csqa(self):
         f = open(os.path.join(self.args.dataset_dir, 'csqa', f"{self.dataset_type}_rand_split.jsonl"), 'r', encoding='utf-8')
@@ -117,6 +124,7 @@ class OMCS_Processor(object):
     def inject_commonsense(self):
         '''
         put commonsense into case, accroding to omcs_index (ES result)
+
         '''
         for case in self.raw_data:
             cs4choice = {}  # {choice: csforchoice}
@@ -132,6 +140,29 @@ class OMCS_Processor(object):
                     cs_list.extend([' ']*temp)
 
                 cs4choice[cs_index['ending']] = cs_list
+
+            example = OMCSExample.load_from(case, cs4choice)
+            self.examples.append(example)
+
+    def load_omcsv2(self):
+        omcs_file = os.path.join(self.dataset_dir, 'omcs', f"{self.dataset_type}_rand_split_omcs.json")
+        with open(omcs_file, 'r', encoding='utf-8') as f:
+            self.omcs_cropus = json.load(f)
+
+    def inject_commonsensev2(self):
+        omcs_index = 0
+        for case in self.raw_data:
+            cs4choice = {}
+            for choice in case['question']['choices']:
+                choice_test = choice['text']
+                cs_list = self.omcs_cropus[omcs_index]['cs_list']
+                omcs_index += 1
+
+                temp = self.args.cs_num - len(cs_list)
+                if temp:
+                    cs_list.extend([' ']*temp)
+
+                cs4choice[choice_test] = cs_list
 
             example = OMCSExample.load_from(case, cs4choice)
             self.examples.append(example)
