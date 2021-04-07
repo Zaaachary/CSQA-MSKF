@@ -88,7 +88,7 @@ class OMCS_Processor(object):
         self.args = args
         self.dataset_dir = args.dataset_dir
         self.dataset_type = dataset_type
-        self.version = 2 if 'OMCS2' in args.task_name else 1
+        self.version = args.OMCS_version
         self.raw_data = []
         self.examples = []
         self.omcs_cropus = None
@@ -120,7 +120,11 @@ class OMCS_Processor(object):
         cs_result_file = os.path.join(self.dataset_dir, 'omcs', "omcs_v1", f'{self.dataset_type}_QAconcept-Match_omcs_of_dataset.json')
         with open(cs_result_file, 'r', encoding='utf-8') as f:
             self.omcs_index = json.load(f)
-        
+    
+    @staticmethod
+    def load_example(case, cs4choice):
+        return OMCSExample.load_from(case, cs4choice)
+
     def inject_commonsense(self):
         '''
         put commonsense into case, accroding to omcs_index (ES result)
@@ -134,6 +138,8 @@ class OMCS_Processor(object):
                 cs_list = list(map(int, cs_index['cs'][:self.args.cs_num]))
                 cs_list = [self.omcs_cropus[cs] for cs in cs_list]
 
+                cs_list.sort(key=lambda x:len(x)) # sort by cs_len
+
                 # some case don't have cs_num cs
                 temp = self.args.cs_num - len(cs_list)
                 if temp:
@@ -141,12 +147,12 @@ class OMCS_Processor(object):
 
                 cs4choice[cs_index['ending']] = cs_list
 
-            example = OMCSExample.load_from(case, cs4choice)
+            example = self.load_example(case, cs4choice)
             self.examples.append(example)
 
     def load_omcsv2(self):
-        # omcs_file = os.path.join(self.dataset_dir, 'omcs', 'omcs_v2.2_15' ,f"{self.dataset_type}_rand_split_omcs.json")
-        omcs_file = os.path.join(self.dataset_dir, 'omcs', 'omcs_v2.3_10', f"{self.dataset_type}_rand_split_omcs.json")
+        omcs_file = os.path.join(self.dataset_dir, 'omcs', 'omcs_v2.2_15' ,f"{self.dataset_type}_rand_split_omcs.json")
+        # omcs_file = os.path.join(self.dataset_dir, 'omcs', 'omcs_v2.3_10', f"{self.dataset_type}_rand_split_omcs.json")
         with open(omcs_file, 'r', encoding='utf-8') as f:
             self.omcs_cropus = json.load(f)
 
@@ -159,14 +165,15 @@ class OMCS_Processor(object):
                 cs_list = self.omcs_cropus[omcs_index]['cs_list']
                 omcs_index += 1
 
+                cs_list.sort(key=lambda x:len(x)) # sort by cs_len
+
                 temp = self.args.cs_num - len(cs_list)
                 if temp:
                     cs_list.extend([' ']*temp)
 
                 cs4choice[choice_test] = cs_list
 
-            example = OMCSExample.load_from(case, cs4choice)
-            # import pdb; pdb.set_trace()
+            example = self.load_example(case, cs4choice)
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
@@ -212,29 +219,9 @@ class CSLinear_Processor(OMCS_Processor):
         self.max_cs_len = args.max_cs_len
         self.max_seq_len = args.max_seq_len
     
-    def inject_commonsense(self):
-        '''
-        put commonsense into case, accroding to omcs_index (ES result)
-        '''
-        for case in self.raw_data:
-            cs4choice = {}  # {choice: csforchoice}
-            choice_csindex = self.omcs_index[case['id']]['endings']
-            for cs_index in choice_csindex:
-                # cs for single choice, choose top self.args.cs_num
-                cs_list = list(map(int, cs_index['cs'][:self.args.cs_num]))
-                cs_list = [self.omcs_cropus[cs] for cs in cs_list]
-                
-                cs_list.sort(key=lambda x:len(x)) # sort by cs_len
-
-                # check empty cs and add
-                temp = self.args.cs_num - len(cs_list)
-                if temp:
-                    cs_list.extend([' ']*temp)
-
-                cs4choice[cs_index['ending']] = cs_list
-
-            example = CSLinearExample.load_from(case, cs4choice)
-            self.examples.append(example)
+    @staticmethod
+    def load_example(case, cs4choice):
+        return CSLinearExample.load_from(case, cs4choice)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
         return super().make_dataloader(tokenizer, args, shuffle=shuffle)

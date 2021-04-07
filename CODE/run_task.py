@@ -55,7 +55,6 @@ def select_task(args):
     processor_dict = {
         "Origin": Baseline_Processor,
         "OMCS": OMCS_Processor,
-        "OMCS2": OMCS_Processor,
         "CSLinear": CSLinear_Processor
     }
 
@@ -75,6 +74,7 @@ def set_result(args):
         task_str = time.strftime(r'%H%M-%b%d') + f'_seed{args.seed}'
         if 'Origin' not in args.task_name:
             task_str += f'_cs{args.cs_num}'
+            task_str += f'_omcsv{args.OMCS_version}'
         
         if 'Burger' in args.task_name:
             task_str += f'_layer{args.albert1_layers}'
@@ -146,6 +146,7 @@ if __name__ == "__main__":
     parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     
     # task-specific hyper param
+    parser.add_argument('--OMCS_version', type=int, default=1)
     parser.add_argument('--albert1_layers', type=int, default=0)
     parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
     parser.add_argument('--max_seq_len', type=int, default=None, help='used where dataprocessor restrain total len')
