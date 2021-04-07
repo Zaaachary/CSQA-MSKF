@@ -15,6 +15,7 @@ python CODE\\run_task.py^
     --max_seq_len 140^
     ^
     --train_batch_size 2^
+    --albert1_layer 11^
     --gradient_accumulation_steps 4^
     --learning_rate 2e-5^
     --num_train_epochs 2^
