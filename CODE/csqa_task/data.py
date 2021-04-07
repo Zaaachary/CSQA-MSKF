@@ -88,7 +88,7 @@ class OMCS_Processor(object):
         self.args = args
         self.dataset_dir = args.dataset_dir
         self.dataset_type = dataset_type
-        self.version = 2 if '2' in args.task_name else 1
+        self.version = 2 if 'OMCS2' in args.task_name else 1
         self.raw_data = []
         self.examples = []
         self.omcs_cropus = None
@@ -165,6 +165,7 @@ class OMCS_Processor(object):
                 cs4choice[choice_test] = cs_list
 
             example = OMCSExample.load_from(case, cs4choice)
+            # import pdb; pdb.set_trace()
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
