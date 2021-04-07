@@ -7,6 +7,7 @@
 """
 
 import math
+import os
 from copy import deepcopy
 
 import torch
@@ -223,7 +224,38 @@ class AlbertBurgerAlpha2(nn.Module):
         model.albert2 = model.albert2.from_pretrained(model_path_or_name, config=model.config2)
 
         return model
+    
+    @classmethod
+    def from_pt(cls, model_path_or_name, **kwargs):
 
+        config = AlbertConfig()
+        config.without_embedding = False
+        if "xxlarge" in model_path_or_name:
+            config.hidden_size = 4096
+            config.intermediate_size = 16384
+            config.num_attention_heads = 64
+            config.num_hidden_layers = 12
+        elif "xlarge" in model_path_or_name:
+            config.hidden_size = 2048
+            config.intermediate_size = 8192
+            config.num_attention_heads = 16
+            config.num_hidden_layers = 24
+        elif "large" in model_path_or_name:
+            config.hidden_size = 1024
+            config.intermediate_size = 4096
+            config.num_attention_heads = 16
+            config.num_hidden_layers = 24
+        elif "base" in model_path_or_name:
+            config.hidden_size = 768
+            config.intermediate_size = 3072
+            config.num_attention_heads = 12
+            config.num_hidden_layers = 12
+
+        model = cls(config, **kwargs)
+        state_dict = torch.load(os.path.join(model_path_or_name, 'pytorch_model.bin'))
+        model.load_state_dict(state_dict)
+
+        return model
 
 class AlbertBurgerAlpha1(nn.Module):
 

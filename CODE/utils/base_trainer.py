@@ -91,6 +91,8 @@ class BaseTrainer:
                         cur_loss, right_num, all_num = dev_record.list()
                         self.save_or_not(cur_loss, right_num)
                         logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
+                    lr = self.scheduler.get_lr()[1]
+                    logger.debug(f"learning rate: {lr}")
             else:
                 self._report(self.train_record)  # last steps not reach print_step
 

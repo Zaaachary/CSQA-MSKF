@@ -1,18 +1,21 @@
 python CODE\\run_task.py^
-    --task_name CSLinear_Albert_Burger^
+    --task_name CSLinear_Albert_BurgerAlpha2^
     --mission train^
     --fp16 0^
     --gpu_ids 0^
     --save_mode step^
     --print_step 100^
+    --eval_after_tacc 0^
     --evltest_batch_size 12^
+    --clip_batch_off^
     ^
     --cs_num 4^
     --max_qa_len 54^
     --max_cs_len 20^
     --max_seq_len 140^
+    ^
     --train_batch_size 2^
-    --gradient_accumulation_steps 16^
+    --gradient_accumulation_steps 4^
     --learning_rate 2e-5^
     --num_train_epochs 2^
     --warmup_proportion 0.1^

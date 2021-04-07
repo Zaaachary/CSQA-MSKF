@@ -50,11 +50,16 @@ class MultipleChoice:
         ModelClass: e.g. modelTC
         '''
         # load model
+        import pdb; pdb.set_trace()
         if self.config.mission == "train":
             model_dir = self.config.PTM_model_vocab_dir
+            model = ModelClass.from_pretrained(model_dir, **self.model_kwargs)
         else:
             model_dir = self.config.saved_model_dir
-        model = ModelClass.from_pretrained(model_dir, **self.model_kwargs)
+            if hasattr(ModelClass, 'from_pt'):
+                model = ModelClass.from_pt(model_dir, **self.model_kwargs)
+            else:
+                model = ModelClass.from_pretrained(model_dir, **self.model_kwargs)
 
         if self.multi_gpu:
             model = torch.nn.DataParallel(model, device_ids=self.gpu_ids)
@@ -109,6 +114,9 @@ class MultipleChoice:
         scheduler = self.trainer.make_scheduler(optimizer, warmup_proportion, total_training_step)
         self.trainer.set_optimizer(optimizer)
         self.trainer.set_scheduler(scheduler)
+
+        if self.config.mission == 'conti-train':
+            self.evaluate()
 
         self.trainer.train(
             self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, deval_dataloader, self.config.save_mode)
