@@ -146,7 +146,7 @@ if __name__ == "__main__":
     parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     
     # task-specific hyper param
-    parser.add_argument('--OMCS_version', type=int, default=1)
+    parser.add_argument('--OMCS_version', type=str, default='1')
     parser.add_argument('--albert1_layers', type=int, default=0)
     parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
     parser.add_argument('--max_seq_len', type=int, default=None, help='used where dataprocessor restrain total len')

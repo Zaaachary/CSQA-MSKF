@@ -96,7 +96,6 @@ class OMCS_Processor(object):
 
     def load_data(self):
         self.load_csqa()    # csqa dataset
-
         if self.version == 1:
             self.load_omcs()    # omcs free text
             self.load_csqa_omcs_index() # csqa -ESindex-> omcs
@@ -162,7 +161,7 @@ class OMCS_Processor(object):
             cs4choice = {}
             for choice in case['question']['choices']:
                 choice_test = choice['text']
-                cs_list = self.omcs_cropus[omcs_index]['cs_list']
+                cs_list = self.omcs_cropus[omcs_index]['cs_list'][:self.args.cs_num]
                 omcs_index += 1
 
                 cs_list.sort(key=lambda x:len(x)) # sort by cs_len
@@ -172,7 +171,7 @@ class OMCS_Processor(object):
                     cs_list.extend([' ']*temp)
 
                 cs4choice[choice_test] = cs_list
-
+            
             example = self.load_example(case, cs4choice)
             self.examples.append(example)
 
@@ -221,6 +220,7 @@ class CSLinear_Processor(OMCS_Processor):
     
     @staticmethod
     def load_example(case, cs4choice):
+        # import pdb; pdb.set_trace()
         return CSLinearExample.load_from(case, cs4choice)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
