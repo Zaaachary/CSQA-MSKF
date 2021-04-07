@@ -115,6 +115,7 @@ class MultipleChoice:
         self.trainer.set_optimizer(optimizer)
         self.trainer.set_scheduler(scheduler)
 
+        # 断点续训则先进行一次 Eval
         if self.config.mission == 'conti-train':
             self.evaluate()
 
@@ -123,7 +124,7 @@ class MultipleChoice:
 
     def evaluate(self):
         dataloader = self.deval_dataloader
-        record = self.trainer.evaluate(dataloader)
+        record = self.trainer.evaluate(dataloader, True)
         eval_loss = record[0].avg()
         drn, dan = record.list()[1:]
         logger.info(f"eval: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
