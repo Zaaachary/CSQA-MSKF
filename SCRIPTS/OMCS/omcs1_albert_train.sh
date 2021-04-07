@@ -1,10 +1,9 @@
 python CODE/run_task.py\
-    --task_name OMCS2_Albert_Baseline\
+    --task_name OMCS_Albert_Baseline\
     --mission train\
     --fp16 0\
-    --gpu_ids 7\
+    --gpu_ids 0\
     --save_mode step\
-    --seed 42\
     --print_step 100\
     --evltest_batch_size 12\
     --eval_after_tacc 0.5\
@@ -15,7 +14,7 @@ python CODE/run_task.py\
     --train_batch_size 8\
     --gradient_accumulation_steps 1\
     --learning_rate 2e-5\
-    --num_train_epochs 8\
+    --num_train_epochs 6\
     --warmup_proportion 0.1\
     --weight_decay 0.1\
     \
