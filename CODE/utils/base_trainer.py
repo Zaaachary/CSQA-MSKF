@@ -20,6 +20,10 @@ from tqdm.autonotebook import tqdm
 from transformers.file_utils import CONFIG_NAME, WEIGHTS_NAME
 from transformers.optimization import (
     AdamW, get_cosine_with_hard_restarts_schedule_with_warmup)
+try:
+    from apex import amp
+except ImportError:
+    print("apex not imported")
 
 from .common import Vn, mkdir_if_notexist
 
