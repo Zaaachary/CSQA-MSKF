@@ -8,7 +8,7 @@ python CODE/run_task.py\
     --evltest_batch_size 12\
     --eval_after_tacc 0.5\
     \
-    --cs_num 1\
+    --cs_num 5\
     --max_seq_len 140\
     \
     --train_batch_size 8\
