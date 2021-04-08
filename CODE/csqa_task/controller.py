@@ -50,7 +50,6 @@ class MultipleChoice:
         ModelClass: e.g. modelTC
         '''
         # load model
-        import pdb; pdb.set_trace()
         if self.config.mission == "train":
             model_dir = self.config.PTM_model_vocab_dir
             model = ModelClass.from_pretrained(model_dir, **self.model_kwargs)

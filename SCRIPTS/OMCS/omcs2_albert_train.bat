@@ -10,7 +10,7 @@ python CODE/run_task.py^
     ^
     --cs_num 4^
     --max_seq_len 140^
-    --OMCS_version 2^
+    --OMCS_version 2.2^
     ^
     --train_batch_size 2^
     --gradient_accumulation_steps 8^

@@ -96,12 +96,11 @@ class OMCS_Processor(object):
 
     def load_data(self):
         self.load_csqa()    # csqa dataset
-
-        if self.version == 1:
+        if self.version == '1':
             self.load_omcs()    # omcs free text
             self.load_csqa_omcs_index() # csqa -ESindex-> omcs
             self.inject_commonsense()
-        elif self.version == 2:
+        elif self.version[0] == '2':
             self.load_omcsv2()
             self.inject_commonsensev2()
 
@@ -151,8 +150,10 @@ class OMCS_Processor(object):
             self.examples.append(example)
 
     def load_omcsv2(self):
-        omcs_file = os.path.join(self.dataset_dir, 'omcs', 'omcs_v2.2_15' ,f"{self.dataset_type}_rand_split_omcs.json")
-        # omcs_file = os.path.join(self.dataset_dir, 'omcs', 'omcs_v2.3_10', f"{self.dataset_type}_rand_split_omcs.json")
+        dir_dict = {'2.2':'omcs_v2.2_15', '2.3':'omcs_v2.3_10'}
+
+        omcs_file = os.path.join(self.dataset_dir, 'omcs', dir_dict[self.version] ,f"{self.dataset_type}_rand_split_omcs.json")
+
         with open(omcs_file, 'r', encoding='utf-8') as f:
             self.omcs_cropus = json.load(f)
 
@@ -162,7 +163,7 @@ class OMCS_Processor(object):
             cs4choice = {}
             for choice in case['question']['choices']:
                 choice_test = choice['text']
-                cs_list = self.omcs_cropus[omcs_index]['cs_list']
+                cs_list = self.omcs_cropus[omcs_index]['cs_list'][:self.args.cs_num]
                 omcs_index += 1
 
                 cs_list.sort(key=lambda x:len(x)) # sort by cs_len
@@ -172,7 +173,7 @@ class OMCS_Processor(object):
                     cs_list.extend([' ']*temp)
 
                 cs4choice[choice_test] = cs_list
-
+            
             example = self.load_example(case, cs4choice)
             self.examples.append(example)
 
@@ -221,6 +222,7 @@ class CSLinear_Processor(OMCS_Processor):
     
     @staticmethod
     def load_example(case, cs4choice):
+        # import pdb; pdb.set_trace()
         return CSLinearExample.load_from(case, cs4choice)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
