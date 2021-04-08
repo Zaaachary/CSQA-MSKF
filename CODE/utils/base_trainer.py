@@ -59,14 +59,17 @@ class BaseTrainer:
         self.train_record = Vn(v_num)
         self.print_step = print_step
         self.eval_after_tacc = eval_after_tacc
+        self.best_loss, self.best_acc = float('inf'), 0
+
+    def set_best_acc(self, acc):
+        self.best_acc = acc
 
     def train(self, epoch_num, gradient_accumulation_steps, 
         train_dataloader, dev_dataloader, save_mode='epoch'):
         """
         save_mode: 'step', 'epoch', 'last'
         """
-        self.best_loss, self.best_acc = float('inf'), 0
-
+        
         for epoch in range(int(epoch_num)):
             logger.info(f'---------Epoch: {epoch+1:02}---------')
             self.model.zero_grad()
@@ -102,7 +105,7 @@ class BaseTrainer:
 
             # epoch report
             dev_record = self.evaluate(dev_dataloader, True)  # loss, right_num, all_num
-            self._report(dev_record, 'dev')
+            self._report(dev_record, 'Dev')
             cur_loss, right_num, all_num  = dev_record.list()
             if not save_mode == 'last':
                 self.save_or_not(cur_loss, right_num)

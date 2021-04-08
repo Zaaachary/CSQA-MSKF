@@ -116,7 +116,8 @@ class MultipleChoice:
 
         # 断点续训则先进行一次 Eval
         if self.config.mission == 'conti-train':
-            self.evaluate()
+            right_num = self.evaluate()
+            self.trainer.set_best_acc(right_num)
 
         self.trainer.train(
             self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, deval_dataloader, self.config.save_mode)
@@ -127,6 +128,7 @@ class MultipleChoice:
         eval_loss = record[0].avg()
         drn, dan = record.list()[1:]
         logger.info(f"eval: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
+        return drn
 
     def predict(self):
         result = []
