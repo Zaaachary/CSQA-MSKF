@@ -2,10 +2,10 @@ python CODE/run_task.py\
     --task_name CSLinear_Albert_BurgerAlpha2\
     --mission train\
     --fp16 0\
-    --gpu_ids 1\
+    --gpu_ids 0\
     --save_mode step\
-    --print_step 100\
-    --eval_after_tacc 0.60\
+    --print_step 150\
+    --eval_after_tacc 0.59\
     --evltest_batch_size 12\
     --clip_batch_off\
     \
@@ -13,6 +13,7 @@ python CODE/run_task.py\
     --max_qa_len 54\
     --max_cs_len 20\
     --max_seq_len 140\
+    --OMCS_version 2\
     \
     --train_batch_size 8\
     --albert1_layers 10\
