@@ -96,11 +96,11 @@ class OMCS_Processor(object):
 
     def load_data(self):
         self.load_csqa()    # csqa dataset
-        if self.version == 1:
+        if self.version == '1':
             self.load_omcs()    # omcs free text
             self.load_csqa_omcs_index() # csqa -ESindex-> omcs
             self.inject_commonsense()
-        elif self.version == 2:
+        elif self.version[0] == '2':
             self.load_omcsv2()
             self.inject_commonsensev2()
 
@@ -150,8 +150,10 @@ class OMCS_Processor(object):
             self.examples.append(example)
 
     def load_omcsv2(self):
-        omcs_file = os.path.join(self.dataset_dir, 'omcs', 'omcs_v2.2_15' ,f"{self.dataset_type}_rand_split_omcs.json")
-        # omcs_file = os.path.join(self.dataset_dir, 'omcs', 'omcs_v2.3_10', f"{self.dataset_type}_rand_split_omcs.json")
+        dir_dict = {'2.2':'omcs_v2.2_15', '2.3':'omcs_v2.3_10'}
+
+        omcs_file = os.path.join(self.dataset_dir, 'omcs', dir_dict[self.version] ,f"{self.dataset_type}_rand_split_omcs.json")
+
         with open(omcs_file, 'r', encoding='utf-8') as f:
             self.omcs_cropus = json.load(f)
 

@@ -147,7 +147,7 @@ if __name__ == "__main__":
     
     # task-specific hyper param
     parser.add_argument('--OMCS_version', type=str, default='1')
-    parser.add_argument('--albert1_layers', type=int, default=0)
+    parser.add_argument('--albert1_layers', type=int, default=None)
     parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
     parser.add_argument('--max_seq_len', type=int, default=None, help='used where dataprocessor restrain total len')
     parser.add_argument('--max_qa_len', type=int, default=None)
