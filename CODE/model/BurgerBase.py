@@ -107,11 +107,85 @@ class CSLinearBase(object):
         return cs_encoding, cs_padding_mask, qa_encoding, qa_padding_mask
 
     def _remvoe_cs_pad_add_to_last_hidden_state(self, cs_encoding, last_hidden_state):
-        self.cs_range_list    # [[(start, end), (start, end)], [], [],]
-        self.qa_range_list    # [end, end, end,]
+        # self.cs_range_list    # [[(start, end), (start, end)], [], [],]
+        # self.qa_range_list    # [end, end, end,]
         for index, cs_range in enumerate(self.cs_range_list):
             for cs_index, cs_case in enumerate(cs_range):
                 start, end = cs_case
                 last_hidden_state[index, start:end] = cs_encoding[index, cs_index,:end-start,:]
     
         return last_hidden_state
+
+
+class BurgerBase(object):
+
+    @staticmethod
+    def init_weights(module):
+        if isinstance(module, nn.Linear):
+            module.weight.data.normal_(mean=0.0, std=0.02)
+            if module.bias is not None:
+                module.bias.data.zero_()
+
+    @classmethod
+    def from_pretrained(cls, model_path_or_name, **kwargs):
+
+        config = AlbertConfig()
+        config.without_embedding = False
+        if "xxlarge" in model_path_or_name:
+            config.hidden_size = 4096
+            config.intermediate_size = 16384
+            config.num_attention_heads = 64
+            config.num_hidden_layers = 12
+        elif "xlarge" in model_path_or_name:
+            config.hidden_size = 2048
+            config.intermediate_size = 8192
+            config.num_attention_heads = 16
+            config.num_hidden_layers = 24
+        elif "large" in model_path_or_name:
+            config.hidden_size = 1024
+            config.intermediate_size = 4096
+            config.num_attention_heads = 16
+            config.num_hidden_layers = 24
+        elif "base" in model_path_or_name:
+            config.hidden_size = 768
+            config.intermediate_size = 3072
+            config.num_attention_heads = 12
+            config.num_hidden_layers = 12
+
+        model = cls(config, **kwargs)
+        model.albert1 = model.albert1.from_pretrained(model_path_or_name, config=model.config1)
+        model.albert2 = model.albert2.from_pretrained(model_path_or_name, config=model.config2)
+
+        return model
+    
+    @classmethod
+    def from_pt(cls, model_path_or_name, **kwargs):
+
+        config = AlbertConfig()
+        config.without_embedding = False
+        if "xxlarge" in model_path_or_name:
+            config.hidden_size = 4096
+            config.intermediate_size = 16384
+            config.num_attention_heads = 64
+            config.num_hidden_layers = 12
+        elif "xlarge" in model_path_or_name:
+            config.hidden_size = 2048
+            config.intermediate_size = 8192
+            config.num_attention_heads = 16
+            config.num_hidden_layers = 24
+        elif "large" in model_path_or_name:
+            config.hidden_size = 1024
+            config.intermediate_size = 4096
+            config.num_attention_heads = 16
+            config.num_hidden_layers = 24
+        elif "base" in model_path_or_name:
+            config.hidden_size = 768
+            config.intermediate_size = 3072
+            config.num_attention_heads = 12
+            config.num_hidden_layers = 12
+
+        model = cls(config, **kwargs)
+        state_dict = torch.load(os.path.join(model_path_or_name, 'pytorch_model.bin'))
+        model.load_state_dict(state_dict)
+
+        return model

@@ -14,7 +14,7 @@ python CODE\\run_task.py^
     --max_cs_len 20^
     --max_seq_len 140^
     --albert1_layer 10^
-    --OMCS_version 2^
+    --OMCS_version 2.2^
     ^
     --train_batch_size 2^
     --gradient_accumulation_steps 4^

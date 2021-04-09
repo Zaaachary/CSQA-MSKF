@@ -16,14 +16,169 @@ import torch.nn.functional as F
 # from transformers import AlbertModel as tfms_AlbertModel
 from transformers import AlbertPreTrainedModel, AlbertConfig
 from .AlbertModel import AlbertModel
-from .BurgerBase import CSLinearBase
+from .BurgerBase import CSLinearBase, BurgerBase
 
 from utils import common
 
-# AlbertBurgerAlpha3()
+
+class AlbertBurgerAlpha4(nn.Module, CSLinearBase):
+
+    def __init__(self, config, **kwargs):
+
+        super(AlbertBurgerAlpha4, self).__init__()
+
+        self.albert1_layers = kwargs['albert1_layers']
+        self.cs_num = kwargs['cs_num']
+        self.max_cs_len = kwargs['max_cs_len']
+        self.max_qa_len  = kwargs['max_qa_len']
+
+        self.config = config
+        self.config1 = deepcopy(config)
+        self.config1.num_hidden_layers = self.albert1_layers
+        self.config2 = deepcopy(config)
+        self.config2.num_hidden_layers = config.num_hidden_layers - self.albert1_layers
+        self.config2.without_embedding = True
+
+        # modules
+        self.albert1 = AlbertModel(self.config1)
+        self.cs_attention = AttentionLayer(config, self.cs_num)
+        self.cs_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
+        self.cs_scorer = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(config.hidden_size, 1)
+        )
+
+        self.albert2 = AlbertModel(self.config2)
+        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
+        self.scorer = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(config.hidden_size, 1)
+        )
+
+        self.apply(self.init_weights)
+
+    def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
+        """
+        input_ids: [B, 5, L]
+        labels: [B, ]
+        """
+        logits = self._forward(input_ids, attention_mask, token_type_ids)
+        loss = F.cross_entropy(logits, labels)      # get the CELoss
+
+        with torch.no_grad():
+            logits = F.softmax(logits, dim=1)       # get the score
+            predicts = torch.argmax(logits, dim=1)  # find the result
+            right_num = torch.sum(predicts == labels)
+
+        return loss, right_num
+
+    def _forward(self, input_ids, attention_mask, token_type_ids):
+        # [B, 5, L] => [B * 5, L]
+        flat_input_ids = input_ids.view(-1, input_ids.size(-1))
+        flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
+        flat_token_type_ids = token_type_ids.view(-1, token_type_ids.size(-1))
+
+        outputs = self.albert1(
+            input_ids = flat_input_ids,
+            attention_mask = flat_attention_mask,
+            token_type_ids = flat_token_type_ids
+        )
+        middle_hidden_state = outputs.last_hidden_state
+
+        cs_encoding, _, qa_encoding, qa_padding_mask = self._pad_qacs_to_maxlen(flat_input_ids, middle_hidden_state)
+        qa_encoding_expand = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
+        qa_padding_mask_expand = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
+
+        # import pdb; pdb.set_trace()
+        # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
+        attn_output, attn_weights = self.cs_attention(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
+
+        self.cs_merge()
+
+        outputs = self.albert2(inputs_embeds=middle_hidden_state)
+        pooler_output = outputs.pooler_output  # [CLS]
+
+        # [B*5, H] => [B*5, 1] => [B, 5]
+        logits = self.scorer(pooler_output).view(-1, 5)
+
+        return logits
 
 
-class AlbertBurgerAlpha2(nn.Module, CSLinearBase):
+class AlbertBurgerAlpha3(nn.Module, CSLinearBase, BurgerBase):
+
+    def __init__(self, config, **kwargs):
+
+        super(AlbertBurgerAlpha3, self).__init__()
+
+        self.albert1_layers = kwargs['albert1_layers']
+        self.cs_num = kwargs['cs_num']
+        self.max_cs_len = kwargs['max_cs_len']
+        self.max_qa_len  = kwargs['max_qa_len']
+
+        self.config = config
+        self.config1 = deepcopy(config)
+        self.config1.num_hidden_layers = self.albert1_layers
+        self.config2 = deepcopy(config)
+        self.config2.num_hidden_layers = config.num_hidden_layers - self.albert1_layers
+        self.config2.without_embedding = True
+
+        # modules
+        self.albert1 = AlbertModel(self.config1)
+        self.cs_attention_scorer = AttentionLayer(config, self.cs_num)
+
+        self.albert2 = AlbertModel(self.config2)
+        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
+        self.scorer = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(config.hidden_size, 1)
+        )
+
+        self.apply(self.init_weights)
+
+    def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
+        """
+        input_ids: [B, 5, L]
+        labels: [B, ]
+        """
+        logits = self._forward(input_ids, attention_mask, token_type_ids)
+        loss = F.cross_entropy(logits, labels)      # get the CELoss
+
+        with torch.no_grad():
+            logits = F.softmax(logits, dim=1)       # get the score
+            predicts = torch.argmax(logits, dim=1)  # find the result
+            right_num = torch.sum(predicts == labels)
+
+        return loss, right_num
+
+    def _forward(self, input_ids, attention_mask, token_type_ids):
+        # [B, 5, L] => [B * 5, L]
+        flat_input_ids = input_ids.view(-1, input_ids.size(-1))
+        flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
+        flat_token_type_ids = token_type_ids.view(-1, token_type_ids.size(-1))
+
+        outputs = self.albert1(
+            input_ids = flat_input_ids,
+            attention_mask = flat_attention_mask,
+            token_type_ids = flat_token_type_ids
+        )
+        middle_hidden_state = outputs.last_hidden_state
+
+        cs_encoding, _, qa_encoding, qa_padding_mask = self._pad_qacs_to_maxlen(flat_input_ids, middle_hidden_state)
+        qa_encoding_expand = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
+        qa_padding_mask_expand = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
+
+        # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
+        attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
+        middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, middle_hidden_state)
+        outputs = self.albert2(inputs_embeds=middle_hidden_state)
+
+        merged_output = self.attention_merge(outputs, flat_attention_mask)
+        logits = self.scorer(merged_output).view(-1, 5)
+
+        return logits
+
+
+class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
 
     def __init__(self, config, **kwargs):
 
@@ -44,6 +199,7 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase):
         # modules
         self.albert1 = AlbertModel(self.config1)
         self.cs_attention_scorer = AttentionLayer(config, self.cs_num)
+
         self.albert2 = AlbertModel(self.config2)
         self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
         self.scorer = nn.Sequential(
@@ -89,85 +245,15 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase):
         # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
         attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
         middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, middle_hidden_state)
-
         outputs = self.albert2(inputs_embeds=middle_hidden_state)
-        pooler_output = outputs.pooler_output  # [CLS]
+        # pooler_output = outputs.pooler_output  # [CLS]
+        # # [B*5, H] => [B*5, 1] => [B, 5]
+        # logits = self.scorer(pooler_output).view(-1, 5)
 
-        # [B*5, H] => [B*5, 1] => [B, 5]
-        logits = self.scorer(pooler_output).view(-1, 5)
+        merged_output = self.attention_merge(outputs, flat_attention_mask)
+        logits = self.scorer(merged_output).view(-1, 5)
 
         return logits
-
-    @staticmethod
-    def init_weights(module):
-        if isinstance(module, nn.Linear):
-            module.weight.data.normal_(mean=0.0, std=0.02)
-            if module.bias is not None:
-                module.bias.data.zero_()
-
-    @classmethod
-    def from_pretrained(cls, model_path_or_name, **kwargs):
-
-        config = AlbertConfig()
-        config.without_embedding = False
-        if "xxlarge" in model_path_or_name:
-            config.hidden_size = 4096
-            config.intermediate_size = 16384
-            config.num_attention_heads = 64
-            config.num_hidden_layers = 12
-        elif "xlarge" in model_path_or_name:
-            config.hidden_size = 2048
-            config.intermediate_size = 8192
-            config.num_attention_heads = 16
-            config.num_hidden_layers = 24
-        elif "large" in model_path_or_name:
-            config.hidden_size = 1024
-            config.intermediate_size = 4096
-            config.num_attention_heads = 16
-            config.num_hidden_layers = 24
-        elif "base" in model_path_or_name:
-            config.hidden_size = 768
-            config.intermediate_size = 3072
-            config.num_attention_heads = 12
-            config.num_hidden_layers = 12
-
-        model = cls(config, **kwargs)
-        model.albert1 = model.albert1.from_pretrained(model_path_or_name, config=model.config1)
-        model.albert2 = model.albert2.from_pretrained(model_path_or_name, config=model.config2)
-
-        return model
-    
-    @classmethod
-    def from_pt(cls, model_path_or_name, **kwargs):
-
-        config = AlbertConfig()
-        config.without_embedding = False
-        if "xxlarge" in model_path_or_name:
-            config.hidden_size = 4096
-            config.intermediate_size = 16384
-            config.num_attention_heads = 64
-            config.num_hidden_layers = 12
-        elif "xlarge" in model_path_or_name:
-            config.hidden_size = 2048
-            config.intermediate_size = 8192
-            config.num_attention_heads = 16
-            config.num_hidden_layers = 24
-        elif "large" in model_path_or_name:
-            config.hidden_size = 1024
-            config.intermediate_size = 4096
-            config.num_attention_heads = 16
-            config.num_hidden_layers = 24
-        elif "base" in model_path_or_name:
-            config.hidden_size = 768
-            config.intermediate_size = 3072
-            config.num_attention_heads = 12
-            config.num_hidden_layers = 12
-
-        model = cls(config, **kwargs)
-        state_dict = torch.load(os.path.join(model_path_or_name, 'pytorch_model.bin'))
-        model.load_state_dict(state_dict)
-
-        return model
 
 
 class AlbertBurgerAlpha1(nn.Module):
@@ -225,7 +311,6 @@ class AlbertBurgerAlpha1(nn.Module):
         outputs = self.albert2(inputs_embeds=middle_hidden_state)
         pooler_output = outputs.pooler_output  # [CLS]
         
-
         # [B*5, H] => [B*5, 1] => [B, 5]
         logits = self.scorer(pooler_output).view(-1, 5)
 
@@ -234,7 +319,6 @@ class AlbertBurgerAlpha1(nn.Module):
     @staticmethod
     def init_weights(module):
         if isinstance(module, nn.Linear):
-            import pdb; pdb.set_trace()
             module.weight.data.normal_(mean=0.0, std=0.02)
             if module.bias is not None:
                 module.bias.data.zero_()
