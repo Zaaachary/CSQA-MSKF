@@ -8,15 +8,15 @@ python CODE/run_task.py\
     --eval_after_tacc 0.59\
     --evltest_batch_size 12\
     \
-    --cs_num 3\
+    --cs_num 4\
     --max_qa_len 54\
     --max_cs_len 20\
     --max_seq_len 140\
-    --OMCS_version 1\
+    --OMCS_version 2.2\
     --albert1_layers 10\
     \
     --train_batch_size 8\
-    --gradient_accumulation_steps 1\
+    --gradient_accumulation_steps 2\
     --learning_rate 2e-5\
     --num_train_epochs 8\
     --warmup_proportion 0.1\
