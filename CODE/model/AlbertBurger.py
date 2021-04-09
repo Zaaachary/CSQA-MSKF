@@ -21,7 +21,7 @@ from .BurgerBase import CSLinearBase, BurgerBase
 from utils import common
 
 
-class AlbertBurgerAlpha4(nn.Module, CSLinearBase):
+class AlbertBurgerAlpha4(nn.Module, CSLinearBase, BurgerBase):
 
     def __init__(self, config, **kwargs):
 
@@ -49,7 +49,6 @@ class AlbertBurgerAlpha4(nn.Module, CSLinearBase):
         )
 
         self.albert2 = AlbertModel(self.config2)
-        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
             nn.Linear(config.hidden_size, 1)
@@ -89,11 +88,15 @@ class AlbertBurgerAlpha4(nn.Module, CSLinearBase):
         qa_encoding_expand = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
         qa_padding_mask_expand = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
 
-        # import pdb; pdb.set_trace()
         # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
         attn_output, attn_weights = self.cs_attention(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
+        merge = self.cs_merge(attn_output)  # merge: [5B, cs_num, H]
 
-        self.cs_merge()
+        cs_score = self.cs_scorer(merge)
+        cs_score = F.softmax(cs_score, dim=-2).unsqueeze(-1)
+        cs_encoding = cs_score * cs_encoding
+
+        middle_hidden_state =  self._remvoe_cs_pad_add_to_last_hidden_state(cs_encoding, middle_hidden_state)
 
         outputs = self.albert2(inputs_embeds=middle_hidden_state)
         pooler_output = outputs.pooler_output  # [CLS]
@@ -125,7 +128,6 @@ class AlbertBurgerAlpha3(nn.Module, CSLinearBase, BurgerBase):
         # modules
         self.albert1 = AlbertModel(self.config1)
         self.cs_attention_scorer = AttentionLayer(config, self.cs_num)
-
         self.albert2 = AlbertModel(self.config2)
         self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
         self.scorer = nn.Sequential(
@@ -584,8 +586,8 @@ class AttentionMerge(nn.Module):
         attention_probs = keys @ self.query_ / math.sqrt(self.attention_size * query_var)
         # attention_probs = keys @ self.query_ / math.sqrt(self.attention_size)
         # import pdb; pdb.set_trace()
-        attention_probs = F.softmax(attention_probs * mask, dim=1)  # [batch*5, len, 1]
+        attention_probs = F.softmax(attention_probs * mask, dim=-2)  # [batch*5, len, 1]
         attention_probs = self.dropout(attention_probs)
 
-        context = torch.sum(attention_probs + values, dim=1)    # [batch*5, hidden]
+        context = torch.sum(attention_probs + values, dim=-2)    # [batch*5, hidden]
         return context
