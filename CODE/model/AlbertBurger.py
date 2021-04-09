@@ -172,7 +172,7 @@ class AlbertBurgerAlpha3(nn.Module, CSLinearBase, BurgerBase):
         middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, middle_hidden_state)
         outputs = self.albert2(inputs_embeds=middle_hidden_state)
 
-        merged_output = self.attention_merge(outputs, flat_attention_mask)
+        merged_output = self.attention_merge(outputs.last_hidden_state, flat_attention_mask)
         logits = self.scorer(merged_output).view(-1, 5)
 
         return logits
