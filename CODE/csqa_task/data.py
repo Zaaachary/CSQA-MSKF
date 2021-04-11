@@ -142,7 +142,7 @@ class OMCS_Processor(object):
                 # some case don't have cs_num cs
                 temp = self.args.cs_num - len(cs_list)
                 if temp:
-                    cs_list.extend([' ']*temp)
+                    cs_list.extend(['<unk>']*temp)
 
                 cs4choice[cs_index['ending']] = cs_list
 
@@ -184,7 +184,11 @@ class OMCS_Processor(object):
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
         all_label = []
 
+        # debug = -1
         for example in tqdm(self.examples):
+            # debug += 1
+            # if debug == 1457:
+            #     import pdb; pdb.set_trace()
             # call example's tokenize function
             # feature_dict: [5, 128], [5, 128], [5, 128]
             # import pdb; pdb.set_trace()

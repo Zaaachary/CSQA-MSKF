@@ -252,7 +252,7 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         # # [B*5, H] => [B*5, 1] => [B, 5]
         # logits = self.scorer(pooler_output).view(-1, 5)
 
-        merged_output = self.attention_merge(outputs, flat_attention_mask)
+        merged_output = self.attention_merge(outputs.last_hidden_state, flat_attention_mask)
         logits = self.scorer(merged_output).view(-1, 5)
 
         return logits
