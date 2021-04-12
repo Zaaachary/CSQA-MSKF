@@ -1,5 +1,5 @@
 python CODE\\run_task.py^
-    --task_name CSLinear_Albert_BurgerAlpha4^
+    --task_name CSLinear_Albert_BurgerAlpha5^
     --mission train^
     --fp16 0^
     --gpu_ids 0^
@@ -9,7 +9,7 @@ python CODE\\run_task.py^
     --evltest_batch_size 12^
     --clip_batch_off^
     ^
-    --cs_num 1^
+    --cs_num 4^
     --max_qa_len 58^
     --max_cs_len 20^
     --max_seq_len 140^
