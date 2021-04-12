@@ -170,7 +170,7 @@ class OMCS_Processor(object):
 
                 temp = self.args.cs_num - len(cs_list)
                 if temp:
-                    cs_list.extend([' ']*temp)
+                    cs_list.extend(['<unk>']*temp)
 
                 cs4choice[choice_test] = cs_list
             

@@ -1,5 +1,5 @@
 python CODE\\run_task.py^
-    --task_name CSLinear_Albert_BurgerAlpha2^
+    --task_name CSLinear_Albert_BurgerAlpha4^
     --mission train^
     --fp16 0^
     --gpu_ids 0^
