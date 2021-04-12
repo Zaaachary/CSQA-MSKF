@@ -18,7 +18,7 @@ from csqa_task.controller import MultipleChoice
 from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
 from model.Baselines import AlbertBaseline, BertBaseline
 from model.HH_linear import AlbertCrossAttn, BertCrossAttn
-from model.AlbertBurger import AlbertBurgerAlpha0, AlbertBurgerAlpha1, AlbertBurgerAlpha2, AlbertBurgerAlpha3, AlbertBurgerAlpha4
+from model.AlbertBurger import AlbertBurgerAlpha0, AlbertBurgerAlpha1, AlbertBurgerAlpha2, AlbertBurgerAlpha3, AlbertBurgerAlpha4, AlbertBurgerAlpha5
 from utils.common import mkdir_if_notexist, result_dump, set_seed
 
 logger = logging.getLogger("run_task")
@@ -51,7 +51,8 @@ def select_task(args):
         "Albert_BurgerAlpha1": (AlbertBurgerAlpha1, ['albert1_layers']),
         "Albert_BurgerAlpha2": (AlbertBurgerAlpha2, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
         "Albert_BurgerAlpha3": (AlbertBurgerAlpha3, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
-        "Albert_BurgerAlpha4": (AlbertBurgerAlpha4, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers'])
+        "Albert_BurgerAlpha4": (AlbertBurgerAlpha4, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
+        "Albert_BurgerAlpha5": (AlbertBurgerAlpha5, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers'])
 
     }
 

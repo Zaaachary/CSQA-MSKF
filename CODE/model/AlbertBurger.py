@@ -21,6 +21,88 @@ from .BurgerBase import CSLinearBase, BurgerBase
 from utils import common
 
 
+class AlbertBurgerAlpha5(nn.Module, CSLinearBase, BurgerBase):
+
+    def __init__(self, config, **kwargs):
+
+        super(AlbertBurgerAlpha5, self).__init__()
+
+        self.albert1_layers = kwargs['albert1_layers']
+        self.cs_num = kwargs['cs_num']
+        self.max_cs_len = kwargs['max_cs_len']
+        self.max_qa_len  = kwargs['max_qa_len']
+
+        self.config = config
+        self.config1 = deepcopy(config)
+        self.config1.num_hidden_layers = self.albert1_layers
+        self.config2 = deepcopy(config)
+        self.config2.num_hidden_layers = config.num_hidden_layers - self.albert1_layers
+        self.config2.without_embedding = True
+
+        # modules
+        self.albert1 = AlbertModel(self.config1)
+        # self.cs_attention_scorer = AttentionLayer(config, self.cs_num)
+        self.cs_qa_attn = CSDecoderLayer(self.config, self.cs_num)
+
+        self.albert2 = AlbertModel(self.config2)
+        # self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
+
+        self.scorer = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(config.hidden_size, 1)
+        )
+
+        self.apply(self.init_weights)
+
+    def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
+        """
+        input_ids: [B, 5, L]
+        labels: [B, ]
+        """
+        logits = self._forward(input_ids, attention_mask, token_type_ids)
+        loss = F.cross_entropy(logits, labels)      # get the CELoss
+
+        with torch.no_grad():
+            logits = F.softmax(logits, dim=1)       # get the score
+            predicts = torch.argmax(logits, dim=1)  # find the result
+            right_num = torch.sum(predicts == labels)
+
+        return loss, right_num
+
+    def _forward(self, input_ids, attention_mask, token_type_ids):
+        # [B, 5, L] => [B * 5, L]
+        flat_input_ids = input_ids.view(-1, input_ids.size(-1))
+        flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
+        flat_token_type_ids = token_type_ids.view(-1, token_type_ids.size(-1))
+
+        outputs = self.albert1(
+            input_ids = flat_input_ids,
+            attention_mask = flat_attention_mask,
+            token_type_ids = flat_token_type_ids
+        )
+        middle_hidden_state = outputs.last_hidden_state
+
+        cs_encoding, cs_padding_mask, qa_encoding, qa_padding_mask = self._pad_qacs_to_maxlen(flat_input_ids, middle_hidden_state)
+        qa_encoding_expand = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
+        qa_padding_mask_expand = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
+
+        # import pdb; pdb.set_trace()
+        # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
+        # attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
+
+        # import pdb; pdb.set_trace()
+        decoder_output = self.cs_qa_attn(qa_encoding_expand, cs_encoding, qa_padding_mask_expand, cs_padding_mask)
+
+        middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(decoder_output, middle_hidden_state)
+
+        outputs = self.albert2(inputs_embeds=middle_hidden_state)
+        pooler_output = outputs.pooler_output  # [CLS]
+        # [B*5, H] => [B*5, 1] => [B, 5]
+        logits = self.scorer(pooler_output).view(-1, 5)
+        
+        return logits
+
+
 class AlbertBurgerAlpha4(nn.Module, CSLinearBase, BurgerBase):
 
     def __init__(self, config, **kwargs):
@@ -204,7 +286,6 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         self.cs_attention_scorer = AttentionLayer(config, self.cs_num)
 
         self.albert2 = AlbertModel(self.config2)
-        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
             nn.Linear(config.hidden_size, 1)
@@ -249,12 +330,9 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
         middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, middle_hidden_state)
         outputs = self.albert2(inputs_embeds=middle_hidden_state)
-        # pooler_output = outputs.pooler_output  # [CLS]
-        # # [B*5, H] => [B*5, 1] => [B, 5]
-        # logits = self.scorer(pooler_output).view(-1, 5)
-
-        merged_output = self.attention_merge(outputs.last_hidden_state, flat_attention_mask)
-        logits = self.scorer(merged_output).view(-1, 5)
+        pooler_output = outputs.pooler_output  # [CLS]
+        # [B*5, H] => [B*5, 1] => [B, 5]
+        logits = self.scorer(pooler_output).view(-1, 5)
 
         return logits
 
@@ -516,7 +594,43 @@ class AlbertBurgerAlpha0(AlbertPreTrainedModel):
     
         return last_hidden_state
             
-        
+
+class CSDecoderLayer(nn.Module):
+
+    def __init__(self, config, cs_num):
+        super().__init__()
+        self.hidden_size = config.hidden_size
+        self.cs_num = cs_num
+        self.tfm_decoder = nn.TransformerDecoderLayer(d_model=config.hidden_size, nhead=1)
+
+    def forward(self, qa_expand, cs, qa_padding_mask_expand, cs_padding_mask):
+        '''
+        qa_expand   [B, cs_num, qa_len, H] -> [qa_len, B*cs_num, H]
+        cs          [B, cs_num, cs_len, H] -> [cs_len, B*cs_num, H]
+        qa_padding  [B, cs_num, qa_len]    -> [B*cs_num, qa_len]
+        cs_padding  [B, cs_num, cs_len]    -> [B*cs_num, cs_len]
+
+        decoder_output [cs_len, B*cs_num, H] -> [B, cs_num, cs_len, H]
+        '''
+        batch_size, cs_num, qa_len, hidden_size = qa_expand.shape
+        cs_len = cs.shape[-2]
+
+        qa_expand = qa_expand.contiguous().view(batch_size*cs_num, qa_len, hidden_size)
+        qa = qa_expand.transpose(0, 1)
+        cs = cs.contiguous().view(batch_size*cs_num, cs_len, hidden_size)
+        cs = cs.transpose(0, 1)
+        qa_padding = qa_padding_mask_expand.contiguous().view(batch_size*cs_num, qa_len)
+        cs_padding = cs_padding_mask.contiguous().view(batch_size*cs_num, cs_len)
+
+        # import pdb; pdb.set_trace()
+        decoder_output = self.tfm_decoder(tgt=cs, memory=qa, tgt_key_padding_mask=cs_padding, memory_key_padding_mask=qa_padding)
+
+        decoder_output = decoder_output.transpose(0, 1)
+        decoder_output = decoder_output.contiguous().view(batch_size, cs_num, cs_len, hidden_size)
+
+        return decoder_output
+
+
 class AttentionLayer(nn.Module):
     
     def __init__(self, config, cs_num):
