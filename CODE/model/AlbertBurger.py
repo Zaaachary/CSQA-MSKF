@@ -84,13 +84,14 @@ class AlbertBurgerAlpha4(nn.Module, CSLinearBase, BurgerBase):
         )
         middle_hidden_state = outputs.last_hidden_state
 
-        cs_encoding, _, qa_encoding, qa_padding_mask = self._pad_qacs_to_maxlen(flat_input_ids, middle_hidden_state)
+        cs_encoding, cs_padding_mask, qa_encoding, qa_padding_mask = self._pad_qacs_to_maxlen(flat_input_ids, middle_hidden_state)
         qa_encoding_expand = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
         qa_padding_mask_expand = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
 
         # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
         attn_output, attn_weights = self.cs_attention(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
-        merge = self.cs_merge(attn_output)  # merge: [5B, cs_num, H]
+        # import pdb; pdb.set_trace()
+        merge = self.cs_merge(attn_output, cs_padding_mask)  # merge: [5B, cs_num, H]
 
         cs_score = self.cs_scorer(merge)
         cs_score = F.softmax(cs_score, dim=-2).unsqueeze(-1)
@@ -252,7 +253,7 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         # # [B*5, H] => [B*5, 1] => [B, 5]
         # logits = self.scorer(pooler_output).view(-1, 5)
 
-        merged_output = self.attention_merge(outputs, flat_attention_mask)
+        merged_output = self.attention_merge(outputs.last_hidden_state, flat_attention_mask)
         logits = self.scorer(merged_output).view(-1, 5)
 
         return logits

@@ -5,16 +5,16 @@ python CODE\\run_task.py^
     --gpu_ids 0^
     --save_mode step^
     --print_step 100^
-    --eval_after_tacc 0^
+    --eval_after_tacc 0.58^
     --evltest_batch_size 12^
     --clip_batch_off^
     ^
-    --cs_num 4^
+    --cs_num 1^
     --max_qa_len 58^
     --max_cs_len 20^
     --max_seq_len 140^
     --albert1_layer 10^
-    --OMCS_version 2.2^
+    --OMCS_version 1^
     ^
     --train_batch_size 2^
     --gradient_accumulation_steps 4^
