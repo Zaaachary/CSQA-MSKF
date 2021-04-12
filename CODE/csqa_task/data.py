@@ -150,7 +150,7 @@ class OMCS_Processor(object):
             self.examples.append(example)
 
     def load_omcsv2(self):
-        dir_dict = {'2.2':'omcs_v2.2_15', '2.3':'omcs_v2.3_10'}
+        dir_dict = {'2.2':'omcs_v2.2_15', '2.3':'omcs_v2.3_10', '3.0':'omcs_v3.0_15'}
 
         omcs_file = os.path.join(self.dataset_dir, 'omcs', dir_dict[self.version] ,f"{self.dataset_type}_rand_split_omcs.json")
 
