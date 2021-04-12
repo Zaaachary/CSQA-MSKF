@@ -45,7 +45,7 @@ class AlbertBurgerAlpha5(nn.Module, CSLinearBase, BurgerBase):
         self.cs_qa_attn = CSDecoderLayer(self.config, self.cs_num)
 
         self.albert2 = AlbertModel(self.config2)
-        # self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
+        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
 
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
@@ -96,9 +96,13 @@ class AlbertBurgerAlpha5(nn.Module, CSLinearBase, BurgerBase):
         middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(decoder_output, middle_hidden_state)
 
         outputs = self.albert2(inputs_embeds=middle_hidden_state)
-        pooler_output = outputs.pooler_output  # [CLS]
+
+        merged_output = self.attention_merge(outputs.last_hidden_state, flat_attention_mask)
+        logits = self.scorer(merged_output).view(-1, 5)
+
+        # pooler_output = outputs.pooler_output  # [CLS]
         # [B*5, H] => [B*5, 1] => [B, 5]
-        logits = self.scorer(pooler_output).view(-1, 5)
+        # logits = self.scorer(pooler_output).view(-1, 5)
         
         return logits
 
