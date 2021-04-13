@@ -6,11 +6,11 @@ python CODE/run_task.py^
     --save_mode step^
     --print_step 500^
     --evltest_batch_size 12^
-    --eval_after_tacc 0.5^
+    --eval_after_tacc 0.58^
     ^
     --cs_num 4^
     --max_seq_len 140^
-    --OMCS_version 2.2^
+    --OMCS_version 3.0^
     ^
     --train_batch_size 2^
     --gradient_accumulation_steps 8^
