@@ -100,7 +100,7 @@ class OMCS_Processor(object):
             self.load_omcs()    # omcs free text
             self.load_csqa_omcs_index() # csqa -ESindex-> omcs
             self.inject_commonsense()
-        elif self.version[0] == '2':
+        elif self.version[0] in ['2', '3']:
             self.load_omcsv2()
             self.inject_commonsensev2()
 
@@ -191,13 +191,12 @@ class OMCS_Processor(object):
             #     import pdb; pdb.set_trace()
             # call example's tokenize function
             # feature_dict: [5, 128], [5, 128], [5, 128]
-            # import pdb; pdb.set_trace()
             feature_dict = example.tokenize(tokenizer, args)
             all_input_ids.append(feature_dict['input_ids'])
             all_token_type_ids.append(feature_dict['token_type_ids'])
             all_attention_mask.append(feature_dict['attention_mask'])
             all_label.append(example.label)
-        
+
         all_input_ids = torch.stack(all_input_ids)
         all_attention_mask = torch.stack(all_attention_mask)
         all_token_type_ids = torch.stack(all_token_type_ids)
