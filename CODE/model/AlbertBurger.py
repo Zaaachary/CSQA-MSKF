@@ -85,22 +85,23 @@ class AlbertBurgerAlpha6(nn.Module, CSLinearBase, BurgerBase):
         qa_encoding_expand = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
         qa_padding_mask_expand = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
 
-        decoder_output = self.cs_qa_attn(cs_encoding, qa_encoding_expand, cs_padding_mask, qa_padding_mask_expand)
+        # decoder_output = self.cs_qa_attn(cs_encoding, qa_encoding_expand, cs_padding_mask, qa_padding_mask_expand)
         # decoder_output = self.cs_qa_attn(qa_encoding_expand, cs_encoding, qa_padding_mask_expand, cs_padding_mask)
 
-        import pdb; pdb.set_trace()
-        decoder_output
+        # import pdb; pdb.set_trace()
+        # decoder_output
 
-        middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(decoder_output, middle_hidden_state)
+        # middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(decoder_output, middle_hidden_state)
+        middle_hidden_state = qa_encoding
 
         outputs = self.albert2(inputs_embeds=middle_hidden_state)
 
-        merged_output = self.attention_merge(outputs.last_hidden_state, flat_attention_mask)
-        logits = self.scorer(merged_output).view(-1, 5)
+        # merged_output = self.attention_merge(outputs.last_hidden_state, flat_attention_mask)
+        # logits = self.scorer(merged_output).view(-1, 5)
 
-        # pooler_output = outputs.pooler_output  # [CLS]
+        pooler_output = outputs.pooler_output  # [CLS]
         # [B*5, H] => [B*5, 1] => [B, 5]
-        # logits = self.scorer(pooler_output).view(-1, 5)
+        logits = self.scorer(pooler_output).view(-1, 5)
         
         return logits
 
