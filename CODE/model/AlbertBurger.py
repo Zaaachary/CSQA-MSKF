@@ -605,7 +605,7 @@ class CSDecoderLayer(nn.Module):
         super().__init__()
         self.hidden_size = config.hidden_size
         self.cs_num = cs_num
-        self.tfm_decoder = nn.TransformerDecoderLayer(d_model=config.hidden_size, nhead=1)
+        self.tfm_decoder = nn.TransformerDecoderLayer(d_model=config.hidden_size, nhead=8)
 
     def forward(self, qa_expand, cs, qa_padding_mask_expand, cs_padding_mask):
         '''
