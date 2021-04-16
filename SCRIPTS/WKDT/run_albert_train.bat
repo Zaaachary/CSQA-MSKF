@@ -9,12 +9,14 @@ python CODE\\run_task.py^
     --evltest_batch_size 12^
     ^
     --max_seq_len 128^
+    --max_qa_len 54^
+    --max_desc_len 35^
     --WKDT_version 2.0^
     ^
-    --train_batch_size 8^
-    --gradient_accumulation_steps 1^
+    --train_batch_size 2^
+    --gradient_accumulation_steps 4^
     --learning_rate 2e-5^
-    --num_train_epochs 7^
+    --num_train_epochs 8^
     --warmup_proportion 0.1^
     --weight_decay 0.1^
     ^
