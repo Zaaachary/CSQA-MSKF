@@ -43,10 +43,12 @@ def select_task(args):
     model_dict = {
         "Bert_Baseline": (BertBaseline, []),
         "Bert_CrossAttn": (BertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
+
         "Albert_Baseline": (AlbertBaseline, []),
         "Albert_AttnMerge": (AlbertAttnMerge, []),
         "Albert_AttnMergeAddTFM": (AlbertAddTFM, []),
         "Albert_CrossAttn": (AlbertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
+
         "Albert_BurgerAlpha0": (AlbertBurgerAlpha0, ['cs_num', 'max_qa_len', 'max_cs_len']),
         "Albert_BurgerAlpha1": (AlbertBurgerAlpha1, ['albert1_layers']),
         "Albert_BurgerAlpha2": (AlbertBurgerAlpha2, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
@@ -60,7 +62,8 @@ def select_task(args):
     processor_dict = {
         "Origin": Baseline_Processor,
         "OMCS": OMCS_Processor,
-        "CSLinear": CSLinear_Processor
+        "CSLinear": CSLinear_Processor,
+        "WKDT": Wiktionary_Processor,
     }
 
     processor_name, model_name = args.task_name.split('_',maxsplit=1)
@@ -151,13 +154,15 @@ if __name__ == "__main__":
     parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     
     # task-specific hyper param
-    parser.add_argument('--OMCS_version', type=str, default='1')
-    parser.add_argument('--albert1_layers', type=int, default=None)
-    parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
     parser.add_argument('--max_seq_len', type=int, default=None, help='used where dataprocessor restrain total len')
     parser.add_argument('--max_qa_len', type=int, default=None)
+    parser.add_argument('--OMCS_version', type=str, default=None)
+    parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
     parser.add_argument('--max_cs_len', type=int, default=None)
-    
+    parser.add_argument('--WKDT_version', type=str, default=None)
+    parser.add_argument('--max_desc_len', type=int, default=None)
+    parser.add_argument('--albert1_layers', type=int, default=None)
+
     # train hyper param
     parser.add_argument('--train_batch_size', type=int, default=4)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1)

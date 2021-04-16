@@ -16,12 +16,63 @@ from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 from csqa_task.example import *
 
 
-class Baseline_Processor(object):
-    
-    def __init__(self, args, dataset_type):
+class ProcessorBase(object):
+
+    def __init__(self, args, dataset_type) -> None:
         self.args = args
         self.dataset_dir = args.dataset_dir
         self.dataset_type = dataset_type
+        self.raw_csqa = []
+        self.examples = []
+
+    def load_data(self):
+        # override
+        pass
+
+    def load_csqa(self):
+        f = open(os.path.join(self.args.dataset_dir, 'csqa', f"{self.dataset_type}_rand_split.jsonl"), 'r', encoding='utf-8')
+        for line in f:
+            self.raw_csqa.append(json.loads(line.strip()))
+        f.close()
+
+    def make_dataloader(self, tokenizer, args, shuffle=True):
+        batch_size = args.train_batch_size if self.dataset_type in ['train', 'conti-trian'] else args.evltest_batch_size
+        drop_last = False
+
+        all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
+        all_label = []
+
+        for example in tqdm(self.examples):
+            # import pdb; pdb.set_trace()
+            feature_dict = example.tokenize(tokenizer, args)
+            all_input_ids.append(feature_dict['input_ids'])
+            all_token_type_ids.append(feature_dict['token_type_ids'])
+            all_attention_mask.append(feature_dict['attention_mask'])
+            all_label.append(example.label)
+
+        all_input_ids = torch.stack(all_input_ids)
+        all_attention_mask = torch.stack(all_attention_mask)
+        all_token_type_ids = torch.stack(all_token_type_ids)
+        all_label = torch.tensor(all_label, dtype=torch.long)
+
+        data = (all_input_ids, all_attention_mask, all_token_type_ids, all_label)
+
+        dataset = TensorDataset(*data)
+        sampler = RandomSampler(dataset) if shuffle else None
+        dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, drop_last=drop_last)
+
+        return dataloader
+
+    @staticmethod
+    def load_example(case, cs4choice):
+        pass
+        # override to choose Example
+        # return OMCSExample.load_from(case, cs4choice)
+
+class Baseline_Processor(object):
+    
+    def __init__(self, args, dataset_type):
+        super(Baseline_Processor, self).__init__(args, dataset_type)
         self.data = None
 
     def load_data(self):
@@ -89,7 +140,7 @@ class OMCS_Processor(object):
         self.dataset_dir = args.dataset_dir
         self.dataset_type = dataset_type
         self.version = args.OMCS_version
-        self.raw_data = []
+        self.raw_csqa = []
         self.examples = []
         self.omcs_cropus = None
         self.omcs_index = None
@@ -107,7 +158,7 @@ class OMCS_Processor(object):
     def load_csqa(self):
         f = open(os.path.join(self.args.dataset_dir, 'csqa', f"{self.dataset_type}_rand_split.jsonl"), 'r', encoding='utf-8')
         for line in f:
-            self.raw_data.append(json.loads(line.strip()))
+            self.raw_csqa.append(json.loads(line.strip()))
         f.close()
 
     def load_omcs(self):
@@ -129,7 +180,7 @@ class OMCS_Processor(object):
         put commonsense into case, accroding to omcs_index (ES result)
 
         '''
-        for case in self.raw_data:
+        for case in self.raw_csqa:
             cs4choice = {}  # {choice: csforchoice}
             choice_csindex = self.omcs_index[case['id']]['endings']
             for cs_index in choice_csindex:
@@ -159,7 +210,7 @@ class OMCS_Processor(object):
 
     def inject_commonsensev2(self):
         omcs_index = 0
-        for case in self.raw_data:
+        for case in self.raw_csqa:
             cs4choice = {}
             for choice in case['question']['choices']:
                 choice_test = choice['text']
@@ -184,13 +235,7 @@ class OMCS_Processor(object):
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
         all_label = []
 
-        # debug = -1
         for example in tqdm(self.examples):
-            # debug += 1
-            # if debug == 1457:
-            #     import pdb; pdb.set_trace()
-            # call example's tokenize function
-            # feature_dict: [5, 128], [5, 128], [5, 128]
             feature_dict = example.tokenize(tokenizer, args)
             all_input_ids.append(feature_dict['input_ids'])
             all_token_type_ids.append(feature_dict['token_type_ids'])
@@ -232,7 +277,54 @@ class CSLinear_Processor(OMCS_Processor):
         return super().make_dataloader(tokenizer, args, shuffle=shuffle)
 
 
-class MultiSource_Processor(OMCS_Processor):
+class Wiktionary_Processor(ProcessorBase):
+    
+    def __init__(self, args, dataset_type):
+        super(Wiktionary_Processor, self).__init__(args, dataset_type)
+        self.version = args.WKDT_version
+
+    def load_data(self):
+        self.load_csqa()
+        self.load_wiktionary()
+        self.inject_description()
+
+    def load_wiktionary(self):
+        dir_dict = {'2.0': 'wiktionary_v2'}
+
+        wiktionary_file = os.path.join(
+            self.dataset_dir, 'wiktionary', dir_dict[self.version], 
+            f"{self.dataset_type}_concept.json"
+        )
+        
+        with open(wiktionary_file, 'r', encoding='utf-8') as f:
+            self.wiktionary = json.load(f)
+    
+    def inject_description(self):
+        
+        for case in self.raw_csqa:
+            desc_dict = {}    # question concept, choice
+            Qconcept = case['question']['question_concept']
+            Qconcept_desc = self.wiktionary[Qconcept]
+            desc_dict[Qconcept] = Qconcept_desc
+            
+            for choice in case['question']['choices']:
+                choice_text = choice['text']
+                choice_desc = self.wiktionary[choice_text]
+                desc_dict[choice_text] = choice_desc
+            
+            # import pdb; pdb.set_trace()
+            example = self.load_example(case, desc_dict)
+            self.examples.append(example)
+
+    def make_dataloader(self, tokenizer, args, shuffle=True):
+        # import pdb; pdb.set_trace()
+        return super(Wiktionary_Processor, self).make_dataloader(tokenizer, args, shuffle=shuffle)
+
+    @staticmethod
+    def load_example(case, cs4choice):
+        return WKDTExample.load_from(case, cs4choice)
+
+class MultiSource_Processor(OMCS_Processor, Wiktionary_Processor):
 
     def __init__(self, args, dataset_type):
         super().__init__(args, dataset_type)

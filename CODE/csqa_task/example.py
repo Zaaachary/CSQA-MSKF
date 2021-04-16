@@ -8,6 +8,28 @@ from utils import feature
 from utils.feature import Feature
 
 
+class BaseExample(object):
+
+    def __init__(self, example_id, label) -> None:
+        self.example_id = example_id
+        self.label = label
+
+    def __repr__(self) -> str:
+        return f'{self.example_id}: {self.label}'
+
+    def tokenize(self, tokenizer, args):
+        '''
+        override
+        '''
+        max_seq_len = args.max_seq_len
+        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
+        pass
+    
+    @classmethod
+    def load_from(cls):
+        pass
+
+
 class CSQAExample:
     '''
     "[CLS] question [SEP] question_concept [SEP] Choice [SEP]"
@@ -47,18 +69,14 @@ class CSQAExample:
         return cls(example_id, label, text_list)
 
 
-class OMCSExample(object):
+class OMCSExample(BaseExample):
     '''
     "[CLS] question [SEP] question_concept [SEP] Choice [SEP] cs_1 [SEP] ... [SEP] cs_n [SEP]"
     '''
 
     def __init__(self, example_id, label, text_list):
-        self.example_id = example_id
-        self.label = label
+        super(OMCSExample, self).__init__(example_id, label)
         self.text_list = text_list
-    
-    def __repr__(self) -> str:
-        return f'{self.example_id}: {self.label}'
 
     def tokenize(self, tokenizer, args):
         '''
@@ -161,6 +179,74 @@ class CSLinearExample(OMCSExample):
             cs_list = [cs for cs in cs4choice[choice_str]]
             text_list.append((qa_list, cs_list))
         return text_list
+
+
+class WKDTExample(BaseExample):
+    '''
+    [CLS] Question Chocie [SEP] Q_Concept description [SEP] Chocie description [SEP]
+    '''
+
+    def __init__(self, example_id, label, text_list):
+        super().__init__(example_id, label)
+        self.text_list = text_list
+    
+    def tokenize(self, tokenizer, args):
+        '''
+        feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
+        '''
+        max_qa_len = args.max_qa_len
+        max_desc_len = args.max_desc_len
+        max_seq_len = args.max_seq_len
+        # self.cut_add(tokenizer, max_qa_len, max_desc_len)
+
+        # all_qa_ids = [case[0] for case in self.text_list]
+        # all_cs_ids = [case[1] for case in self.text_list]
+        # import pdb; pdb.set_trace()
+        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
+
+        return feature_dict
+
+    # def cut_add(self, tokenizer, max_qa_len, max_desc_len):
+    #     sep = tokenizer.sep_token
+    #     max_qa_len -= 2  # current qa doesn't contain cls and endsep
+
+    #     for index, case in enumerate(self.text_list):
+    #         qa_list, cs_list = case
+    #         qa_ids = tokenizer.tokenize(f' {sep} '.join(qa_list))
+    #         if len(qa_ids) > max_qa_len:
+    #             qa_ids = qa_ids[len(qa_ids)-max_qa_len:]
+            
+    #         cs_ids = []
+    #         for j, cs in enumerate(cs_list):
+    #             temp = tokenizer.tokenize(cs)
+    #             temp = temp[:max_cs_len-1] # last place for sep
+    #             if j != len(cs_list)-1:
+    #                 temp = temp + [tokenizer.sep_token]
+    #             cs_ids.extend(temp)
+
+    #         self.text_list[index] = qa_ids, cs_ids
+
+    @staticmethod
+    def make_text(question, choices, desc_dict, question_concept):
+        Qconcept_desc = desc_dict[question_concept]
+        text_list = []
+        for choice in choices:
+            choice_text = choice['text']
+            choics_desc = desc_dict[choice_text]
+            text = f"[CLS] {question} {choice} [SEP] {question_concept} {Qconcept_desc} [SEP] {choice_text} {choics_desc} [SEP]"
+            text_list.append(text)
+        return text_list
+
+    @classmethod
+    def load_from(cls, case, desc_dict):
+        example_id = case['id']
+        label = ord(case.get('answerKey', 'A')) - ord('A')
+        question = case['question']['stem']
+        question_concept = case['question']['question_concept']
+        choices = case['question']['choices']
+
+        text_list = cls.make_text(question, choices, desc_dict, question_concept)
+        return cls(example_id, label, text_list)
 
 
 class CSLinearExampleV1(OMCSExample):
