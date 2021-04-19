@@ -22,10 +22,11 @@ class Trainer(BaseTrainer):
     def __init__(self, 
         model, multi_gpu, device, 
         print_step, eval_after_tacc,
-        output_model_dir, fp16, clip_batch_off):
+        output_model_dir, fp16, clip_batch_off, exp_name='csqa'):
 
         super(Trainer, self).__init__(
-            model, multi_gpu, device, print_step, eval_after_tacc, output_model_dir, v_num=3
+            model, multi_gpu, device, print_step, eval_after_tacc, output_model_dir, v_num=3,
+            exp_name=exp_name
         )
 
         self.fp16 = fp16

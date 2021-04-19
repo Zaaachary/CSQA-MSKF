@@ -69,7 +69,7 @@ class ProcessorBase(object):
         # override to choose Example
         # return OMCSExample.load_from(case, cs4choice)
 
-class Baseline_Processor(object):
+class Baseline_Processor(ProcessorBase):
     
     def __init__(self, args, dataset_type):
         super(Baseline_Processor, self).__init__(args, dataset_type)
