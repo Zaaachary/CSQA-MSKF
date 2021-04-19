@@ -289,7 +289,7 @@ class Wiktionary_Processor(ProcessorBase):
         self.inject_description()
 
     def load_wiktionary(self):
-        dir_dict = {'2.0': 'wiktionary_v2'}
+        dir_dict = {'2.0': 'wiktionary_v2', '3.0': 'wiktionary_v3'}
 
         wiktionary_file = os.path.join(
             self.dataset_dir, 'wiktionary', dir_dict[self.version], 

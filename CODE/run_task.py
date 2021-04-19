@@ -80,12 +80,15 @@ def set_result(args):
     '''
     if args.mission in ('train', 'conti-train'):
         task_str = time.strftime(r'%H%M-%b%d') + f'_seed{args.seed}'
-        if 'Origin' not in args.task_name:
+        if 'OMCS' in args.task_name or 'CSLinear' in args.task_name:
             task_str += f'_cs{args.cs_num}'
             task_str += f'_omcsv{args.OMCS_version}'
         
         if 'Burger' in args.task_name:
             task_str += f'_layer{args.albert1_layers}'
+
+        if 'WKDT' in args.task_name:
+            task_str += f'_wkdtv{args.WKDT_version}'
 
         args.result_dir = os.path.join(
             args.result_dir, 

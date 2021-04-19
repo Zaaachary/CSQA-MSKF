@@ -11,7 +11,7 @@ python CODE\\run_task.py^
     --max_seq_len 128^
     --max_qa_len 54^
     --max_desc_len 35^
-    --WKDT_version 2.0^
+    --WKDT_version 3.0^
     ^
     --train_batch_size 2^
     --gradient_accumulation_steps 4^
