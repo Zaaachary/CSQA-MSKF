@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AlbertModel, AlbertPreTrainedModel, BertPreTrainedModel, BertModel
 
+
 class AlbertBaseline(AlbertPreTrainedModel):
 
     def __init__(self, config, **kwargs):
@@ -17,7 +18,6 @@ class AlbertBaseline(AlbertPreTrainedModel):
 
         self.albert = AlbertModel(config)
         # test
-        # self.layernorm = nn.LayerNorm(config.hidden_size)
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
             nn.Linear(config.hidden_size, 1)
@@ -66,8 +66,9 @@ class AlbertBaseline(AlbertPreTrainedModel):
         """
         return: [B, 5]
         """
-        return self._forward(input_ids, attention_mask, token_type_ids)
-
+        logits = self._forward(input_ids, attention_mask, token_type_ids)
+        logits = F.softmax(logits, dim=1)
+        return logits
 
 class BertBaseline(BertPreTrainedModel):
 

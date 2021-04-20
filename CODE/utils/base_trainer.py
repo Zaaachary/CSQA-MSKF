@@ -128,7 +128,7 @@ class BaseTrainer:
             logger.info(f"learning rate: {lr}")
 
             self.model.zero_grad()
-                
+
         # end of train
         if save_mode == 'end':
             self.save_model()

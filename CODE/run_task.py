@@ -99,6 +99,7 @@ def set_result(args):
         args.task_str = task_str
 
     else:
+        args.task_str = 'predict or dev'
         args.result_dir = args.saved_model_dir
     mkdir_if_notexist(args.result_dir)
 
@@ -135,9 +136,9 @@ def main(args):
     if args.mission in ('train', 'conti-train'):
         controller.train()
     elif args.mission == 'eval':
-        controller.evaluate()
+        controller.run_dev()
     elif args.mission == 'predict':
-        pass
+        controller.predict_test()
 
     end = time.time()
     logger.info(f"task total run time {end-start:.2f} second")

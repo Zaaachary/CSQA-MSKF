@@ -11,7 +11,9 @@
 - evaluate model by calling Trainer
 - make prediction by running model
 """
+import json
 import logging
+import os
 
 from torch.utils.data import dataloader
 logger = logging.getLogger("controller")
@@ -22,7 +24,7 @@ logger.addHandler(console)
 
 import torch
 from tqdm import tqdm
-from utils.common import get_device, mkdir_if_notexist
+from utils.common import get_device, mkdir_if_notexist, result_dump
 
 from csqa_task.trainer import Trainer
 
@@ -83,14 +85,15 @@ class MultipleChoice:
             processor = ProcessorClass(self.config, 'dev')
             processor.load_data()
             self.deval_dataloader = processor.make_dataloader(
-                tokenizer, self.config)
+                tokenizer, self.config, shuffle=False)
             logger.info("dev dataset loaded")
         
         elif self.config.mission == "eval":
             processor = ProcessorClass(self.config, 'dev')
             processor.load_data()
             self.deval_dataloader = processor.make_dataloader(
-                tokenizer, self.config)
+                tokenizer, self.config, shuffle=False)
+            self.processor = processor
             logger.info("dev dataset loaded")
 
         elif self.config.mission == 'predict':
@@ -98,6 +101,7 @@ class MultipleChoice:
             processor.load_data()
             self.test_dataloader = processor.make_dataloader(
                 tokenizer, self.config, shuffle=False)
+            self.processor = processor
             logger.info("test dataset loaded")
 
     def train(self):
@@ -132,24 +136,50 @@ class MultipleChoice:
         logger.info(f"eval: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
         return drn
 
-    def predict(self):
-        result = []
-        idx = []
-        labels = []
-        predicts = []
-
+    def run_dev(self):
+        logits_list, predict_list = [], []
         dataloader = self.deval_dataloader
+        self.model.eval()
 
         for batch in tqdm(dataloader):
-            self.model.eval()
+            batch = batch[:-1]  # rm label
             with torch.no_grad():
-                ret = self.model.predict(batch[0].to(self.device),batch[1].to(self.device),batch[2].to(self.device),batch[3].to(self.device))
-                idx.extend(batch[0].cpu().numpy().tolist())
-                result.extend(ret.cpu().numpy().tolist())
-                labels.extend(batch[4].numpy().tolist())
-                predicts.extend(torch.argmax(ret, dim=1).cpu().numpy().tolist())
+                batch = list(map(lambda x:x.to(self.device), batch))
+                logits = self.model.predict(*batch)
+                logits_list.extend(logits.cpu().numpy().tolist())
+                predict_list.extend(torch.argmax(logits, dim=1).cpu().numpy().tolist())
+        
+        csqa_dev = self.processor.make_dev(predict_list, logits_list)
 
-        return idx, result, labels, predicts
+        right, wrong = [], []
+        for case in csqa_dev:
+            if case['AnswerKey_pred'] == case['answerKey']:
+                right.append(case)
+            else:
+                wrong.append(case)
+        
+        summary = {'total': len(csqa_dev), 'right': len(right), 'wrong': len(wrong), 'acc': str(len(right)/len(csqa_dev)*100)+'%'}
+        wrong.insert(0, summary)
+        result_dump(self.config, right, 'right_result.json')
+        result_dump(self.config, wrong, 'wrong_result.json')
+
+    def predict_test(self):
+        predict_list = []
+
+        dataloader = self.test_dataloader
+        self.model.eval()
+        for batch in tqdm(dataloader):
+            batch = batch[:-1]  # rm label
+            with torch.no_grad():
+                batch = list(map(lambda x:x.to(self.device), batch))
+                logits = self.model.predict(*batch)
+                predict_list.extend(torch.argmax(logits, dim=1).cpu().numpy().tolist())
+
+        raw_csqa = self.processor.set_predict_labels(predict_list)
+
+        result_dump(self.config, raw_csqa, 'predict.json')
+        # output_dir = os.path.join(self.config.result_dir, 'predict.json')
+
 
     @classmethod
     def load(cls, config, ConfigClass, ModelClass):
