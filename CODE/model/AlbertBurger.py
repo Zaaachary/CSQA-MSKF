@@ -41,7 +41,7 @@ class AlbertBurgerAlpha6(nn.Module, CSLinearBase, BurgerBase):
 
         # modules
         self.albert1 = AlbertModel(self.config1)
-        # self.cs_qa_attn = CSDecoderLayer(self.config, self.cs_num)
+        self.cs_qa_attn = CSDecoderLayer(self.config, self.cs_num)
 
         self.albert2 = AlbertModel(self.config2)
         self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
@@ -85,19 +85,16 @@ class AlbertBurgerAlpha6(nn.Module, CSLinearBase, BurgerBase):
         qa_encoding_expand = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
         qa_padding_mask_expand = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
 
-        # decoder_output = self.cs_qa_attn(cs_encoding, qa_encoding_expand, cs_padding_mask, qa_padding_mask_expand)
-        # decoder_output = self.cs_qa_attn(qa_encoding_expand, cs_encoding, qa_padding_mask_expand, cs_padding_mask)
-
+        # qa_expand, cs, qa_padding_mask_expand, cs_padding_mask
+        qa_encoding_expand = self.cs_qa_attn(cs_encoding, qa_encoding_expand, cs_padding_mask, qa_padding_mask_expand)
+        qa_encoding = qa_encoding_expand.mean(dim=1)
+        # TODO
         # import pdb; pdb.set_trace()
-        # decoder_output
 
-        # middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(decoder_output, middle_hidden_state)
-        middle_hidden_state = qa_encoding
+        middle_hidden_state = torch.cat((middle_hidden_state[:,0,:].unsqueeze(1), qa_encoding), dim=1)
+        middle_padding_mask = torch.cat((flat_attention_mask[:,0].unsqueeze(1), qa_padding_mask), dim=1)
 
-        outputs = self.albert2(inputs_embeds=middle_hidden_state)
-
-        # merged_output = self.attention_merge(outputs.last_hidden_state, flat_attention_mask)
-        # logits = self.scorer(merged_output).view(-1, 5)
+        outputs = self.albert2(inputs_embeds=middle_hidden_state, attention_mask=middle_padding_mask)
 
         pooler_output = outputs.pooler_output  # [CLS]
         # [B*5, H] => [B*5, 1] => [B, 5]
@@ -173,11 +170,9 @@ class AlbertBurgerAlpha5(nn.Module, CSLinearBase, BurgerBase):
 
         # import pdb; pdb.set_trace()
         # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
-        # attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
 
-        # import pdb; pdb.set_trace()
         decoder_output = self.cs_qa_attn(qa_encoding_expand, cs_encoding, qa_padding_mask_expand, cs_padding_mask)
-
+        # import pdb; pdb.set_trace()
         middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(decoder_output, middle_hidden_state)
 
         outputs = self.albert2(inputs_embeds=middle_hidden_state)
