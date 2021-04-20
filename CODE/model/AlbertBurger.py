@@ -413,7 +413,9 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
         attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
         middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, middle_hidden_state)
-        outputs = self.albert2(inputs_embeds=middle_hidden_state)
+
+        outputs = self.albert2(inputs_embeds=middle_hidden_state, attention_mask=flat_attention_mask)
+        
         pooler_output = outputs.pooler_output  # [CLS]
         # [B*5, H] => [B*5, 1] => [B, 5]
         logits = self.scorer(pooler_output).view(-1, 5)
