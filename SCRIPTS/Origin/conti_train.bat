@@ -1,6 +1,6 @@
 python CODE\\run_task.py^
     --task_name Origin_Albert_Baseline^
-    --mission train^
+    --mission conti-train^
     --fp16 0^
     --gpu_ids 0^
     --save_mode step^
@@ -19,4 +19,5 @@ python CODE\\run_task.py^
     ^
     --dataset_dir DATA^
     --result_dir  DATA/result/^
+    --saved_model_dir D:\CODE\Commonsense\CSQA_dev\DATA\result\albert-base-v2\Origin_Albert_Baseline\1253-Apr20_seed42^
     --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\albert-base-v2^

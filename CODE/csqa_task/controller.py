@@ -119,7 +119,7 @@ class MultipleChoice:
         if self.config.mission == 'conti-train':
             right_num = self.evaluate()
             self.trainer.set_best_acc(right_num)
-            self.trainer.load_train_info(self.config.model_dir)
+            self.trainer.load_train_info(self.config.saved_model_dir)
 
         self.trainer.train(
             self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, deval_dataloader, self.config.save_mode)

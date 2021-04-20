@@ -63,6 +63,7 @@ class BaseTrainer:
         self.eval_after_tacc = eval_after_tacc
         self.best_loss, self.best_acc = float('inf'), 0
         self.writer = SummaryWriter(f'./DATA/runs/{exp_name}')
+        self.start_epoch = -1
 
     def set_best_acc(self, acc):
         self.best_acc = acc
@@ -73,7 +74,7 @@ class BaseTrainer:
         save_mode: 'step', 'epoch', 'last'
         """
         
-        for epoch in range(int(epoch_num)):
+        for epoch in range(self.start_epoch + 1, int(epoch_num)):
             self.epoch = epoch
             logger.info(f'---------Epoch: {epoch+1:02}---------')
             self.model.zero_grad()
@@ -87,6 +88,7 @@ class BaseTrainer:
             for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
                 self.model.train()
                 self._step(batch, gradient_accumulation_steps)
+
                 # step report
                 if self.global_step % self.print_step == 0:
                     print(' ')
@@ -112,8 +114,6 @@ class BaseTrainer:
                         cur_loss, right_num, all_num = dev_record.list()
                         self.save_or_not(cur_loss, right_num)
                         logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
-                    lr = self.scheduler.get_lr()[1]
-                    logger.debug(f"learning rate: {lr}")
             else:
                 self._report(self.train_record)  # last steps not reach print_step
 
@@ -124,6 +124,8 @@ class BaseTrainer:
             if not save_mode == 'last':
                 self.save_or_not(cur_loss, right_num)
             logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
+            lr = self.scheduler.get_lr()[1]
+            logger.info(f"learning rate: {lr}")
 
             self.model.zero_grad()
                 
@@ -164,9 +166,6 @@ class BaseTrainer:
             self.optimizer.step()
             self.scheduler.step()
             self.model.zero_grad()
-
-            # lr = self.scheduler.get_lr()[1]
-            # logger.info(f"learning rate: {lr}")
 
         self.global_step += 1
 
@@ -239,8 +238,16 @@ class BaseTrainer:
 
     def load_train_info(self, model_dir):
         ckpt_dir = os.path.join(model_dir, "train_info.ckpt")
-        train_info = torch.load(ckpt_dir)
-        import pdb; pdb.set_trace()
+        if os.path.exists(ckpt_dir):
+            train_info = torch.load(ckpt_dir)
+            self.optimizer.load_state_dict(train_info['optimizer'])
+            self.scheduler.load_state_dict(train_info['scheduler'])
+            self.start_epoch = train_info['epoch']
+        else:
+            logger.info(f"{ckpt_dir} not exists")
+
+            lr = self.scheduler.get_lr()[1]
+            logger.info(f"current learning rate: {lr}")
 
     def _forward(self, batch, record):
         """

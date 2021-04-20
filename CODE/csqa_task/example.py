@@ -239,7 +239,6 @@ class WKDTExample(BaseExample):
             choice_text = choice['text']
             choics_desc = desc_dict[choice_text]
             texts = [
-                # f" {question} {choice} [SEP]",  
                 f" {question} {choice_text} [SEP]",  
                 f" {question_concept}: {Qconcept_desc} [SEP]", 
                 f" {choice_text}: {choics_desc} [SEP]"
