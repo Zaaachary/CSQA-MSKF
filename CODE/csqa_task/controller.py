@@ -67,7 +67,8 @@ class MultipleChoice:
             model, self.multi_gpu, self.device,
             self.config.print_step, self.config.eval_after_tacc,
             self.config.result_dir,
-            self.config.fp16, self.config.clip_batch_off)
+            self.config.fp16, self.config.clip_batch_off,
+            exp_name=self.config.task_str)
         self.model = model
 
     def load_data(self, ProcessorClass, tokenizer):
@@ -118,6 +119,7 @@ class MultipleChoice:
         if self.config.mission == 'conti-train':
             right_num = self.evaluate()
             self.trainer.set_best_acc(right_num)
+            self.trainer.load_train_info(self.config.model_dir)
 
         self.trainer.train(
             self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, deval_dataloader, self.config.save_mode)

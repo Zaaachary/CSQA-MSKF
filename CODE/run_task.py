@@ -96,6 +96,8 @@ def set_result(args):
             args.task_name,
             task_str, ''
             )
+        args.task_str = task_str
+
     else:
         args.result_dir = args.saved_model_dir
     mkdir_if_notexist(args.result_dir)

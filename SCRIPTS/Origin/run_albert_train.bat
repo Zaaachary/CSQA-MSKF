@@ -5,12 +5,12 @@ python CODE\\run_task.py^
     --gpu_ids 0^
     --save_mode step^
     --print_step 100^
-    --eval_after_tacc 0.58^
+    --eval_after_tacc 0^
     --evltest_batch_size 12^
     ^
-    --max_seq_len 140^
+    --max_seq_len 128^
     ^
-    --train_batch_size 4^
+    --train_batch_size 2^
     --gradient_accumulation_steps 4^
     --learning_rate 2e-5^
     --num_train_epochs 10^

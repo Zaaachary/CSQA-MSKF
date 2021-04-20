@@ -16,7 +16,7 @@ console.setFormatter(formatter)
 logger.addHandler(console)
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
+
 from tqdm.autonotebook import tqdm
 from transformers.file_utils import CONFIG_NAME, WEIGHTS_NAME
 from transformers.optimization import (
@@ -24,7 +24,8 @@ from transformers.optimization import (
 try:
     from apex import amp
 except ImportError:
-    print("apex not imported")
+    print("apex, tensorboard may not imported")
+from torch.utils.tensorboard import SummaryWriter
 
 from .common import Vn, mkdir_if_notexist
 
@@ -61,7 +62,7 @@ class BaseTrainer:
         self.print_step = print_step
         self.eval_after_tacc = eval_after_tacc
         self.best_loss, self.best_acc = float('inf'), 0
-        self.writer = SummaryWriter(f'runs/{exp_name}')
+        self.writer = SummaryWriter(f'./DATA/runs/{exp_name}')
 
     def set_best_acc(self, acc):
         self.best_acc = acc
@@ -73,6 +74,7 @@ class BaseTrainer:
         """
         
         for epoch in range(int(epoch_num)):
+            self.epoch = epoch
             logger.info(f'---------Epoch: {epoch+1:02}---------')
             self.model.zero_grad()
             self.global_step = 0
@@ -193,10 +195,16 @@ class BaseTrainer:
 
         output_model_file = os.path.join(self.model_save_dir, WEIGHTS_NAME)
         output_config_file = os.path.join(self.model_save_dir, CONFIG_NAME)
+        output_traininfo_file = os.path.join(self.model_save_dir, "train_info.ckpt")
     
-        torch.save(self.model.state_dict(), output_model_file)
         self.model.config.to_json_file(output_config_file)
-        # tokenizer.save_vocabulary(output_dir)
+        train_info = {
+            "optimizer": self.optimizer.state_dict(),
+            "scheduler": self.scheduler.state_dict(),
+            "epoch": self.epoch
+        }
+        torch.save(self.model.state_dict(), output_model_file)
+        torch.save(train_info, output_traininfo_file)
 
     def set_optimizer(self, optimizer):
         if self.fp16:
@@ -228,6 +236,11 @@ class BaseTrainer:
         return get_cosine_with_hard_restarts_schedule_with_warmup(
           optimizer, num_warmup_steps=warmup_proportion * t_total,
           num_training_steps=t_total)
+
+    def load_train_info(self, model_dir):
+        ckpt_dir = os.path.join(model_dir, "train_info.ckpt")
+        train_info = torch.load(ckpt_dir)
+        import pdb; pdb.set_trace()
 
     def _forward(self, batch, record):
         """

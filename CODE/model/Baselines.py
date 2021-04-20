@@ -14,8 +14,10 @@ class AlbertBaseline(AlbertPreTrainedModel):
 
     def __init__(self, config, **kwargs):
         super(AlbertBaseline, self).__init__(config)
-        self.albert = AlbertModel(config)
 
+        self.albert = AlbertModel(config)
+        # test
+        # self.layernorm = nn.LayerNorm(config.hidden_size)
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
             nn.Linear(config.hidden_size, 1)
@@ -50,7 +52,7 @@ class AlbertBaseline(AlbertPreTrainedModel):
             attention_mask=flat_attention_mask,
             token_type_ids=flat_token_type_ids
         )
-        
+
         pooler_output = outputs.pooler_output  # [CLS]
 
         # [B*5, H] => [B*5, 1] => [B, 5]
