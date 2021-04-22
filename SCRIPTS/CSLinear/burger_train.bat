@@ -1,22 +1,25 @@
 python CODE\\run_task.py^
-    --task_name WKDT_Albert_Baseline^
+    --task_name CSLinear_Albert_BurgerAlpha6^
     --mission train^
     --fp16 0^
     --gpu_ids 0^
     --save_mode step^
     --print_step 100^
-    --eval_after_tacc 0^
-    --evltest_batch_size 12^
+    --eval_after_tacc 0.58^
+    --evltest_batch_size 16^
+    --clip_batch_off^
     ^
-    --max_seq_len 128^
-    --max_qa_len 54^
-    --max_desc_len 35^
-    --WKDT_version 3.0^
+    --cs_num 4^
+    --max_qa_len 58^
+    --max_cs_len 20^
+    --max_seq_len 140^
+    --albert1_layer 10^
+    --OMCS_version 1^
     ^
     --train_batch_size 2^
     --gradient_accumulation_steps 4^
     --learning_rate 2e-5^
-    --num_train_epochs 8^
+    --num_train_epochs 2^
     --warmup_proportion 0.1^
     --weight_decay 0.1^
     ^

@@ -63,13 +63,31 @@ class ProcessorBase(object):
 
         return dataloader
 
+    def set_predict_labels(self, predict_list):
+        for index, case in enumerate(self.raw_csqa):
+            case['AnswerKey_pred'] = chr(ord('A') + predict_list[index])
+        return self.raw_csqa
+
     @staticmethod
     def load_example(case, cs4choice):
         pass
         # override to choose Example
         # return OMCSExample.load_from(case, cs4choice)
 
-class Baseline_Processor(object):
+    def make_dev(self, predict_list, logits_list):
+        # override
+        for index, case in enumerate(self.raw_csqa):
+            case['AnswerKey_pred'] = chr(ord('A') + predict_list[index])
+            question = case['question']
+            case.update(question)
+            del case['question']
+            for index_2, choice in enumerate(question['choices']):
+                choice['logit'] = logits_list[index][index_2]
+
+        return self.raw_csqa
+
+
+class Baseline_Processor(ProcessorBase):
     
     def __init__(self, args, dataset_type):
         super(Baseline_Processor, self).__init__(args, dataset_type)
@@ -289,7 +307,7 @@ class Wiktionary_Processor(ProcessorBase):
         self.inject_description()
 
     def load_wiktionary(self):
-        dir_dict = {'2.0': 'wiktionary_v2'}
+        dir_dict = {'2.0': 'wiktionary_v2', '3.0': 'wiktionary_v3'}
 
         wiktionary_file = os.path.join(
             self.dataset_dir, 'wiktionary', dir_dict[self.version], 
@@ -307,12 +325,14 @@ class Wiktionary_Processor(ProcessorBase):
             Qconcept_desc = self.wiktionary[Qconcept]
             desc_dict[Qconcept] = Qconcept_desc
             
-            for choice in case['question']['choices']:
+            question = case['question']
+            for choice in question['choices']:
                 choice_text = choice['text']
                 choice_desc = self.wiktionary[choice_text]
                 desc_dict[choice_text] = choice_desc
+                choice['desc'] = choice_desc
             
-            # import pdb; pdb.set_trace()
+            case['question_concept_desc'] = desc_dict[Qconcept]
             example = self.load_example(case, desc_dict)
             self.examples.append(example)
 
@@ -323,6 +343,11 @@ class Wiktionary_Processor(ProcessorBase):
     @staticmethod
     def load_example(case, cs4choice):
         return WKDTExample.load_from(case, cs4choice)
+
+    def make_dev(self, predict_list, logits_list):
+        super(Wiktionary_Processor, self).make_dev(predict_list, logits_list)
+        return self.raw_csqa
+
 
 class MultiSource_Processor(OMCS_Processor, Wiktionary_Processor):
 

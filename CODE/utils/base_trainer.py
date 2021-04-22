@@ -16,6 +16,7 @@ console.setFormatter(formatter)
 logger.addHandler(console)
 
 import torch
+
 from tqdm.autonotebook import tqdm
 from transformers.file_utils import CONFIG_NAME, WEIGHTS_NAME
 from transformers.optimization import (
@@ -23,7 +24,8 @@ from transformers.optimization import (
 try:
     from apex import amp
 except ImportError:
-    print("apex not imported")
+    print("apex, tensorboard may not imported")
+from torch.utils.tensorboard import SummaryWriter
 
 from .common import Vn, mkdir_if_notexist
 
@@ -45,7 +47,7 @@ class BaseTrainer:
     def __init__(self, 
         model, multi_gpu, device, 
         print_step, eval_after_tacc, 
-        model_save_dir, v_num):
+        model_save_dir, v_num, exp_name='exp'):
         """
         device: 主device
         multi_gpu: 是否使用了多个gpu
@@ -60,6 +62,8 @@ class BaseTrainer:
         self.print_step = print_step
         self.eval_after_tacc = eval_after_tacc
         self.best_loss, self.best_acc = float('inf'), 0
+        self.writer = SummaryWriter(f'./DATA/runs/{exp_name}')
+        self.start_epoch = -1
 
     def set_best_acc(self, acc):
         self.best_acc = acc
@@ -70,7 +74,8 @@ class BaseTrainer:
         save_mode: 'step', 'epoch', 'last'
         """
         
-        for epoch in range(int(epoch_num)):
+        for epoch in range(self.start_epoch + 1, int(epoch_num)):
+            self.epoch = epoch
             logger.info(f'---------Epoch: {epoch+1:02}---------')
             self.model.zero_grad()
             self.global_step = 0
@@ -83,10 +88,16 @@ class BaseTrainer:
             for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
                 self.model.train()
                 self._step(batch, gradient_accumulation_steps)
+
                 # step report
                 if self.global_step % self.print_step == 0:
                     print(' ')
                     self._report(self.train_record, 'Train')
+                    self.writer.add_scalar(
+                        'training loss', 
+                        self.train_record[0].avg(),
+                        epoch * len(train_dataloader) + self.global_step
+                    )
                     right, all_num = self.train_record.list()[1:]
                     train_acc = right / all_num
                     self.train_record.init()
@@ -95,11 +106,14 @@ class BaseTrainer:
                     if save_mode == 'step' and train_acc >= self.eval_after_tacc:
                         dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
                         self._report(dev_record, 'Dev')
+                        self.writer.add_scalar(
+                            'Develop loss', 
+                            dev_record[0].avg(),
+                            epoch * len(train_dataloader) + self.global_step
+                        )
                         cur_loss, right_num, all_num = dev_record.list()
                         self.save_or_not(cur_loss, right_num)
                         logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
-                    lr = self.scheduler.get_lr()[1]
-                    logger.debug(f"learning rate: {lr}")
             else:
                 self._report(self.train_record)  # last steps not reach print_step
 
@@ -110,9 +124,11 @@ class BaseTrainer:
             if not save_mode == 'last':
                 self.save_or_not(cur_loss, right_num)
             logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
+            lr = self.scheduler.get_lr()[1]
+            logger.info(f"learning rate: {lr}")
 
             self.model.zero_grad()
-                
+
         # end of train
         if save_mode == 'end':
             self.save_model()
@@ -150,8 +166,6 @@ class BaseTrainer:
             self.optimizer.step()
             self.scheduler.step()
             self.model.zero_grad()
-            # lr = self.scheduler.get_lr()[1]
-            # logger.info(f"learning rate: {lr}")
 
         self.global_step += 1
 
@@ -180,10 +194,16 @@ class BaseTrainer:
 
         output_model_file = os.path.join(self.model_save_dir, WEIGHTS_NAME)
         output_config_file = os.path.join(self.model_save_dir, CONFIG_NAME)
+        output_traininfo_file = os.path.join(self.model_save_dir, "train_info.ckpt")
     
-        torch.save(self.model.state_dict(), output_model_file)
         self.model.config.to_json_file(output_config_file)
-        # tokenizer.save_vocabulary(output_dir)
+        train_info = {
+            "optimizer": self.optimizer.state_dict(),
+            "scheduler": self.scheduler.state_dict(),
+            "epoch": self.epoch
+        }
+        torch.save(self.model.state_dict(), output_model_file)
+        torch.save(train_info, output_traininfo_file)
 
     def set_optimizer(self, optimizer):
         if self.fp16:
@@ -215,6 +235,19 @@ class BaseTrainer:
         return get_cosine_with_hard_restarts_schedule_with_warmup(
           optimizer, num_warmup_steps=warmup_proportion * t_total,
           num_training_steps=t_total)
+
+    def load_train_info(self, model_dir):
+        ckpt_dir = os.path.join(model_dir, "train_info.ckpt")
+        if os.path.exists(ckpt_dir):
+            train_info = torch.load(ckpt_dir)
+            self.optimizer.load_state_dict(train_info['optimizer'])
+            self.scheduler.load_state_dict(train_info['scheduler'])
+            self.start_epoch = train_info['epoch']
+        else:
+            logger.info(f"{ckpt_dir} not exists")
+
+            lr = self.scheduler.get_lr()[1]
+            logger.info(f"current learning rate: {lr}")
 
     def _forward(self, batch, record):
         """

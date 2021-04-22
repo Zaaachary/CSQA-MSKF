@@ -17,3 +17,9 @@
 5. torch 加载模型 04/07
 
 6. fp 16
+
+### 4/20
+
+1. conti train update
+
+2. WKDT data processor update

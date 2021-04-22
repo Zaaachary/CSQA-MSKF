@@ -197,34 +197,39 @@ class WKDTExample(BaseExample):
         max_qa_len = args.max_qa_len
         max_desc_len = args.max_desc_len
         max_seq_len = args.max_seq_len
-        # self.cut_add(tokenizer, max_qa_len, max_desc_len)
+        self.cut_add(tokenizer, max_qa_len, max_desc_len)
 
-        # all_qa_ids = [case[0] for case in self.text_list]
-        # all_cs_ids = [case[1] for case in self.text_list]
+        all_qa_ids = [case[0] for case in self.text_list]
+        all_desc_ids = [case[1] for case in self.text_list]
         # import pdb; pdb.set_trace()
-        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
+        feature_dict = tokenizer.batch_encode_plus(list(zip(all_qa_ids, all_desc_ids)), add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
 
         return feature_dict
 
-    # def cut_add(self, tokenizer, max_qa_len, max_desc_len):
-    #     sep = tokenizer.sep_token
-    #     max_qa_len -= 2  # current qa doesn't contain cls and endsep
+    def cut_add(self, tokenizer, max_qa_len, max_desc_len):
+        sep = tokenizer.sep_token
+        cls = tokenizer.cls_token
+        max_qa_len -= 2  # current qa doesn't contain cls and endsep
+        max_desc_len -= 1
 
-    #     for index, case in enumerate(self.text_list):
-    #         qa_list, cs_list = case
-    #         qa_ids = tokenizer.tokenize(f' {sep} '.join(qa_list))
-    #         if len(qa_ids) > max_qa_len:
-    #             qa_ids = qa_ids[len(qa_ids)-max_qa_len:]
-            
-    #         cs_ids = []
-    #         for j, cs in enumerate(cs_list):
-    #             temp = tokenizer.tokenize(cs)
-    #             temp = temp[:max_cs_len-1] # last place for sep
-    #             if j != len(cs_list)-1:
-    #                 temp = temp + [tokenizer.sep_token]
-    #             cs_ids.extend(temp)
+        for index, case in enumerate(self.text_list):
+            case = [text.replace('[SEP]', sep) for text in case] 
+            qa_text, qc_desc, c_desc = case
+            qa_text = cls + qa_text
 
-    #         self.text_list[index] = qa_ids, cs_ids
+            qa_ids = tokenizer.tokenize(qa_text)
+            if len(qa_ids) > max_qa_len:
+                qa_ids = qa_ids[len(qa_ids)-max_qa_len:]
+
+            qc_desc_ids = tokenizer.tokenize(qc_desc)
+            if len(qc_desc_ids) > max_desc_len:
+                qc_desc_ids = qc_desc_ids[len(qc_desc_ids)-max_desc_len:]
+
+            c_desc_ids = tokenizer.tokenize(c_desc)
+            if len(c_desc_ids) > max_desc_len:
+                c_desc_ids = c_desc_ids[len(c_desc_ids)-max_desc_len:]
+
+            self.text_list[index] = qa_ids, qc_desc_ids + c_desc_ids
 
     @staticmethod
     def make_text(question, choices, desc_dict, question_concept):
@@ -233,8 +238,12 @@ class WKDTExample(BaseExample):
         for choice in choices:
             choice_text = choice['text']
             choics_desc = desc_dict[choice_text]
-            text = f"[CLS] {question} {choice} [SEP] {question_concept} {Qconcept_desc} [SEP] {choice_text} {choics_desc} [SEP]"
-            text_list.append(text)
+            texts = [
+                f" {question} {choice_text} [SEP]",  
+                f" {question_concept}: {Qconcept_desc} [SEP]", 
+                f" {choice_text}: {choics_desc} [SEP]"
+            ]
+            text_list.append(texts)
         return text_list
 
     @classmethod

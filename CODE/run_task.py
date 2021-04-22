@@ -80,12 +80,15 @@ def set_result(args):
     '''
     if args.mission in ('train', 'conti-train'):
         task_str = time.strftime(r'%H%M-%b%d') + f'_seed{args.seed}'
-        if 'Origin' not in args.task_name:
+        if 'OMCS' in args.task_name or 'CSLinear' in args.task_name:
             task_str += f'_cs{args.cs_num}'
             task_str += f'_omcsv{args.OMCS_version}'
         
         if 'Burger' in args.task_name:
             task_str += f'_layer{args.albert1_layers}'
+
+        if 'WKDT' in args.task_name:
+            task_str += f'_wkdtv{args.WKDT_version}'
 
         args.result_dir = os.path.join(
             args.result_dir, 
@@ -93,7 +96,10 @@ def set_result(args):
             args.task_name,
             task_str, ''
             )
+        args.task_str = task_str
+
     else:
+        args.task_str = 'predict or dev'
         args.result_dir = args.saved_model_dir
     mkdir_if_notexist(args.result_dir)
 
@@ -130,9 +136,9 @@ def main(args):
     if args.mission in ('train', 'conti-train'):
         controller.train()
     elif args.mission == 'eval':
-        controller.evaluate()
+        controller.run_dev()
     elif args.mission == 'predict':
-        pass
+        controller.predict_test()
 
     end = time.time()
     logger.info(f"task total run time {end-start:.2f} second")
