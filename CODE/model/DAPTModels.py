@@ -33,14 +33,9 @@ class BertForPreTraining(BertPreTrainedModel):
         input_ids=None,
         attention_mask=None,
         token_type_ids=None,
-        position_ids=None,
-        head_mask=None,
-        inputs_embeds=None,
-        labels=None,
-        next_sentence_label=None,
-        output_attentions=None,
-        output_hidden_states=None,
-        return_dict=None,
+        sequence_labels=None,
+        desc_labels=None,
+        return_dict=True,
     ):
 
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
@@ -49,11 +44,6 @@ class BertForPreTraining(BertPreTrainedModel):
             input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
 
@@ -61,10 +51,10 @@ class BertForPreTraining(BertPreTrainedModel):
         prediction_scores, seq_relationship_score = self.cls(sequence_output, pooled_output)
 
         total_loss = None
-        if labels is not None and next_sentence_label is not None:
+        if sequence_labels is not None and desc_labels is not None:
             loss_fct = CrossEntropyLoss()
-            masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), labels.view(-1))
-            next_sentence_loss = loss_fct(seq_relationship_score.view(-1, 2), next_sentence_label.view(-1))
+            masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), sequence_labels.view(-1))
+            next_sentence_loss = loss_fct(seq_relationship_score.view(-1, 2), desc_labels.view(-1))
             total_loss = masked_lm_loss + next_sentence_loss
 
         if not return_dict:
