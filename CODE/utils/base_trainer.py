@@ -107,7 +107,9 @@ class BaseTrainer:
                             dev_record[0].avg(),
                             epoch * len(train_dataloader) + self.global_step
                         )
-                        cur_loss, right_num, all_num = dev_record.list()
+                        dev_list = dev_record.list()
+                        cur_loss = dev_list[0]
+                        right_num, all_num  = dev_list[-2:]
                         self.save_or_not(cur_loss, right_num)
                         logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
             else:
