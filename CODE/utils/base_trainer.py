@@ -116,7 +116,9 @@ class BaseTrainer:
             # epoch report
             dev_record = self.evaluate(dev_dataloader, True)  # loss, right_num, all_num
             self._report(dev_record, 'Dev')
-            cur_loss, right_num, all_num  = dev_record.list()
+            dev_list = dev_record.list()
+            cur_loss = dev_list[0]
+            right_num, all_num  = dev_list[-2:]
             if not save_mode == 'last':
                 self.save_or_not(cur_loss, right_num)
             logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
