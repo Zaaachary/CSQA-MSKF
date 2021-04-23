@@ -81,10 +81,6 @@ class BaseTrainer:
             self.global_step = 0
             self.train_record.init()
 
-            total = len(train_dataloader)
-            if save_mode == 'step':
-                total +=  + len(dev_dataloader) * len(train_dataloader)//self.print_step
-
             for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
                 self.model.train()
                 self._step(batch, gradient_accumulation_steps)
@@ -98,7 +94,7 @@ class BaseTrainer:
                         self.train_record[0].avg(),
                         epoch * len(train_dataloader) + self.global_step
                     )
-                    right, all_num = self.train_record.list()[1:]
+                    right, all_num = self.train_record.list()[-2:]
                     train_acc = right / all_num
                     self.train_record.init()
 
