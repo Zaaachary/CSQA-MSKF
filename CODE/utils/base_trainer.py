@@ -62,7 +62,7 @@ class BaseTrainer:
         self.print_step = print_step
         self.eval_after_tacc = eval_after_tacc
         self.best_loss, self.best_acc = float('inf'), 0
-        self.writer = SummaryWriter(f'./DATA/runs/{exp_name}')
+        # self.writer = SummaryWriter(f'../DATA/runs/{exp_name}')
         self.start_epoch = -1
 
     def set_best_acc(self, acc):
