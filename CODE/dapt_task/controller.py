@@ -56,7 +56,7 @@ class DomainAdaptivePreTrain:
 
         self.trainer = Trainer(
             model, self.multi_gpu, self.device,
-            self.config.print_step, 0,
+            self.config.print_step, self.config.eval_after_tacc,
             self.config.result_dir,
             self.config.fp16, self.config.clip_batch_off,
             exp_name=self.config.task_str)
@@ -114,7 +114,7 @@ class DomainAdaptivePreTrain:
 
     def evaluate(self):
         pass
-    
+
     def run_dev(self):
         pass
 

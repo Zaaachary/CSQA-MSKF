@@ -130,6 +130,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_mode', type=str, choices=['epoch', 'step', 'end'], default='epoch')
     parser.add_argument('--print_step', type=int, default=250)
     parser.add_argument('--evltest_batch_size', type=int, default=8)
+    parser.add_argument('--eval_after_tacc', type=float, default=0)
     parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     
     # task-specific hyper param
@@ -161,6 +162,7 @@ if __name__ == "__main__":
     --save_mode epoch
     --print_step 50
     --evltest_batch_size 12
+    --eval_after_tacc 0.8
 
     --DAPT_version 1.0
     --mask_pct 0.20
