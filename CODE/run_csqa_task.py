@@ -66,7 +66,7 @@ def select_task(args):
         "WKDT": Wiktionary_Processor,
     }
 
-    processor_name, model_name = args.task_name.split('_',maxsplit=1)
+    processor_name, model_name = args.task_name.split('_', maxsplit=1)
     ModelClass, args_list = model_dict[model_name]
     ProcessorClass = processor_dict[processor_name]
 

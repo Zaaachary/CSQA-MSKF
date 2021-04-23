@@ -6,6 +6,8 @@
 @Dscpt   :   
 """
 
+import torch
+import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 
 from transformers import BertPreTrainedModel, BertModel
@@ -35,16 +37,13 @@ class BertForPreTraining(BertPreTrainedModel):
         token_type_ids=None,
         sequence_labels=None,
         desc_labels=None,
-        return_dict=True,
     ):
-
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         outputs = self.bert(
             input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
-            return_dict=return_dict,
+            return_dict=True,
         )
 
         sequence_output, pooled_output = outputs[:2]
@@ -54,17 +53,12 @@ class BertForPreTraining(BertPreTrainedModel):
         if sequence_labels is not None and desc_labels is not None:
             loss_fct = CrossEntropyLoss()
             masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), sequence_labels.view(-1))
-            next_sentence_loss = loss_fct(seq_relationship_score.view(-1, 2), desc_labels.view(-1))
-            total_loss = masked_lm_loss + next_sentence_loss
+            right_desc_loss = loss_fct(seq_relationship_score.view(-1, 2), desc_labels.view(-1))
+            total_loss = masked_lm_loss + right_desc_loss
+            
+            with torch.no_grad():
+                logits = F.softmax(seq_relationship_score, dim =1)
+                predicts = torch.argmax(logits, dim=1)
+                right_num = torch.sum(predicts == desc_labels)
 
-        if not return_dict:
-            output = (prediction_scores, seq_relationship_score) + outputs[2:]
-            return ((total_loss,) + output) if total_loss is not None else output
-
-        return BertForPreTrainingOutput(
-            loss=total_loss,
-            prediction_logits=prediction_scores,
-            seq_relationship_logits=seq_relationship_score,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
-        )
+        return (total_loss, masked_lm_loss, right_desc_loss, right_num) if total_loss is not None else outputs

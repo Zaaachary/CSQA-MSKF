@@ -179,18 +179,3 @@ class MultipleChoice:
 
         result_dump(self.config, raw_csqa, 'predict.json')
         # output_dir = os.path.join(self.config.result_dir, 'predict.json')
-
-
-    @classmethod
-    def load(cls, config, ConfigClass, ModelClass):
-        gpu_ids = list(map(int, config.gpu_ids.split()))
-        multi_gpu = (len(gpu_ids) > 1)
-        device = get_device(gpu_ids)
-
-        srt = cls(config)
-        srt.device = device
-        srt.trainer = Trainer.load_model(
-            ConfigClass, ModelClass, multi_gpu, device,
-            config.print_step, config.output_model_dir, config.fp16)
-
-        return srt

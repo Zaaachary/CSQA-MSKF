@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 # from ptm_task.example import *
 
 
-class DAPT_Processor(object):
+class Webster_Processor(object):
     '''
     args:  dataset_dir, DAPT_version, mask_pct, mask_method, train_batch_size, evltest_batch_size
     '''
@@ -57,7 +57,6 @@ class DAPT_Processor(object):
             self.raw_dapt = json.load(f)
 
     def collect(self):
-
         for case in self.raw_dapt:
             concept = self.tokenizer.tokenize(case['concept'])
             tokens_label = self.tokenizer.tokenize(case['sequence_label'])
@@ -136,7 +135,7 @@ if __name__ == "__main__":
 
     tokenizer = BertTokenizer.from_pretrained(r"D:\CODE\Python\Transformers-Models\bert-base-cased")
 
-    processor = DAPT_Processor(args, 'dev', tokenizer)
+    processor = Webster_Processor(args, 'dev', tokenizer)
     processor.load_data()
     dataloader = processor.make_dataloader()
     for batch in dataloader:
