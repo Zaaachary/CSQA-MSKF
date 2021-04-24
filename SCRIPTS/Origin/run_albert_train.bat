@@ -1,4 +1,4 @@
-python CODE\\run_task.py^
+python CODE\\run_csqa_task.py^
     --task_name Origin_Albert_Baseline^
     --mission train^
     --fp16 0^

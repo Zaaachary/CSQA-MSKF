@@ -43,8 +43,8 @@ class ProcessorBase(object):
         all_label = []
 
         for example in tqdm(self.examples):
-            # import pdb; pdb.set_trace()
             feature_dict = example.tokenize(tokenizer, args)
+            # import pdb; pdb.set_trace()
             all_input_ids.append(feature_dict['input_ids'])
             all_token_type_ids.append(feature_dict['token_type_ids'])
             all_attention_mask.append(feature_dict['attention_mask'])
@@ -108,15 +108,18 @@ class Baseline_Processor(ProcessorBase):
             example = CSQAExample.load_from_json(case)
             data[index] = example
 
-        self.data = data
+        self.examples = data
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
+        return super().make_dataloader(tokenizer, args, shuffle=shuffle)
+
+    def make_dataloader_old(self, tokenizer, args, shuffle=True):
         batch_size = args.train_batch_size if self.dataset_type == 'train' else args.evltest_batch_size
         drop_last = False
 
         T, L = [], []
 
-        for example in tqdm(self.data):
+        for example in tqdm(self.examples):
             text_list, label = example.tokenize(tokenizer, args)
             T.append(text_list)
             L.append(label)

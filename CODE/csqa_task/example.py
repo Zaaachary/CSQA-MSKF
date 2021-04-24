@@ -40,17 +40,25 @@ class CSQAExample:
         self.text_list = text_list
         self.label = label
 
-    def tokenize(self, tokenizer, args):
+    def tokenize_old(self, tokenizer, args):
         max_seq_len = args.max_seq_len
         feature_list = []
-        for text in self.text_list:
+        for question, choice in self.text_list:
+            text = question + "[SEP]" +choice
             tokens = tokenizer.tokenize(text)   # 分词 
             # 转换到 feature: (idx, input_ids, input_mask, segment_ids)
             feature = Feature.make_single(self.example_id, tokens, tokenizer, max_seq_len)
             feature_list.append(feature)
 
         return feature_list, self.label
-        
+
+    def tokenize(self, tokenizer, args):
+        max_seq_len = args.max_seq_len
+
+        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=True, max_length=max_seq_len, padding='max_length', truncation='only_first', return_tensors='pt')
+
+        return feature_dict
+            
     @classmethod
     def load_from_json(cls, json_obj):
         '''
@@ -64,7 +72,7 @@ class CSQAExample:
         
         text_list = ['' for _ in range(5)]
         for index, choice in enumerate(choices):
-            text_list[index] = f" {question} [SEP] {question_concept} [SEP] {choice['text']} "
+            text_list[index] = f" {question} [SEP] {question_concept} ", f" {choice['text']} "
 
         return cls(example_id, label, text_list)
 
