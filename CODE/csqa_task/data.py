@@ -135,8 +135,6 @@ class Baseline_Processor(ProcessorBase):
         all_input_mask = torch.tensor([[f.input_mask for f in fs] for fs in features], dtype=torch.long)
         all_segment_ids = torch.tensor([[f.segment_ids for f in fs] for fs in features], dtype=torch.long)
 
-        # features
-        # tensors.extend((all_input_ids, all_input_mask, all_segment_ids))
         tensors.extend((all_input_ids, all_input_mask, all_segment_ids))
         
         # labels
