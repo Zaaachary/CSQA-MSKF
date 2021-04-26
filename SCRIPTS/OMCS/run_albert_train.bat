@@ -4,8 +4,8 @@ python CODE\\run_task.py^
     --fp16 0^
     --gpu_ids 0^
     --save_mode step^
-    --print_step 100^
-    --eval_after_tacc 0.58^
+    --print_step 50^
+    --eval_after_tacc 0^
     --evltest_batch_size 12^
     ^
     --max_seq_len 140^

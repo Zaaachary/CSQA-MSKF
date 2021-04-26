@@ -69,7 +69,6 @@ class Trainer(BaseTrainer):
         batch = tuple(t.to(self.device) for t in batch)
         result = self.model(*batch)  # loss, right_num
         # result = self._mean(result)     # multi GPU mean
-
         # statistic
         result_n = list(map(lambda x:x.item(), result)) # tensor 2 float
         result_n.append(batch[0].shape[0])   # add batch_size

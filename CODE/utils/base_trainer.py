@@ -142,6 +142,7 @@ class BaseTrainer:
             logger.info('evaluating')
 
         for batch in dataloader:
+            
             self.model.eval()
             with torch.no_grad():
                 self._forward(batch, record)

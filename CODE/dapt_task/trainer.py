@@ -6,7 +6,6 @@
 @Dscpt   :   
 """
 import logging
-import pdb
 
 logger = logging.getLogger("trainer")
 console = logging.StreamHandler();console.setLevel(logging.INFO)

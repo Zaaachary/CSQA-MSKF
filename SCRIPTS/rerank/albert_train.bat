@@ -4,11 +4,11 @@ python CODE/run_csqa_task.py^
     --fp16 0^
     --gpu_ids 0^
     --save_mode step^
-    --print_step 500^
+    --print_step 50^
     --evltest_batch_size 12^
-    --eval_after_tacc 0.58^
+    --eval_after_tacc 0^
     ^
-    --cs_num 4^
+    --cs_num 2^
     --max_seq_len 120^
     --OMCS_version 1^
     ^

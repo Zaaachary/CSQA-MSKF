@@ -103,7 +103,7 @@ class AlbertAttRanker(AlbertPreTrainedModel):
         # [B, Hidden]
         atten_output = torch.tanh(torch.matmul(attention_scores,atten_output)).squeeze(2)
         
-        logits = self.classifier(atten_output)
+        logits = self.classifier(atten_output)      # [B, choice, 1]
         reshaped_logits = logits.view(-1, num_choices)
         
         outputs = (reshaped_logits, attention_scores)
@@ -112,10 +112,10 @@ class AlbertAttRanker(AlbertPreTrainedModel):
             loss_fct = nn.CrossEntropyLoss()
             loss = loss_fct(reshaped_logits, labels)
             outputs = (loss,) + outputs
-
+            # import pdb; pdb.set_trace()
             with torch.no_grad():
-                logits = F.softmax(logits, dim=1)       # get the score
-                predicts = torch.argmax(logits, dim=1)  # find the result
+                reshaped_logits = F.softmax(reshaped_logits, dim=1)       # get the score
+                predicts = torch.argmax(reshaped_logits, dim=1)  # find the result
                 right_num = torch.sum(predicts == labels)
 
         return loss, right_num

@@ -37,6 +37,7 @@ class AlbertBaseline(AlbertPreTrainedModel):
         with torch.no_grad():
             logits = F.softmax(logits, dim=1)       # get the score
             predicts = torch.argmax(logits, dim=1)  # find the result
+            # import pdb; pdb.set_trace()
             right_num = torch.sum(predicts == labels)
 
         return loss, right_num
