@@ -354,3 +354,13 @@ class MultiSource_Processor(OMCS_Processor, Wiktionary_Processor):
 
     def __init__(self, args, dataset_type):
         super().__init__(args, dataset_type)
+
+
+class OMCS_rerank_Processor(OMCS_Processor):
+
+    def __init__(self, args, dataset_type):
+        super().__init__(args, dataset_type)
+
+    @staticmethod
+    def load_example(case, cs4choice):
+        return OMCSExample.load_from(case, cs4choice, mode='rerank')

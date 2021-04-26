@@ -79,12 +79,17 @@ class CSQAExample:
 
 class OMCSExample(BaseExample):
     '''
+    origin mode
     "[CLS] question [SEP] question_concept [SEP] Choice [SEP] cs_1 [SEP] ... [SEP] cs_n [SEP]"
+
+    rerank mode
+    ""
     '''
 
-    def __init__(self, example_id, label, text_list):
+    def __init__(self, example_id, label, text_list, mode):
         super(OMCSExample, self).__init__(example_id, label)
         self.text_list = text_list
+        self.mode = mode
 
     def tokenize(self, tokenizer, args):
         '''
@@ -92,11 +97,10 @@ class OMCSExample(BaseExample):
         '''
         max_seq_len = args.max_seq_len
         feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
-        # import pdb; pdb.set_trace()
         return feature_dict
 
     @staticmethod
-    def make_text(question, choices, cs4choice, question_concept):
+    def make_text(question, choices, cs4choice, question_concept, mode):
         """
         organize the content_dict to text_list; rewrite !
         "[CLS] question [SEP] question_concept [SEP] Choice [SEP] cs_1 [SEP] ... [SEP] cs_n [SEP]"
@@ -106,13 +110,22 @@ class OMCSExample(BaseExample):
             # choice: {'label':xx , 'text':xx}
             choice_str = choice['text']
             text = f"[CLS] {question} [SEP] {question_concept} [SEP] {choice_str} [SEP]"
-            for cs in cs4choice[choice_str]:
-                text += f" {cs} [SEP]"
-            text_list.append(text)
+
+            if mode == "origin":
+                for cs in cs4choice[choice_str]:
+                    text += f" {cs} [SEP]"
+                text_list.append(text)
+
+            elif mode == "rerank":
+                cs_text = []
+                for cs in cs4choice[choice_str]:
+                    cs_text.append(text + f" {cs} [SEP]")
+                text_list.extend(cs_text)
+
         return text_list
 
     @classmethod
-    def load_from(cls, case, cs4choice):
+    def load_from(cls, case, cs4choice, mode='origin'):
 
         example_id = case['id']
         label = ord(case.get('answerKey', 'A')) - ord('A')
@@ -120,8 +133,8 @@ class OMCSExample(BaseExample):
         question_concept = case['question']['question_concept']
         choices = case['question']['choices']
         
-        text_list = cls.make_text(question, choices, cs4choice, question_concept)
-        return cls(example_id, label, text_list)
+        text_list = cls.make_text(question, choices, cs4choice, question_concept, mode)
+        return cls(example_id, label, text_list, mode)
         
 
 class CSLinearExample(OMCSExample):
