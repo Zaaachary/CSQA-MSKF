@@ -33,12 +33,16 @@ class Trainer(BaseTrainer):
         self.clip_batch_off = clip_batch_off
         logger.info(f"fp16: {fp16}; clip_batch_off: {clip_batch_off}")
 
-    def clip_batch(self, batch):
+    @staticmethod
+    def clip_batch(batch):
         """
         find the longest seq_len in the batch, and cut all sequence to seq_len
         """
         # print("batch size is {}".format(len(batch[0])))
-        input_ids, attention_mask, token_type_ids, labels = batch
+        if len(batch) == 4:
+            input_ids, attention_mask, token_type_ids, labels = batch
+        else:
+            input_ids, attention_mask, token_type_ids = batch
         # [batch_size, 5, max_seq_len]
         batch_size = input_ids.size(0)
         while True:
@@ -60,8 +64,10 @@ class Trainer(BaseTrainer):
         token_type_ids = token_type_ids[:, :, :max_seq_length]
         
         # logger.info(f'clip batch to {max_seq_length}')
-        
-        return input_ids, attention_mask, token_type_ids, labels
+        output = (input_ids, attention_mask, token_type_ids)
+        if len(batch) == 4:
+            output = output + (labels,)
+        return output
         
     def _forward(self, batch, record):
         if not self.clip_batch_off:

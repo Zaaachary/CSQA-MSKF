@@ -171,11 +171,14 @@ class MultipleChoice:
 
     def predict_test(self):
         self.evaluate()
+        # torch.cuda.empty_cache()
         predict_list = []
-
         dataloader = self.test_dataloader
         self.model.eval()
+        # import pdb; pdb.set_trace()
         for batch in tqdm(dataloader):
+            if not self.config.clip_batch_off:
+                batch = self.trainer.clip_batch(batch)
             batch = batch[:-1]  # rm label
             with torch.no_grad():
                 batch = list(map(lambda x:x.to(self.device), batch))
