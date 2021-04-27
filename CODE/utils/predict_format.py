@@ -19,7 +19,7 @@ import pandas
 
 raw_prediction_dir = r"D:\CODE\Commonsense\CSQA_dev\DATA\result\prediction"
 
-origin_dir = raw_prediction_dir + r"\omcs_3.0_predict.json"
+origin_dir = raw_prediction_dir + r"\predict.json"
 # origin_dir = r"D:\CODE\Commonsense\CSQA_dev\DATA\result\albert-base-v2\WKDT_Albert_Baseline\2238-Apr19_seed42_wkdtv3.0\predict.json"
 output_dir = raw_prediction_dir + r"\questions.json"
 
