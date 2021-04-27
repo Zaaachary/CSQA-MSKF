@@ -148,7 +148,7 @@ class Baseline_Processor(ProcessorBase):
         return dataloader
 
 
-class OMCS_Processor(object):
+class OMCS_Processor(ProcessorBase):
     '''
     add multi cs at the end of the sequence.
     cs_num, max_seq_len
