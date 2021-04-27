@@ -98,7 +98,6 @@ class Baseline_Processor(ProcessorBase):
         # convert raw data 2 CSQAexample
         self.examples = []
         for _, case in enumerate(self.raw_csqa):
-            case = json.loads(case)
             example = CSQAExample.load_from_json(case)
             self.examples.append(example)
 
