@@ -146,25 +146,38 @@ class OMCS_Processor:
             self.all_masked_tokens.append(self.tokenizer.convert_tokens_to_ids(tokens_masked))
 
     def encode(self):
-        self.feature_dict = self.tokenizer.batch_encode_plus(
-            self.all_masked_tokens, 
-            add_special_tokens=True, 
-            max_length=self.max_seq_len, 
-            padding='max_length', 
-            truncation=True, 
-            return_tensors='pt'
-        )
-        
-        label_feature = self.tokenizer.batch_encode_plus(
-            self.all_label_tokens, 
-            add_special_tokens=True, 
-            max_length=self.max_seq_len, 
-            padding='max_length', 
-            truncation=True, 
-            return_tensors='pt'
-        )['input_ids']
+        all_input_ids, all_token_type_ids, all_attention_mask, all_sequencs_label = [], [], [], []
 
-        self.feature_dict['sequence_labels'] = label_feature
+        for masked_tokens in self.all_masked_tokens:
+            feature_dict = self.tokenizer.encode_plus(
+                masked_tokens, 
+                add_special_tokens=True, 
+                max_length=self.max_seq_len, 
+                padding='max_length', 
+                truncation=True, 
+                return_tensors='pt'
+            )
+            all_input_ids.append(feature_dict['input_ids'].squeeze(0))
+            all_token_type_ids.append(feature_dict['token_type_ids'].squeeze(0))
+            all_attention_mask.append(feature_dict['attention_mask'].squeeze(0))
+
+            label_feature = self.tokenizer.encode_plus(
+                masked_tokens, 
+                add_special_tokens=True, 
+                max_length=self.max_seq_len, 
+                padding='max_length', 
+                truncation=True, 
+                return_tensors='pt'
+            )['input_ids'].squeeze(0)
+
+            all_sequencs_label.append(label_feature)
+
+        self.feature_dict = {
+            'input_ids': torch.stack(all_input_ids),
+            'token_type_ids': torch.stack(all_token_type_ids),
+            'attention_mask': torch.stack(all_attention_mask),
+            'sequence_labels': torch.stack(all_sequencs_label),
+        }
 
     def mask_sequence(self, token_list):
         tokens_masked = token_list[::]
@@ -192,7 +205,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_dir', type=str)
-    parser.add_argument('--DAPT_version', type=str)
+    parser.add_argument('--Webster_version', type=str)
     parser.add_argument('--mask_method', type=str, choices=['random'])
     parser.add_argument('--max_seq_len', type=int)
     parser.add_argument('--mask_pct', type=float, default=0.15)
@@ -201,7 +214,7 @@ if __name__ == "__main__":
 
     args_str = r"""
         --dataset_dir D:\CODE\Commonsense\CSQA_dev\DATA\
-        --DAPT_version 1.0
+        --Webster_version 1.0
         --mask_method random
         --mask_pct 0.15
         --max_seq_len 40
@@ -212,14 +225,14 @@ if __name__ == "__main__":
 
     tokenizer = BertTokenizer.from_pretrained(r"D:\CODE\Python\Transformers-Models\bert-base-cased")
 
-    # processor = Webster_Processor(args, 'dev', tokenizer)
-    # processor.load_data()
-    # dataloader = processor.make_dataloader()
-    # for batch in dataloader:
-    #     print(batch[-1])
+    processor = Webster_Processor(args, 'dev', tokenizer)
+    processor.load_data()
+    dataloader = processor.make_dataloader()
+    for batch in dataloader:
+        print(batch[0].shape)
 
     processor = OMCS_Processor(args, 'dev', tokenizer)
     processor.load_data()
     dataloader = processor.make_dataloader()
     for batch in dataloader:
-        print(batch[-1])
+        print(batch[-1].shape)
