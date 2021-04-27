@@ -72,7 +72,8 @@ class CSQAExample:
         
         text_list = ['' for _ in range(5)]
         for index, choice in enumerate(choices):
-            text_list[index] = f" {question} ", f" {question_concept} [SEP] {choice['text']} "
+            text_list[index] = f" {question} [SEP] {question_concept} [SEP] {choice['text']} "
+            # text_list[index] = f" {question} ", f" {question_concept} [SEP] {choice['text']} "
 
         return cls(example_id, label, text_list)
 

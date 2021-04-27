@@ -97,6 +97,12 @@ class MultipleChoice:
             logger.info("dev dataset loaded")
 
         elif self.config.mission == 'predict':
+            processor = ProcessorClass(self.config, 'dev')
+            processor.load_data()
+            self.deval_dataloader = processor.make_dataloader(
+                tokenizer, self.config, shuffle=False)
+            logger.info("dev dataset loaded")
+
             processor = ProcessorClass(self.config, 'test')
             processor.load_data()
             self.test_dataloader = processor.make_dataloader(
@@ -164,6 +170,7 @@ class MultipleChoice:
         result_dump(self.config, wrong, 'wrong_result.json')
 
     def predict_test(self):
+        self.evaluate()
         predict_list = []
 
         dataloader = self.test_dataloader
