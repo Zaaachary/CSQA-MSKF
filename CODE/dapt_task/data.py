@@ -29,7 +29,7 @@ class Webster_Processor(object):
         self.tokenizer = tokenizer
 
         self.dataset_dir = args.dataset_dir
-        self.version = args.DAPT_version
+        self.version = args.Webster_version
         self.mask_pct = args.mask_pct
         self.max_seq_len = args.max_seq_len
         self.mask_method = args.mask_method  # random
@@ -109,6 +109,83 @@ class Webster_Processor(object):
         return dataloader
 
 
+class OMCS_Processor:
+
+    def __init__(self, args, dataset_type, tokenizer) -> None:
+        self.args = args
+        self.dataset_type = dataset_type
+        self.tokenizer = tokenizer
+
+        self.dataset_dir = args.dataset_dir
+        self.mask_pct = args.mask_pct
+        self.max_seq_len = args.max_seq_len
+        self.mask_method = args.mask_method  # random
+        self.batch_size = args.train_batch_size if self.dataset_type in ['train', 'conti-trian'] else args.evltest_batch_size
+
+        self.omcs_cropus = None
+        self.all_label_tokens = []
+        self.all_masked_tokens = []
+
+    def load_data(self):
+        self.load_omcs()
+        self.mask_token()
+        self.encode()
+
+    def load_omcs(self):
+        omcs_file = os.path.join(self.dataset_dir, 'omcs', 'omcs_dapt' ,f"{self.dataset_type}_omcs.json")
+        f = open(omcs_file, 'r', encoding='utf-8')
+        self.omcs_cropus = json.load(f)
+        f.close()
+
+    def mask_token(self):
+        for case in self.omcs_cropus:
+            tokens_label = self.tokenizer.tokenize(case)
+            tokens_masked = self.mask_sequence(tokens_label)
+
+            self.all_label_tokens.append(self.tokenizer.convert_tokens_to_ids(tokens_label))
+            self.all_masked_tokens.append(self.tokenizer.convert_tokens_to_ids(tokens_masked))
+
+    def encode(self):
+        self.feature_dict = self.tokenizer.batch_encode_plus(
+            self.all_masked_tokens, 
+            add_special_tokens=True, 
+            max_length=self.max_seq_len, 
+            padding='max_length', 
+            truncation=True, 
+            return_tensors='pt'
+        )
+        
+        label_feature = self.tokenizer.batch_encode_plus(
+            self.all_label_tokens, 
+            add_special_tokens=True, 
+            max_length=self.max_seq_len, 
+            padding='max_length', 
+            truncation=True, 
+            return_tensors='pt'
+        )['input_ids']
+
+        self.feature_dict['sequence_labels'] = label_feature
+
+    def mask_sequence(self, token_list):
+        tokens_masked = token_list[::]
+
+        indices = [i for i in range(len(token_list))]
+        mask_indices = random.choices(indices, k=int(self.mask_pct*len(token_list)))
+        for index in mask_indices:
+            tokens_masked[index] = self.tokenizer.mask_token
+        return tokens_masked
+    
+    def make_dataloader(self, shuffle=True):
+        order = ['input_ids', 'attention_mask', 'token_type_ids', 'sequence_labels']
+        data = [self.feature_dict[key] for key in order]
+
+        dataset = TensorDataset(*data)
+        sampler = RandomSampler(dataset) if shuffle else None
+        dataloader = DataLoader(dataset, sampler=sampler, batch_size=self.batch_size, drop_last=False)
+
+        return dataloader
+
+
 if __name__ == "__main__":
     import argparse
     from transformers import BertTokenizer
@@ -135,7 +212,13 @@ if __name__ == "__main__":
 
     tokenizer = BertTokenizer.from_pretrained(r"D:\CODE\Python\Transformers-Models\bert-base-cased")
 
-    processor = Webster_Processor(args, 'dev', tokenizer)
+    # processor = Webster_Processor(args, 'dev', tokenizer)
+    # processor.load_data()
+    # dataloader = processor.make_dataloader()
+    # for batch in dataloader:
+    #     print(batch[-1])
+
+    processor = OMCS_Processor(args, 'dev', tokenizer)
     processor.load_data()
     dataloader = processor.make_dataloader()
     for batch in dataloader:

@@ -112,7 +112,7 @@ class AlbertAttRanker(AlbertPreTrainedModel):
             loss_fct = nn.CrossEntropyLoss()
             loss = loss_fct(reshaped_logits, labels)
             outputs = (loss,) + outputs
-            # import pdb; pdb.set_trace()
+
             with torch.no_grad():
                 reshaped_logits = F.softmax(reshaped_logits, dim=1)       # get the score
                 predicts = torch.argmax(reshaped_logits, dim=1)  # find the result
