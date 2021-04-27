@@ -59,5 +59,5 @@ def create_jsonl(all_case):
 if __name__ == "__main__":
     all_case = load_result()
     create_jsonl(all_case)
-    create_csv(all_case)
+    # create_csv(all_case)
 
