@@ -186,6 +186,6 @@ class MultipleChoice:
                 predict_list.extend(torch.argmax(logits, dim=1).cpu().numpy().tolist())
 
         raw_csqa = self.processor.set_predict_labels(predict_list)
-
+        # import pdb; pdb.set_trace()
         result_dump(self.config, raw_csqa, 'predict.json')
         # output_dir = os.path.join(self.config.result_dir, 'predict.json')

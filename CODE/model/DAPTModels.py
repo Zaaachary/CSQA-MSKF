@@ -12,7 +12,7 @@ from torch.nn import CrossEntropyLoss
 
 from transformers import BertPreTrainedModel, BertModel
 
-from transformers.models.bert.modeling_bert import BertPreTrainingHeads, BertForPreTrainingOutput
+from transformers.models.bert.modeling_bert import BertPreTrainingHeads, BertOnlyMLMHead
 
 
 class BertForPreTraining(BertPreTrainedModel):
@@ -62,3 +62,39 @@ class BertForPreTraining(BertPreTrainedModel):
                 right_num = torch.sum(predicts == desc_labels)
 
         return (total_loss, masked_lm_loss, right_desc_loss, right_num) if total_loss is not None else outputs
+
+
+class BertForMaskedLM(BertPreTrainedModel):
+
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.bert = BertModel(config, add_pooling_layer=False)
+        self.cls = BertOnlyMLMHead(config)
+
+        self.init_weights()
+
+    def forward(
+        self,
+        input_ids=None,
+        attention_mask=None,
+        token_type_ids=None,
+        sequence_labels=None,
+    ):
+
+        outputs = self.bert(
+            input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            return_dict=True,
+        )
+
+        sequence_output = outputs[0]
+        prediction_scores = self.cls(sequence_output)
+
+        masked_lm_loss = None
+        if sequence_labels is not None:
+            loss_fct = CrossEntropyLoss()    # -100 index = padding token
+            masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), sequence_labels.view(-1))
+
+        return (masked_lm_loss, masked_lm_loss) if masked_lm_loss is not None else outputs

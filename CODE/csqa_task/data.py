@@ -91,24 +91,18 @@ class Baseline_Processor(ProcessorBase):
     
     def __init__(self, args, dataset_type):
         super(Baseline_Processor, self).__init__(args, dataset_type)
-        self.data = None
 
     def load_data(self):
-        data = []
-
-        # load raw data
-        f = open(os.path.join(self.dataset_dir, 'csqa', f"{self.dataset_type}_rand_split.jsonl"), 'r', encoding='utf-8')
-        for line in f:
-            data.append(line.strip())
-        f.close()
-
+        
+        self.load_csqa()
         # convert raw data 2 CSQAexample
-        for index, case in enumerate(data):
+        self.examples = []
+        for _, case in enumerate(self.raw_csqa):
             case = json.loads(case)
             example = CSQAExample.load_from_json(case)
-            data[index] = example
+            self.examples.append(example)
 
-        self.examples = data
+        # self.examples = data
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
         return super().make_dataloader(tokenizer, args, shuffle=shuffle)
