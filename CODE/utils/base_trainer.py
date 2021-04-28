@@ -178,7 +178,7 @@ class BaseTrainer:
             return tuple(v.mean() for v in tuples)
         return tuples
 
-    def save_or_not(self, loss, acc):
+    def save_or_not(self, loss, acc=0):
         if self.best_acc < acc:
             self.best_acc = acc
             self.best_loss = loss

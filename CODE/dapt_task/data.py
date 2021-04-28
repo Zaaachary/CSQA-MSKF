@@ -138,7 +138,7 @@ class OMCS_Processor:
         f.close()
 
     def mask_token(self):
-        for case in self.omcs_cropus:
+        for case in tqdm(self.omcs_cropus, desc='mask_token'):
             tokens_label = self.tokenizer.tokenize(case)
             tokens_masked = self.mask_sequence(tokens_label)
 
@@ -148,7 +148,7 @@ class OMCS_Processor:
     def encode(self):
         all_input_ids, all_token_type_ids, all_attention_mask, all_sequencs_label = [], [], [], []
 
-        for masked_tokens in self.all_masked_tokens:
+        for masked_tokens in tqdm(self.all_masked_tokens, desc=''):
             feature_dict = self.tokenizer.encode_plus(
                 masked_tokens, 
                 add_special_tokens=True, 

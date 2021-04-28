@@ -18,7 +18,7 @@ from transformers import AlbertTokenizer, BertTokenizer
 
 from dapt_task.data import *
 from dapt_task.controller import DomainAdaptivePreTrain
-from model.DAPTModels import BertForPreTraining
+from model.DAPTModels import BertForPreTraining, BertForMaskedLM
 from utils.common import mkdir_if_notexist, result_dump, set_seed
 
 
@@ -39,11 +39,13 @@ def select_tokenizer(args):
 
 def select_task(args):
     model_dict = {
-        "Bert": (BertForPreTraining, []),
+        "BertPT": (BertForPreTraining, []),
+        "BertMLM": (BertForMaskedLM, []),
     }
 
     processor_dict = {
-        "Webster": Webster_Processor
+        "Webster": Webster_Processor,
+        "OMCS": OMCS_Processor,
     }
 
     processor_name, model_name = args.task_name.split('_', maxsplit=1)
@@ -134,7 +136,8 @@ if __name__ == "__main__":
     parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     
     # task-specific hyper param
-    parser.add_argument('--Webster_version', type=str)
+    parser.add_argument('--Webster_version', type=str, default=None)
+    parser.add_argument('--nsp', action='store_true', default=False)
     parser.add_argument('--mask_pct', type=float, default=0.15)
     parser.add_argument('--max_seq_len', type=int, default=40)
     parser.add_argument('--mask_method', type=str, choices=['random'])

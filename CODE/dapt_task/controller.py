@@ -57,14 +57,16 @@ class DomainAdaptivePreTrain:
         self.trainer = Trainer(
             model, self.multi_gpu, self.device,
             self.config.print_step, self.config.eval_after_tacc,
-            self.config.result_dir,
             self.config.fp16, self.config.clip_batch_off,
+            self.config.nsp,
+            self.config.result_dir,
             exp_name=self.config.task_str)
         self.model = model
 
     def load_data(self, ProcessorClass, tokenizer):
         if self.config.mission in ("train", 'conti-train'):
-            processor = ProcessorClass(self.config, 'train', tokenizer)
+            processor = ProcessorClass(self.config, 'dev', tokenizer)
+            # processor = ProcessorClass(self.config, 'train', tokenizer)
             processor.load_data()
             self.train_dataloader = processor.make_dataloader(shuffle=False)
             # self.train_dataloader = processor.make_dataloader(self.tokenizer, self.config.train_batch_size, False, 128, shuffle=False)
