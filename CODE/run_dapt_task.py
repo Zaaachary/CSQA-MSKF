@@ -134,7 +134,8 @@ if __name__ == "__main__":
     parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     
     # task-specific hyper param
-    parser.add_argument('--Webster_version', type=str)
+    parser.add_argument('--Webster_version', type=str, default=None)
+    parser.add_argument('--nsp', action='store_true', default=False)
     parser.add_argument('--mask_pct', type=float, default=0.15)
     parser.add_argument('--max_seq_len', type=int, default=40)
     parser.add_argument('--mask_method', type=str, choices=['random'])

@@ -21,7 +21,10 @@ class Trainer(BaseTrainer):
     def __init__(self, 
         model, multi_gpu, device, 
         print_step, eval_after_tacc,
-        output_model_dir, fp16, clip_batch_off, exp_name='csqa'):
+        fp16, clip_batch_off, nsp, 
+        output_model_dir, exp_name='csqa'):
+
+        v_num = 5 if nsp else 2
 
         super(Trainer, self).__init__(
             model, multi_gpu, device, print_step, 
@@ -29,6 +32,7 @@ class Trainer(BaseTrainer):
             exp_name=exp_name
         )
 
+        self.nsp = nsp
         self.fp16 = fp16
         self.clip_batch_off = clip_batch_off
         logger.info(f"fp16: {fp16}; clip_batch_off: {clip_batch_off}")
@@ -38,7 +42,10 @@ class Trainer(BaseTrainer):
         find the longest seq_len in the batch, and cut all sequence to seq_len
         """
         # print("batch size is {}".format(len(batch[0])))
-        input_ids, attention_mask, token_type_ids, sequence_labels, desc_labels = batch
+        if len(batch) == 5:
+            input_ids, attention_mask, token_type_ids, sequence_labels, desc_labels = batch
+        elif len(batch) == 4:
+            input_ids, attention_mask, token_type_ids, sequence_labels = batch
 
         # [batch_size, 5, max_seq_len]
         batch_size = input_ids.size(0)
@@ -61,8 +68,10 @@ class Trainer(BaseTrainer):
         sequence_labels = sequence_labels[:, :max_seq_length]
         
         # logger.info(f'clip batch to {max_seq_length}')
-        
-        return input_ids, attention_mask, token_type_ids, sequence_labels, desc_labels
+        output =  (input_ids, attention_mask, token_type_ids, sequence_labels)
+        if len(batch) == 5:
+            output += (desc_labels,)
+        return output
         
     def _forward(self, batch, record):
         if not self.clip_batch_off:
@@ -84,11 +93,15 @@ class Trainer(BaseTrainer):
         mode: Train, Dev
         '''
         # record: loss, right_num, all_num
-        total_loss = record[0].avg()  # utils.common.AvgVar
-        masked_lm_loss = record[1].avg()
-        right_desc_loss = record[2].avg()
+        if self.nsp:
+            total_loss = record[0].avg()  # utils.common.AvgVar
+            masked_lm_loss = record[1].avg()
+            right_desc_loss = record[2].avg()
 
-        right_num, all_num = record.list()[-2:]  # right_num, all_num
-        output_str = f"{mode}: mlm_loss {masked_lm_loss:.4f}; desc_loss {right_desc_loss:.4f}; desc_acc {int(right_num)/int(all_num):.4f}"
+            right_num, all_num = record.list()[-2:]  # right_num, all_num
+            output_str = f"{mode}: mlm_loss {masked_lm_loss:.4f}; desc_loss {right_desc_loss:.4f}; desc_acc {int(right_num)/int(all_num):.4f}"
+        else:
+            masked_lm_loss = record[0].avg()
+            output_str = f"{mode}: mlm_loss {masked_lm_loss:.4f}"
 
         logger.info(output_str)
