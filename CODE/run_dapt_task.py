@@ -18,7 +18,7 @@ from transformers import AlbertTokenizer, BertTokenizer
 
 from dapt_task.data import *
 from dapt_task.controller import DomainAdaptivePreTrain
-from model.DAPTModels import BertForPreTraining
+from model.DAPTModels import BertForPreTraining, BertForMaskedLM
 from utils.common import mkdir_if_notexist, result_dump, set_seed
 
 
@@ -39,7 +39,8 @@ def select_tokenizer(args):
 
 def select_task(args):
     model_dict = {
-        "Bert": (BertForPreTraining, []),
+        "BertPT": (BertForPreTraining, []),
+        "BertMLM": (BertForMaskedLM, []),
     }
 
     processor_dict = {

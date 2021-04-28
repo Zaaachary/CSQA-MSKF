@@ -7,6 +7,8 @@
 """
 import logging
 
+from tqdm.autonotebook import tqdm
+
 logger = logging.getLogger("trainer")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s %(name)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
@@ -105,3 +107,76 @@ class Trainer(BaseTrainer):
             output_str = f"{mode}: mlm_loss {masked_lm_loss:.4f}"
 
         logger.info(output_str)
+
+    def train(self, epoch_num, gradient_accumulation_steps, 
+        train_dataloader, dev_dataloader, save_mode='epoch'):
+        """
+        save_mode: 'step', 'epoch', 'last'
+        """
+        
+        for epoch in range(self.start_epoch + 1, int(epoch_num)):
+            self.epoch = epoch
+            logger.info(f'---------Epoch: {epoch+1:02}---------')
+            self.model.zero_grad()
+            self.global_step = 0
+            self.train_record.init()
+
+            for step, batch in enumerate(tqdm(train_dataloader, desc='Train')):
+                self.model.train()
+                self._step(batch, gradient_accumulation_steps)
+
+                # step report
+                if self.global_step % self.print_step == 0:
+                    print(' ')
+                    self._report(self.train_record, 'Train')
+
+                    if self.nsp:
+                        right, all_num = self.train_record.list()[-2:]
+                        train_acc = right / all_num
+                    else:
+                        mlm_loss = self.train_record[0].avg()
+                        train_loss = mlm_loss
+                    self.train_record.init()
+
+                    # do eval only when train_acc greater than eval_after_tacc
+                    if save_mode == 'step' and train_acc >= self.eval_after_tacc:
+                        dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
+                        if self.nsp:
+                            dev_list = dev_record.list()
+                            cur_loss = dev_list[0]
+                            right_num, all_num  = dev_list[-2:]
+                            self.save_or_not(cur_loss, right_num)
+                            logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
+                        else:
+                            mlm_loss = dev_record.list()[0]
+                            self.save_or_not(mlm_loss)
+                            logger.info(f'current best dev loss: [{self.best_loss}]')
+
+            else:
+                self._report(self.train_record)  # last steps not reach print_step
+
+            # epoch report
+            dev_record = self.evaluate(dev_dataloader, True)  # loss, right_num, all_num
+            self._report(dev_record, 'Dev')
+            if self.nsp:
+                dev_list = dev_record.list()
+                cur_loss = dev_list[0]
+                right_num, all_num  = dev_list[-2:]
+            
+                if not save_mode == 'last':
+                    self.save_or_not(cur_loss, right_num)
+                logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
+            else:
+                mlm_loss = dev_record.list()[0]
+                if not save_mode == 'last':
+                    self.save_or_not(mlm_loss)
+                logger.info(f'current best dev loss: [{self.best_loss}]')
+
+            lr = self.scheduler.get_lr()[1]
+            logger.info(f"learning rate: {lr}")
+
+            self.model.zero_grad()
+
+        # end of train
+        if save_mode == 'end':
+            self.save_model()

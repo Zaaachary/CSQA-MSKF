@@ -1,5 +1,5 @@
 python CODE/run_dapt_task.py\
-    --task_name OMCS_Bert\
+    --task_name OMCS_BertPTMLM\
     --mission train\
     --fp16 0\
     --gpu_ids 4\

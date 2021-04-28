@@ -1,5 +1,5 @@
 python CODE/run_dapt_task.py\
-    --task_name Webster_Bert\
+    --task_name Webster_BertPT\
     --mission train\
     --fp16 0\
     --gpu_ids 4\
