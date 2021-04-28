@@ -43,7 +43,8 @@ def select_task(args):
     }
 
     processor_dict = {
-        "Webster": Webster_Processor
+        "Webster": Webster_Processor,
+        "OMCS": OMCS_Processor,
     }
 
     processor_name, model_name = args.task_name.split('_', maxsplit=1)
