@@ -65,8 +65,8 @@ class DomainAdaptivePreTrain:
 
     def load_data(self, ProcessorClass, tokenizer):
         if self.config.mission in ("train", 'conti-train'):
-            processor = ProcessorClass(self.config, 'dev', tokenizer)
-            # processor = ProcessorClass(self.config, 'train', tokenizer)
+            # processor = ProcessorClass(self.config, 'dev', tokenizer)
+            processor = ProcessorClass(self.config, 'train', tokenizer)
             processor.load_data()
             self.train_dataloader = processor.make_dataloader(shuffle=False)
             # self.train_dataloader = processor.make_dataloader(self.tokenizer, self.config.train_batch_size, False, 128, shuffle=False)
