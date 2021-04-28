@@ -101,10 +101,10 @@ class Trainer(BaseTrainer):
             right_desc_loss = record[2].avg()
 
             right_num, all_num = record.list()[-2:]  # right_num, all_num
-            output_str = f"{mode}: mlm_loss {masked_lm_loss:.4f}; desc_loss {right_desc_loss:.4f}; desc_acc {int(right_num)/int(all_num):.4f}"
+            output_str = f"{mode}: mlm_loss {masked_lm_loss}; desc_loss {right_desc_loss}; desc_acc {int(right_num)/int(all_num)}"
         else:
             masked_lm_loss = record[0].avg()
-            output_str = f"{mode}: mlm_loss {masked_lm_loss:.4f}"
+            output_str = f"{mode}: mlm_loss {masked_lm_loss}"
 
         logger.info(output_str)
 
@@ -133,11 +133,7 @@ class Trainer(BaseTrainer):
                     if self.nsp:
                         right, all_num = self.train_record.list()[-2:]
                         train_acc = right / all_num
-                    else:
-                        mlm_loss = self.train_record[0].avg()
-                        train_loss = mlm_loss
                     self.train_record.init()
-
                     # do eval only when train_acc greater than eval_after_tacc
                     if save_mode == 'step' and train_acc >= self.eval_after_tacc:
                         dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
