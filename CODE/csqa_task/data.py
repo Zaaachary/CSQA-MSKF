@@ -154,18 +154,11 @@ class OMCS_Processor(ProcessorBase):
         self.version = args.OMCS_version
         self.raw_csqa = []
         self.examples = []
-        self.omcs_cropus = None
-        self.omcs_index = None
 
     def load_data(self):
         self.load_csqa()    # csqa dataset
-        if self.version == '1':
-            self.load_omcs()    # omcs free text
-            self.load_csqa_omcs_index() # csqa -ESindex-> omcs
-            self.inject_commonsense()
-        elif self.version[0] in ['2', '3']:
-            self.load_omcsv2()
-            self.inject_commonsensev2()
+        self.load_omcs()
+        self.inject_commonsense()
 
     def load_csqa(self):
         f = open(os.path.join(self.args.dataset_dir, 'csqa', f"{self.dataset_type}_rand_split.jsonl"), 'r', encoding='utf-8')
@@ -174,53 +167,19 @@ class OMCS_Processor(ProcessorBase):
         f.close()
 
     def load_omcs(self):
-        omcs_file = os.path.join(self.dataset_dir, 'omcs', "omcs_v1","omcs-free-origin.json")
-        with open(omcs_file, 'r', encoding='utf-8') as f:
-            self.omcs_cropus = json.load(f)
-    
-    def load_csqa_omcs_index(self):
-        cs_result_file = os.path.join(self.dataset_dir, 'omcs', "omcs_v1", f'{self.dataset_type}_QAconcept-Match_omcs_of_dataset.json')
-        with open(cs_result_file, 'r', encoding='utf-8') as f:
-            self.omcs_index = json.load(f)
-    
-    @staticmethod
-    def load_example(case, cs4choice):
-        return OMCSExample.load_from(case, cs4choice)
-
-    def inject_commonsense(self):
-        '''
-        put commonsense into case, accroding to omcs_index (ES result)
-
-        '''
-        for case in self.raw_csqa:
-            cs4choice = {}  # {choice: csforchoice}
-            choice_csindex = self.omcs_index[case['id']]['endings']
-            for cs_index in choice_csindex:
-                # cs for single choice, choose top self.args.cs_num
-                cs_list = list(map(int, cs_index['cs'][:self.args.cs_num]))
-                cs_list = [self.omcs_cropus[cs] for cs in cs_list]
-
-                cs_list.sort(key=lambda x:len(x)) # sort by cs_len
-
-                # some case don't have cs_num cs
-                temp = self.args.cs_num - len(cs_list)
-                if temp:
-                    cs_list.extend(['<unk>']*temp)
-
-                cs4choice[cs_index['ending']] = cs_list
-
-            example = self.load_example(case, cs4choice)
-            self.examples.append(example)
-
-    def load_omcsv2(self):
-        dir_dict = {'2.2':'omcs_v2.2_15', '2.3':'omcs_v2.3_10', '3.0':'omcs_v3.0_15'}
+        dir_dict = {'1.0':'omcs_v1.0', '3.0':'omcs_v3.0_15'}
 
         omcs_file = os.path.join(self.dataset_dir, 'omcs', dir_dict[self.version] ,f"{self.dataset_type}_rand_split_omcs.json")
 
         with open(omcs_file, 'r', encoding='utf-8') as f:
             self.omcs_cropus = json.load(f)
+    
+    @staticmethod
+    def load_example(case, cs4choice):
+        return OMCSExample.load_from(case, cs4choice)
 
-    def inject_commonsensev2(self):
+
+    def inject_commonsense(self):
         omcs_index = 0
         for case in self.raw_csqa:
             cs4choice = {}

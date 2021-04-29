@@ -4,7 +4,7 @@ python CODE/run_dapt_task.py\
     --fp16 0\
     --gpu_ids 5\
     --seed 42\
-    --save_mode step\
+    --save_mode epoch\
     --print_step 200\
     --evltest_batch_size 12\
     --eval_after_tacc 0.85\

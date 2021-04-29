@@ -1,15 +1,15 @@
 python CODE/run_csqa_task.py\
     --task_name Origin_Bert_Baseline\
     --mission train\
-    --seed 613\
     --fp16 0\
-    --gpu_ids 5\
+    --seed 42\
+    --gpu_ids 0\
     --save_mode step\
     --print_step 100\
     --evltest_batch_size 12\
-    --eval_after_tacc 0.55\
+    --eval_after_tacc 0.60\
     \
-    --max_seq_len 60\
+    --max_seq_len 80\
     \
     --train_batch_size 8\
     --gradient_accumulation_steps 1\
@@ -20,5 +20,5 @@ python CODE/run_csqa_task.py\
     \
     --dataset_dir DATA\
     --result_dir  /data/zhifli/model_save\
-    --PTM_model_vocab_dir /data/zhifli/transformers-models/bert-base-trained/model02
+    --PTM_model_vocab_dir /data/zhifli/transformers-models/bert-base-cased
  
