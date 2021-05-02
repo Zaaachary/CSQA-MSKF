@@ -3,8 +3,6 @@ from os import truncate
 import pdb
 
 import torch
-from torch.utils.data import TensorDataset
-from utils import feature
 from utils.feature import Feature
 
 
@@ -223,6 +221,7 @@ class WKDTExample(BaseExample):
 
         all_qa_ids = [case[0] for case in self.text_list]
         all_desc_ids = [case[1] for case in self.text_list]
+        
         # import pdb; pdb.set_trace()
         feature_dict = tokenizer.batch_encode_plus(list(zip(all_qa_ids, all_desc_ids)), add_special_tokens=False, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
 

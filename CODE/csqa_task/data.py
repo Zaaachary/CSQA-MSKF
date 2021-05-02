@@ -260,10 +260,10 @@ class Wiktionary_Processor(ProcessorBase):
         self.inject_description()
 
     def load_wiktionary(self):
-        dir_dict = {'2.0': 'wiktionary_v2', '3.0': 'wiktionary_v3'}
+        dir_dict = {'2.0': 'wiktionary_v2', '3.0': 'wiktionary_v3', '4.0': "wiktionary_v4", '5.0': "wiktionary_v5"}
 
         wiktionary_file = os.path.join(
-            self.dataset_dir, 'wiktionary', dir_dict[self.version], 
+            self.dataset_dir, 'wkdt', dir_dict[self.version], 
             f"{self.dataset_type}_concept.json"
         )
         
