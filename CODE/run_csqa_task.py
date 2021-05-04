@@ -105,13 +105,21 @@ def set_result(args):
             )
         args.task_str = task_str
 
+        log_file_dir = os.path.join(args.result_dir, 'train_task_log.txt')
+        args_file_name = "train_task_args.json"
+
     else:
         args.task_str = 'predict or dev'
         args.result_dir = args.saved_model_dir
+        log_file_dir = os.path.join(args.result_dir, 'test_eval_task_log.txt')
+        args_file_name = "test_eval_task_args.json"
+
     mkdir_if_notexist(args.result_dir)
 
+    result_dump(args, args.__dict__, args_file_name)
+    pprint(args.__dict__)
+
     # set logging
-    log_file_dir = os.path.join(args.result_dir, 'task_log.txt')
     logging.basicConfig(
         filename = log_file_dir,
         filemode = 'a',
@@ -120,8 +128,6 @@ def set_result(args):
         datefmt = r"%y/%m/%d %H:%M"
         )
 
-    result_dump(args, args.__dict__, 'task_args.json')
-    pprint(args.__dict__)
 
 def main(args):
     start = time.time()
@@ -160,10 +166,10 @@ if __name__ == "__main__":
     parser.add_argument('--fp16', type=int, default=0)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--save_mode', type=str, choices=['epoch', 'step', 'end'], default='end')
-    parser.add_argument('--print_step', type=int, default=250)
-    parser.add_argument('--eval_after_tacc', type=float, default=0.7)
-    parser.add_argument('--evltest_batch_size', type=int, default=8)
+    parser.add_argument('--save_mode', type=str, choices=['epoch', 'step', 'end'], default=None)
+    parser.add_argument('--print_step', type=int, default=None)
+    parser.add_argument('--eval_after_tacc', type=float, default=0)
+    parser.add_argument('--evltest_batch_size', type=int)
     parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     
     # task-specific hyper param
@@ -177,7 +183,7 @@ if __name__ == "__main__":
     parser.add_argument('--albert1_layers', type=int, default=None)
 
     # train hyper param
-    parser.add_argument('--train_batch_size', type=int, default=4)
+    parser.add_argument('--train_batch_size', type=int, default=None)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
     parser.add_argument('--num_train_epochs', type=int, default=5)
     parser.add_argument('--learning_rate', type=float, default=2e-5)

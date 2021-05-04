@@ -143,6 +143,9 @@ class MultipleChoice:
         return drn
 
     def run_dev(self):
+        '''
+        run model to predict dev set, and set right/wrong result to file.
+        '''
         logits_list, predict_list = [], []
         dataloader = self.deval_dataloader
         self.model.eval()
@@ -168,6 +171,8 @@ class MultipleChoice:
         wrong.insert(0, summary)
         result_dump(self.config, right, 'right_result.json')
         result_dump(self.config, wrong, 'wrong_result.json')
+
+        logger.info(f"eval: acc {len(right)}/{len(csqa_dev)}={summary['acc']}")
 
     def predict_test(self):
         self.evaluate()

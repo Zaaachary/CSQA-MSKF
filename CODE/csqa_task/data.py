@@ -227,27 +227,6 @@ class OMCS_Processor(ProcessorBase):
         return dataloader
         
 
-class CSLinear_Processor(OMCS_Processor):
-    '''
-    Base on OMCS_Processor, add restriction to the sequence len.
-    question_len, cs_len, cs_num, max_qa_len 54, max_cs_len 18
-    '''
-    
-    def __init__(self, args, dataset_type):
-        super().__init__(args, dataset_type)
-        self.max_qa_len = args.max_qa_len
-        self.max_cs_len = args.max_cs_len
-        self.max_seq_len = args.max_seq_len
-    
-    @staticmethod
-    def load_example(case, cs4choice):
-        # import pdb; pdb.set_trace()
-        return CSLinearExample.load_from(case, cs4choice)
-
-    def make_dataloader(self, tokenizer, args, shuffle=True):
-        return super().make_dataloader(tokenizer, args, shuffle=shuffle)
-
-
 class Wiktionary_Processor(ProcessorBase):
     
     def __init__(self, args, dataset_type):
@@ -306,6 +285,29 @@ class MultiSource_Processor(OMCS_Processor, Wiktionary_Processor):
 
     def __init__(self, args, dataset_type):
         super().__init__(args, dataset_type)
+        
+
+
+
+class CSLinear_Processor(OMCS_Processor):
+    '''
+    Base on OMCS_Processor, add restriction to the sequence len.
+    question_len, cs_len, cs_num, max_qa_len 54, max_cs_len 18
+    '''
+    
+    def __init__(self, args, dataset_type):
+        super().__init__(args, dataset_type)
+        self.max_qa_len = args.max_qa_len
+        self.max_cs_len = args.max_cs_len
+        self.max_seq_len = args.max_seq_len
+    
+    @staticmethod
+    def load_example(case, cs4choice):
+        # import pdb; pdb.set_trace()
+        return CSLinearExample.load_from(case, cs4choice)
+
+    def make_dataloader(self, tokenizer, args, shuffle=True):
+        return super().make_dataloader(tokenizer, args, shuffle=shuffle)
 
 
 class OMCS_rerank_Processor(OMCS_Processor):
