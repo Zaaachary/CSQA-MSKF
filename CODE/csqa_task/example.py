@@ -1,6 +1,7 @@
 import json
 from os import truncate
 import pdb
+import random
 
 import torch
 from utils.feature import Feature
@@ -42,7 +43,7 @@ class CSQAExample:
         max_seq_len = args.max_seq_len
         feature_list = []
         for question, choice in self.text_list:
-            text = question + "[SEP]" +choice
+            text = question + "[SEP]" + choice
             tokens = tokenizer.tokenize(text)   # 分词 
             # 转换到 feature: (idx, input_ids, input_mask, segment_ids)
             feature = Feature.make_single(self.example_id, tokens, tokenizer, max_seq_len)
@@ -350,3 +351,68 @@ class CSLinearExampleV1(OMCSExample):
             cs_list = [f"{cs} [SEP]" for cs in cs4choice[choice_str]]            
             text_list.append((qa_list, cs_list))
         return text_list
+
+
+class MSKEExample(BaseExample):
+
+    def __init__(self, example_id, label, text_stack) -> None:
+        super().__init__(example_id, label)
+        # [[], [], [], ...]  double/tripe example with different cs
+        self.text_stack = text_stack
+
+    def tokenize(self, tokenizer, args):
+        
+        # TODO
+
+    @staticmethod
+    def make_text_stack(question, question_concept, choices, desc_dict, cs4choice, method):
+
+        def choose_cs_type(method):
+            cs_type = ['Qconcept_desc', 'Choice_desc', 'odd', 'even', 'origin']
+            if method == 1:
+                m1 = random.choice(cs_type)
+                cs_type.remove(m1)
+                m2 = random.choice(cs_type)
+                return m1, m2
+
+        if method == 1:
+            text_stack = [[], []]
+        cstype_stack = []
+
+        Qconcept_desc = desc_dict[question_concept]
+        for choice in choices:
+            choice_text = choice['text']
+            choics_desc = desc_dict[choice_text]
+            cs_odd = cs4choice[choice_text][1::2]
+            cs_even = cs4choice[choice_text][::2]
+
+            text = f" {question} {choice_text} [SEP] {question_concept} [SEP] {choice_text} [SEP] "
+
+            cstype_list = choose_cs_type(method)
+            cstype_stack.append(cstype_list)
+
+            for index, cs_type in enumerate(cstype_list):
+                if cs_type == 'Qconcept_desc':
+                    text += f"{question_concept}: {Qconcept_desc}"
+                elif cs_type == 'Choice_desc':
+                    text += f"{choice_text}: {choics_desc}"
+                elif cs_type == 'odd':
+                    text += ' ; '.join(cs_odd)
+                elif cs_type == 'even':
+                    text += ' ; '.join(cs_even)
+                text_stack[index].append(text)
+
+        return text_stack
+
+    @classmethod
+    def load_from(cls, case, cs4choice, desc_dict, method):
+        example_id = case['id']
+
+        label = ord(case.get('answerKey', 'A')) - ord('A')
+        question = case['question']['stem']
+        question_concept = case['question']['question_concept']
+        choices = case['question']['choices']
+
+        text_stack = cls.make_text_stack(question, question_concept, choices, desc_dict, cs4choice, method)
+
+        return cls(example_id, label, text_stack)

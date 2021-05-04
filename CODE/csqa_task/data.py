@@ -7,7 +7,8 @@
 """
 import os
 import json
-from random import sample
+from random import random, sample
+from copy import deepcopy
 
 from tqdm import tqdm
 import torch
@@ -148,12 +149,8 @@ class OMCS_Processor(ProcessorBase):
     '''
     
     def __init__(self, args, dataset_type):
-        self.args = args
-        self.dataset_dir = args.dataset_dir
-        self.dataset_type = dataset_type
-        self.version = args.OMCS_version
-        self.raw_csqa = []
-        self.examples = []
+        super(OMCS_Processor, self).__init__(args, dataset_type)
+        self.omcs_version = args.OMCS_version
 
     def load_data(self):
         self.load_csqa()    # csqa dataset
@@ -169,7 +166,7 @@ class OMCS_Processor(ProcessorBase):
     def load_omcs(self):
         dir_dict = {'1.0':'omcs_v1.0', '3.0':'omcs_v3.0_15'}
 
-        omcs_file = os.path.join(self.dataset_dir, 'omcs', dir_dict[self.version] ,f"{self.dataset_type}_rand_split_omcs.json")
+        omcs_file = os.path.join(self.dataset_dir, 'omcs', dir_dict[self.omcs_version] ,f"{self.dataset_type}_rand_split_omcs.json")
 
         with open(omcs_file, 'r', encoding='utf-8') as f:
             self.omcs_cropus = json.load(f)
@@ -178,13 +175,12 @@ class OMCS_Processor(ProcessorBase):
     def load_example(case, cs4choice):
         return OMCSExample.load_from(case, cs4choice)
 
-
     def inject_commonsense(self):
         omcs_index = 0
         for case in self.raw_csqa:
             cs4choice = {}
             for choice in case['question']['choices']:
-                choice_test = choice['text']
+                choice_text = choice['text']
                 cs_list = self.omcs_cropus[omcs_index]['cs_list'][:self.args.cs_num]
                 omcs_index += 1
 
@@ -194,7 +190,7 @@ class OMCS_Processor(ProcessorBase):
                 if temp:
                     cs_list.extend(['<unk>']*temp)
 
-                cs4choice[choice_test] = cs_list
+                cs4choice[choice_text] = cs_list
             
             example = self.load_example(case, cs4choice)
             self.examples.append(example)
@@ -231,18 +227,18 @@ class Wiktionary_Processor(ProcessorBase):
     
     def __init__(self, args, dataset_type):
         super(Wiktionary_Processor, self).__init__(args, dataset_type)
-        self.version = args.WKDT_version
+        self.wkdt_version = args.WKDT_version
 
     def load_data(self):
         self.load_csqa()
-        self.load_wiktionary()
+        self.load_wkdt()
         self.inject_description()
 
-    def load_wiktionary(self):
+    def load_wkdt(self):
         dir_dict = {'2.0': 'wiktionary_v2', '3.0': 'wiktionary_v3', '4.0': "wiktionary_v4", '5.0': "wiktionary_v5"}
 
         wiktionary_file = os.path.join(
-            self.dataset_dir, 'wkdt', dir_dict[self.version], 
+            self.dataset_dir, 'wkdt', dir_dict[self.wkdt_version], 
             f"{self.dataset_type}_concept.json"
         )
         
@@ -264,7 +260,7 @@ class Wiktionary_Processor(ProcessorBase):
                 desc_dict[choice_text] = choice_desc
                 choice['desc'] = choice_desc
             
-            case['question_concept_desc'] = desc_dict[Qconcept]
+            case['Qconcept_desc'] = desc_dict[Qconcept]
             example = self.load_example(case, desc_dict)
             self.examples.append(example)
 
@@ -281,12 +277,51 @@ class Wiktionary_Processor(ProcessorBase):
         return self.raw_csqa
 
 
-class MultiSource_Processor(OMCS_Processor, Wiktionary_Processor):
+class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
+    '''
+    Multi-Source Knowledge Ensemble
+    '''
 
     def __init__(self, args, dataset_type):
-        super().__init__(args, dataset_type)
-        
+        super(MSKE_Processor, self).__init__(args, dataset_type)
 
+    def load_data(self):
+        self.load_csqa()
+        self.load_omcs()
+        self.load_wkdt()
+        self.inject_wkdt_omcs()
+
+    def inject_wkdt_omcs(self):
+        omcs_index = 0
+
+        for case in self.raw_csqa:
+            desc_dict = {}
+            Qconcept = case['question']['question_concept']
+            Qconcept_desc = self.wiktionary[Qconcept]
+            desc_dict[Qconcept] = Qconcept_desc
+
+            cs4choice = {}
+
+            question = case['question']
+            for choice in question['choices']:
+                # 处理每一个 choice
+                choice_text = choice['text']
+                choice_desc = self.wiktionary[choice_text]
+                desc_dict[choice_text] = choice_desc
+                choice['desc'] = choice_desc
+
+                cs_list = self.omcs_cropus[omcs_index]['cs_list'][:self.args.cs_num]
+                omcs_index += 1
+                cs4choice[choice_text] = cs_list
+
+            # m1, m2 = self.choose_cs_type()
+            case['Qconcept_desc'] = desc_dict[Qconcept]
+            example = MSKEExample.load_from(case, cs4choice, desc_dict, method=1)
+            self.examples.append(example)
+
+    def make_dataloader(self, tokenizer, args, shuffle):
+        # return super().make_dataloader(tokenizer, args, shuffle=shuffle)
+        pass
 
 
 class CSLinear_Processor(OMCS_Processor):

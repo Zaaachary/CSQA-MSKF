@@ -68,9 +68,10 @@ def select_task(args):
     processor_dict = {
         "Origin": Baseline_Processor,
         "OMCS": OMCS_Processor,
+        "WKDT": Wiktionary_Processor,
+        "MSKE": MSKE_Processor,
         "OMCSrerank": OMCS_rerank_Processor,
         "CSLinear": CSLinear_Processor,
-        "WKDT": Wiktionary_Processor,
     }
 
     processor_name, model_name = args.task_name.split('_', maxsplit=1)
