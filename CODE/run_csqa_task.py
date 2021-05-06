@@ -98,6 +98,9 @@ def set_result(args):
         if 'WKDT' in args.task_name:
             task_str += f'_wkdtv{args.WKDT_version}'
 
+        if 'MSKE' in args.task_name:
+            task_str += f'_TM{args.train_method}_DM{args.dev_method}'
+
         args.result_dir = os.path.join(
             args.result_dir, 
             os.path.basename(args.PTM_model_vocab_dir), 

@@ -292,7 +292,7 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
 
     def __init__(self, args, dataset_type):
         super(MSKE_Processor, self).__init__(args, dataset_type)
-        self.method_list = ['odd', 'even', 'cs_top']
+        self.method_list = ['odd', 'even', 'cs_top', 'Qconcept']
         self.dev_method = None
         if dataset_type in ['dev', 'test']:
             self.dev_method = args.dev_method

@@ -388,31 +388,48 @@ class MSKEExample(BaseExample):
     @staticmethod
     def make_text_stack(question, question_concept, choices, desc_dict, cs4choice, method):
 
+        cs_type_list = [
+            'Qconcept_desc', 'Choice_desc', 'both_desc',
+            'odd', 'even', 'origin', 'top2', 'shuffle3', 'shuffle2',
+            ]
+
         def choose_cs_type(method):
-            cs_type = ['odd', 'even', 'cs_top']
-            # cs_type = ['Qconcept_desc', 'Choice_desc', 'odd', 'even', 'origin', 'cs_top]
             if method == 'trian_01':
+                cs_type = ['odd', 'even', 'top2']
                 m1 = random.choice(cs_type)
                 cs_type.remove(m1)
                 m2 = random.choice(cs_type)
-                return m1, m2
-            else:
+                return (m1, m2)
+            elif method == 'trian_02':
+                cs_type = ['even', 'odd', 'shuffle3']
+                m1 = random.choice(cs_type)
+                cs_type.remove(m1)
+                m2 = random.choice(cs_type)
+                return (m1, m2)
+            elif method in cs_type_list:
                 return (method, )
 
         if method == 'trian_01':
             text_stack = [[], []]
-        else:
+        elif method == 'trian_02':
+            text_stack = [[], []]
+        elif method in cs_type_list:
             text_stack = [[],]
+
         cstype_stack = []
 
         Qconcept_desc = desc_dict[question_concept]
         for choice in choices:
             choice_text = choice['text']
             choics_desc = desc_dict[choice_text]
-            cs_odd = cs4choice[choice_text][1::2]
-            cs_even = cs4choice[choice_text][::2]
-            cs_top = cs4choice[choice_text][:len(cs_even)]
 
+            cs = {
+                'odd': cs4choice[choice_text][1::2],
+                'even': cs4choice[choice_text][::2],
+                'top2': cs4choice[choice_text][:2],
+                'shuffle2': random.shuffle(cs4choice[choice_text][:2]), 
+                'shuffle3': cs4choice[choice_text][:3],
+            }
             text = f" {question} {choice_text} [SEP] {question_concept} [SEP] {choice_text} [SEP] "
 
             cstype_list = choose_cs_type(method)
@@ -423,12 +440,14 @@ class MSKEExample(BaseExample):
                     text_temp = f" {question} {choice_text} [SEP] {question_concept} : {Qconcept_desc} [SEP] {choice_text} [SEP] "
                 elif cs_type == 'Choice_desc':
                     text_temp = f" {question} {choice_text} [SEP] {question_concept} [SEP] {choice_text} : {choics_desc} [SEP] "
-                elif cs_type == 'odd':
-                    text_temp = text + " [SEP] ".join(cs_odd)
-                elif cs_type == 'even':
-                    text_temp = text + " [SEP] ".join(cs_even)
-                elif cs_type == 'cs_top':
-                    text_temp = text + " [SEP] ".join(cs_top)
+                elif cs_type == 'both_desc':
+                    text_temp = f" {question} {choice_text} [SEP] {question_concept} : {Qconcept_desc} [SEP] {choice_text} : {choics_desc} [SEP] "
+
+                elif cs_type in ['odd', 'even', 'top2']:
+                    text_temp = cs[cs_type]
+
+                elif cs_type == 'origin':
+                    text_temp = f"{question} {choice_text} [SEP] {question_concept} [SEP] {choice_text}"
 
                 text_stack[index].append(text_temp)
 
