@@ -330,6 +330,13 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
                 cs_list = self.omcs_cropus[omcs_index]['cs_list'][:self.args.cs_num]
                 omcs_index += 1
                 cs4choice[choice_text] = cs_list
+
+                temp = self.args.cs_num - len(cs_list)
+                if temp:
+                    cs_list.extend([' ']*temp)
+
+                cs4choice[choice_text] = cs_list
+
             case['Qconcept_desc'] = desc_dict[Qconcept]
 
             method = self.dev_method if self.dataset_type == 'dev' else 'trian_01'
