@@ -60,9 +60,7 @@ def select_task(args):
         "Albert_BurgerAlpha2": (AlbertBurgerAlpha2, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
         # 3 4 5
         # "Albert_BurgerAlphaX": (AlbertBurgerAlphaX, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
-
         "Albert_BurgerAlpha6": (AlbertBurgerAlpha6, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers'])
-
     }
 
     processor_dict = {
