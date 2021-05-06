@@ -361,22 +361,48 @@ class MSKEExample(BaseExample):
         self.text_stack = text_stack
 
     def tokenize(self, tokenizer, args):
+        '''
+        all_feature_dict = {
+            'input_ids': [],
+            'token_type_ids': [],
+            'attention_mask': []
+        }
+        '''
+        max_seq_len = args.max_seq_len
+        # self.text_stack
+        all_feature_dict = {
+            'input_ids': [],
+            'token_type_ids': [],
+            'attention_mask': []
+        }
+        labels = [self.label for _ in range(len(self.text_stack))]
+        for text_list in self.text_stack:
+            # text_list [[qa, cs], [qa, cs], x5]
+            feature_dict = tokenizer.batch_encode_plus(text_list, add_special_tokens=True, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
+            all_feature_dict['input_ids'].append(feature_dict['input_ids'])
+            all_feature_dict['token_type_ids'].append(feature_dict['token_type_ids'])
+            all_feature_dict['attention_mask'].append(feature_dict['attention_mask'])
         
-        # TODO
+        return all_feature_dict, labels
 
     @staticmethod
     def make_text_stack(question, question_concept, choices, desc_dict, cs4choice, method):
 
         def choose_cs_type(method):
-            cs_type = ['Qconcept_desc', 'Choice_desc', 'odd', 'even', 'origin']
-            if method == 1:
+            cs_type = ['odd', 'even', 'cs_top']
+            # cs_type = ['Qconcept_desc', 'Choice_desc', 'odd', 'even', 'origin', 'cs_top]
+            if method == 'trian_01':
                 m1 = random.choice(cs_type)
                 cs_type.remove(m1)
                 m2 = random.choice(cs_type)
                 return m1, m2
+            else:
+                return (method, )
 
-        if method == 1:
+        if method == 'trian_01':
             text_stack = [[], []]
+        else:
+            text_stack = [[],]
         cstype_stack = []
 
         Qconcept_desc = desc_dict[question_concept]
@@ -385,6 +411,7 @@ class MSKEExample(BaseExample):
             choics_desc = desc_dict[choice_text]
             cs_odd = cs4choice[choice_text][1::2]
             cs_even = cs4choice[choice_text][::2]
+            cs_top = cs4choice[choice_text][:len(cs_even)]
 
             text = f" {question} {choice_text} [SEP] {question_concept} [SEP] {choice_text} [SEP] "
 
@@ -393,14 +420,17 @@ class MSKEExample(BaseExample):
 
             for index, cs_type in enumerate(cstype_list):
                 if cs_type == 'Qconcept_desc':
-                    text += f"{question_concept}: {Qconcept_desc}"
+                    text_temp = f" {question} {choice_text} [SEP] {question_concept} : {Qconcept_desc} [SEP] {choice_text} [SEP] "
                 elif cs_type == 'Choice_desc':
-                    text += f"{choice_text}: {choics_desc}"
+                    text_temp = f" {question} {choice_text} [SEP] {question_concept} [SEP] {choice_text} : {choics_desc} [SEP] "
                 elif cs_type == 'odd':
-                    text += ' ; '.join(cs_odd)
+                    text_temp = text + " [SEP] ".join(cs_odd)
                 elif cs_type == 'even':
-                    text += ' ; '.join(cs_even)
-                text_stack[index].append(text)
+                    text_temp = text + " [SEP] ".join(cs_even)
+                elif cs_type == 'cs_top':
+                    text_temp = text + " [SEP] ".join(cs_top)
+
+                text_stack[index].append(text_temp)
 
         return text_stack
 

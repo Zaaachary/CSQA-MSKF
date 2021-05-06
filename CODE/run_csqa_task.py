@@ -129,7 +129,6 @@ def set_result(args):
         datefmt = r"%y/%m/%d %H:%M"
         )
 
-
 def main(args):
     start = time.time()
     logger.info(f"start in {start}")
@@ -172,15 +171,17 @@ if __name__ == "__main__":
     parser.add_argument('--eval_after_tacc', type=float, default=0)
     parser.add_argument('--evltest_batch_size', type=int)
     parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
+    parser.add_argument('--dev_method', type=str, default=None)
     
     # task-specific hyper param
     parser.add_argument('--max_seq_len', type=int, default=None, help='used where dataprocessor restrain total len')
     parser.add_argument('--max_qa_len', type=int, default=None)
-    parser.add_argument('--OMCS_version', type=str, default=None)
-    parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
     parser.add_argument('--max_cs_len', type=int, default=None)
-    parser.add_argument('--WKDT_version', type=str, default=None)
     parser.add_argument('--max_desc_len', type=int, default=None)
+    parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
+    parser.add_argument('--train_method', type=str, default=None)
+    parser.add_argument('--OMCS_version', type=str, default=None)
+    parser.add_argument('--WKDT_version', type=str, default=None)
     parser.add_argument('--albert1_layers', type=int, default=None)
 
     # train hyper param

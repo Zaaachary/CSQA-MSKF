@@ -7,6 +7,7 @@
 
 xxlarge
 - WKDT  /data/zhifli/model_save/albert-xxlarge-v2/WKDT_Albert_Baseline/1138-Apr23_seed42_wkdtv3.0/   75.59
+- WKDT  /data/zhifli/model_save/albert-xxlarge-v2/WKDT_Albert_Baseline/1829-May04_seed5004_wkdtv4.0/   79.93
 
 - Origin /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/1712-Apr09_seed42/
 
@@ -62,15 +63,22 @@ def count_vote(result_list):
     # vote
     equal = 0
     for key, value in csqa_dict.items():
+        # import pdb; pdb.set_trace()
+        equal_flag = False
         c = Counter(value['predictList'])
-        predict, count = c.most_common()[0]
-        if count == 1:
+        common_list = list(c.most_common())
+        predict = common_list[0][0]
+        if len(common_list) > 1:
+            if common_list[0][1] == common_list[1][1]:
+                equal_flag = True
+
+        if equal_flag:
             value['predict'] = value['predictList'][0]
             equal += 1
         else:
             value['predict'] = predict
 
-        if predict == value["answerKey"]:
+        if value['predict'] == value["answerKey"]:
             value['TF'] = "T"
         else:
             value['TF'] = "F"
@@ -114,10 +122,12 @@ if __name__ == "__main__":
     --task_name vote
     --predict_dir 
     /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/1712-Apr09_seed42/
+    /data/zhifli/model_save/albert-xxlarge-v2/WKDT_Albert_Baseline/1829-May04_seed5004_wkdtv4.0/
+    /data/zhifli/model_save/albert-xxlarge-v2/WKDT_Albert_Baseline/1138-Apr23_seed42_wkdtv3.0/
     /data/zhifli/model_save/albert-xxlarge-v2/OMCS_Albert_Baseline/1311-Apr26_seed425_cs1_omcsv3.0/
     /data/zhifli/model_save/albert-xxlarge-v2/OMCS_Albert_Baseline/1312-Apr26_seed42_cs2_omcsv3.0/
     """
-    # /data/zhifli/model_save/albert-xxlarge-v2/WKDT_Albert_Baseline/1138-Apr23_seed42_wkdtv3.0/
+
     args = parser.parse_args(args_str.split())
     print(args)
     # args = parser.parse_args()

@@ -12,16 +12,16 @@
 - make prediction by running model
 """
 import json
-import logging
 import os
+import logging
 
-from torch.utils.data import dataloader
 logger = logging.getLogger("controller")
 console = logging.StreamHandler();console.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s %(name)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
 console.setFormatter(formatter)
 logger.addHandler(console)
 
+from torch.utils.data import dataloader
 import torch
 from tqdm import tqdm
 from utils.common import get_device, mkdir_if_notexist, result_dump
@@ -176,11 +176,9 @@ class MultipleChoice:
 
     def predict_test(self):
         self.evaluate()
-        # torch.cuda.empty_cache()
         predict_list = []
         dataloader = self.test_dataloader
         self.model.eval()
-        # import pdb; pdb.set_trace()
         for batch in tqdm(dataloader):
             if not self.config.clip_batch_off:
                 batch = self.trainer.clip_batch(batch)

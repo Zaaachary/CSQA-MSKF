@@ -9,6 +9,13 @@ import os
 import json
 from random import random, sample
 from copy import deepcopy
+import logging
+
+logger = logging.getLogger("data processor")
+console = logging.StreamHandler();console.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s %(name)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
+console.setFormatter(formatter)
+logger.addHandler(console)
 
 from tqdm import tqdm
 import torch
@@ -23,6 +30,7 @@ class ProcessorBase(object):
         self.args = args
         self.dataset_dir = args.dataset_dir
         self.dataset_type = dataset_type
+        self.batch_size = args.train_batch_size if self.dataset_type in ['train', 'conti-trian'] else args.evltest_batch_size
         self.raw_csqa = []
         self.examples = []
 
@@ -284,6 +292,11 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
 
     def __init__(self, args, dataset_type):
         super(MSKE_Processor, self).__init__(args, dataset_type)
+        self.method_list = ['odd', 'even', 'cs_top']
+        self.dev_method = None
+        if dataset_type in ['dev', 'test']:
+            self.dev_method = args.dev_method
+            logger.info(f"dev method {args.dev_method}")
 
     def load_data(self):
         self.load_csqa()
@@ -291,8 +304,12 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
         self.load_wkdt()
         self.inject_wkdt_omcs()
 
+    def reload_data(self):
+        self.inject_wkdt_omcs()
+
     def inject_wkdt_omcs(self):
         omcs_index = 0
+        self.examples.clear()
 
         for case in self.raw_csqa:
             desc_dict = {}
@@ -313,15 +330,41 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
                 cs_list = self.omcs_cropus[omcs_index]['cs_list'][:self.args.cs_num]
                 omcs_index += 1
                 cs4choice[choice_text] = cs_list
-
-            # m1, m2 = self.choose_cs_type()
             case['Qconcept_desc'] = desc_dict[Qconcept]
-            example = MSKEExample.load_from(case, cs4choice, desc_dict, method=1)
+
+            method = self.dev_method if self.dataset_type == 'dev' else 'trian_01'
+        
+            example = MSKEExample.load_from(case, cs4choice, desc_dict, method=method)
             self.examples.append(example)
 
-    def make_dataloader(self, tokenizer, args, shuffle):
+    def make_dataloader(self, tokenizer, args, shuffle=True):
         # return super().make_dataloader(tokenizer, args, shuffle=shuffle)
-        pass
+        drop_last = False
+
+        all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
+        all_label = []
+        all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
+        all_label = []
+
+        for example in tqdm(self.examples):
+            feature_dict, labels = example.tokenize(tokenizer, args)
+            all_input_ids.extend(feature_dict['input_ids'])
+            all_token_type_ids.extend(feature_dict['token_type_ids'])
+            all_attention_mask.extend(feature_dict['attention_mask'])
+            all_label.extend(labels)
+
+        all_input_ids = torch.stack(all_input_ids)
+        all_attention_mask = torch.stack(all_attention_mask)
+        all_token_type_ids = torch.stack(all_token_type_ids)
+        all_label = torch.tensor(all_label, dtype=torch.long)
+
+        data = (all_input_ids, all_attention_mask, all_token_type_ids, all_label)
+
+        dataset = TensorDataset(*data)
+        sampler = RandomSampler(dataset) if shuffle else None
+        dataloader = DataLoader(dataset, sampler=sampler, batch_size=self.batch_size, drop_last=drop_last)
+
+        return dataloader
 
 
 class CSLinear_Processor(OMCS_Processor):
