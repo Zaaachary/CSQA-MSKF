@@ -418,7 +418,7 @@ class MSKEExample(BaseExample):
             elif method in cs_type_list:
                 return (method, )
 
-        if method in ['trian_01', 'trian_02', 'train_01_equal']:
+        if method in ['trian_01', 'trian_02', 'train_01_equal', 'trian_02_equal']:
             text_stack = [[], []]
         elif method in cs_type_list:
             text_stack = [[],]
