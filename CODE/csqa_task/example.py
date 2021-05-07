@@ -410,6 +410,11 @@ class MSKEExample(BaseExample):
                 m1 = 'top2'
                 m2 = random.choice(cs_type)
                 return (m1, m2)
+            elif method == 'trian_02_equal':
+                cs_type = ['shuffle2', 'shuffle3']
+                m1 = 'top2'
+                m2 = random.choice(cs_type)
+                return (m1, m2)
             elif method in cs_type_list:
                 return (method, )
 
