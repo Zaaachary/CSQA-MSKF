@@ -395,24 +395,25 @@ class MSKEExample(BaseExample):
 
         def choose_cs_type(method):
             if method == 'trian_01':
-                cs_type = ['odd', 'even', 'top2']
-                # m1 = random.choice(cs_type)
+                cs_type = ['odd', 'even']
                 m1 = 'top2'
+                m2 = random.choice(cs_type)
+                return (m1, m2)
+            elif method == 'train_01_equal':
+                cs_type = ['odd', 'even', 'top2']
+                m1 = random.choice(cs_type)
                 cs_type.remove(m1)
                 m2 = random.choice(cs_type)
                 return (m1, m2)
             elif method == 'trian_02':
                 cs_type = ['shuffle2', 'shuffle3']
                 m1 = 'top2'
-                # cs_type.remove(m1)
                 m2 = random.choice(cs_type)
                 return (m1, m2)
             elif method in cs_type_list:
                 return (method, )
-        # import pdb; pdb.set_trace()
-        if method == 'trian_01':
-            text_stack = [[], []]
-        elif method == 'trian_02':
+
+        if method in ['trian_01', 'trian_02', 'train_01_equal']:
             text_stack = [[], []]
         elif method in cs_type_list:
             text_stack = [[],]
@@ -435,6 +436,7 @@ class MSKEExample(BaseExample):
             text = f" {question} {choice_text} [SEP] {question_concept} [SEP] {choice_text} [SEP] "
 
             cstype_list = choose_cs_type(method)
+            # import pdb; pdb.set_trace()
             cstype_stack.append(cstype_list)
 
             for index, cs_type in enumerate(cstype_list):
@@ -445,9 +447,8 @@ class MSKEExample(BaseExample):
                 elif cs_type == 'both_desc':
                     text_temp = f" {question} {choice_text} [SEP] {question_concept} : {Qconcept_desc} [SEP] {choice_text} : {choics_desc} [SEP] "
 
-                elif cs_type in ['odd', 'even', 'top2']:
+                elif cs_type in ['odd', 'even', 'top2', 'shuffle3', 'shuffle2']:
                     text_temp = text + ' [SEP] '.join(cs[cs_type])
-
                 elif cs_type == 'origin':
                     text_temp = f"{question} {choice_text} [SEP] {question_concept} [SEP] {choice_text}"
 

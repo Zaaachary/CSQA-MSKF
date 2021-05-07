@@ -7,6 +7,7 @@
 """
 import os
 import json
+import pdb
 from random import random, sample
 from copy import deepcopy
 import logging
@@ -267,13 +268,12 @@ class Wiktionary_Processor(ProcessorBase):
                 choice_desc = self.wiktionary[choice_text]
                 desc_dict[choice_text] = choice_desc
                 choice['desc'] = choice_desc
-            
+        
             case['Qconcept_desc'] = desc_dict[Qconcept]
             example = self.load_example(case, desc_dict)
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        # import pdb; pdb.set_trace()
         return super(Wiktionary_Processor, self).make_dataloader(tokenizer, args, shuffle=shuffle)
 
     @staticmethod
@@ -292,19 +292,24 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
 
     def __init__(self, args, dataset_type):
         super(MSKE_Processor, self).__init__(args, dataset_type)
-        self.method_list = ['odd', 'even', 'cs_top', 'Qconcept']
         self.dev_method = None
+        self.ke_method_list = ['shuffle3', 'shuffle2', 'top2', 'odd', 'even']
+
         if dataset_type in ['dev', 'test']:
             self.dev_method = args.dev_method
             logger.info(f"dev method {args.dev_method}")
+        elif dataset_type == 'train':
+            logger.info(f"dev method {args.train_method}")
 
     def load_data(self):
         self.load_csqa()
         self.load_omcs()
         self.load_wkdt()
-        self.inject_wkdt_omcs()
+        if self.dataset_type not in ['dev', 'test'] or self.dev_method is not None:
+            self.inject_wkdt_omcs()
 
-    def reload_data(self):
+    def remake_data(self, method):
+        self.dev_method = method
         self.inject_wkdt_omcs()
 
     def inject_wkdt_omcs(self):
@@ -340,13 +345,16 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
             case['Qconcept_desc'] = desc_dict[Qconcept]
 
             method = self.dev_method if self.dataset_type == 'dev' else 'trian_01'
-        
+            # import pdb; pdb.set_trace()
             example = MSKEExample.load_from(case, cs4choice, desc_dict, method=method)
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
         # return super().make_dataloader(tokenizer, args, shuffle=shuffle)
         drop_last = False
+
+        if self.dataset_type in ['dev', 'test'] and self.dev_method is None:
+            return None
 
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
         all_label = []

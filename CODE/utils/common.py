@@ -28,7 +28,7 @@ def set_seed(args):
     # if args.n_gpu > 0:
     #     torch.cuda.manual_seed_all(args.seed)
 
-def result_dump(args, target, file_name):
+def result_dump(args, target, file_name, folder=''):
     with open(os.path.join(args.result_dir, file_name), 'w', encoding='utf-8') as f:
         json.dump(target, f, ensure_ascii=False, indent=4)
 

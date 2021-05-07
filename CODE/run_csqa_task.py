@@ -150,7 +150,10 @@ def main(args):
     if args.mission in ('train', 'conti-train'):
         controller.train()
     elif args.mission == 'eval':
-        controller.run_dev()
+        if args.knowledge_ensemble:
+            controller.run_knowledge_ensemble_dev()
+        else:
+            controller.run_dev()
     elif args.mission == 'predict':
         controller.predict_test()
 
@@ -161,18 +164,21 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    # other param
+    # device param
     parser.add_argument('--task_name', type=str, help="model & processor will be selected according to task")
     parser.add_argument('--mission', type=str, choices=['train', 'eval', 'predict', 'conti-train'])
     parser.add_argument('--fp16', type=int, default=0)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
+    
+    # dev param
     parser.add_argument('--save_mode', type=str, choices=['epoch', 'step', 'end'], default=None)
     parser.add_argument('--print_step', type=int, default=None)
     parser.add_argument('--eval_after_tacc', type=float, default=0)
     parser.add_argument('--evltest_batch_size', type=int)
-    parser.add_argument('--clip_batch_off', action='store_true', default=False, help="clip batch to shortest case")
     parser.add_argument('--dev_method', type=str, default=None)
+    parser.add_argument('--knowledge_ensemble', action='store_true')
     
     # task-specific hyper param
     parser.add_argument('--max_seq_len', type=int, default=None, help='used where dataprocessor restrain total len')

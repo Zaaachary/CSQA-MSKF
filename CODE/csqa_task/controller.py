@@ -74,12 +74,12 @@ class MultipleChoice:
         self.model = model
 
     def load_data(self, ProcessorClass, tokenizer):
+        self.tokenizer = tokenizer
         if self.config.mission in ("train", 'conti-train'):
             processor = ProcessorClass(self.config, 'train')
             processor.load_data()
             self.train_dataloader = processor.make_dataloader(
                 tokenizer, self.config)
-            # self.train_dataloader = processor.make_dataloader(self.tokenizer, self.config.train_batch_size, False, 128, shuffle=False)
             logger.info("train dataset loaded")
 
             processor = ProcessorClass(self.config, 'dev')
@@ -142,7 +142,7 @@ class MultipleChoice:
         logger.info(f"eval: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
         return drn
 
-    def run_dev(self):
+    def run_dev(self, file_prefix=''):
         '''
         run model to predict dev set, and set right/wrong result to file.
         '''
@@ -169,10 +169,22 @@ class MultipleChoice:
         
         summary = {'total': len(csqa_dev), 'right': len(right), 'wrong': len(wrong), 'acc': str(len(right)/len(csqa_dev)*100)+'%'}
         wrong.insert(0, summary)
-        result_dump(self.config, right, 'right_result.json')
-        result_dump(self.config, wrong, 'wrong_result.json')
+        result_dump(self.config, right, file_prefix + 'right_result.json')
+        result_dump(self.config, wrong, file_prefix + 'wrong_result.json')
 
         logger.info(f"eval: acc {len(right)}/{len(csqa_dev)}={summary['acc']}")
+
+    def run_knowledge_ensemble_dev(self):
+        # import pdb; pdb.set_trace()
+        ke_method_list = self.processor.ke_method_list
+        for method in ke_method_list:
+            logger.info(f'dev in {method}')
+            self.processor.remake_data(method)
+            self.deval_dataloader = self.processor.make_dataloader(
+                self.tokenizer, self.config, shuffle=False)
+
+            self.run_dev(method + '_')
+
 
     def predict_test(self):
         self.evaluate()

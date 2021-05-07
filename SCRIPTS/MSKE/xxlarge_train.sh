@@ -3,7 +3,7 @@ python CODE/run_csqa_task.py\
     --mission train\
     --fp16 0\
     --seed 42\
-    --gpu_ids 1\
+    --gpu_ids 5\
     --save_mode step\
     --print_step 1000\
     --evltest_batch_size 12\
@@ -17,8 +17,8 @@ python CODE/run_csqa_task.py\
     --train_method train_01\
     \
     --train_batch_size 1\
-    --gradient_accumulation_steps 32\
-    --learning_rate 2e-5\
+    --gradient_accumulation_steps 16\
+    --learning_rate 5e-6\
     --num_train_epochs 8\
     --warmup_proportion 0.1\
     --weight_decay 0.1\
