@@ -40,6 +40,7 @@ class ProcessorBase(object):
         pass
 
     def load_csqa(self):
+        self.raw_csqa.clear()
         f = open(os.path.join(self.args.dataset_dir, 'csqa', f"{self.dataset_type}_rand_split.jsonl"), 'r', encoding='utf-8')
         for line in f:
             self.raw_csqa.append(json.loads(line.strip()))
@@ -166,12 +167,6 @@ class OMCS_Processor(ProcessorBase):
         self.load_omcs()
         self.inject_commonsense()
 
-    def load_csqa(self):
-        f = open(os.path.join(self.args.dataset_dir, 'csqa', f"{self.dataset_type}_rand_split.jsonl"), 'r', encoding='utf-8')
-        for line in f:
-            self.raw_csqa.append(json.loads(line.strip()))
-        f.close()
-
     def load_omcs(self):
         dir_dict = {'1.0':'omcs_v1.0', '3.0':'omcs_v3.0_15'}
 
@@ -293,12 +288,14 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
     def __init__(self, args, dataset_type):
         super(MSKE_Processor, self).__init__(args, dataset_type)
         self.dev_method = None
-        self.ke_method_list = ['shuffle3', 'shuffle2', 'top2', 'odd', 'even']
+        self.ke_method_list = ['shuffle3',  'shuffle2']
+        # self.ke_method_list = ['shuffle3', 'shuffle3', 'shuffle2', 'shuffle2', 'top2', 'odd', 'even']
 
         if dataset_type in ['dev', 'test']:
             self.dev_method = args.dev_method
             logger.info(f"dev method {args.dev_method}")
         elif dataset_type == 'train':
+            self.train_method = args.train_method
             logger.info(f"dev method {args.train_method}")
 
     def load_data(self):
@@ -310,6 +307,9 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
 
     def remake_data(self, method):
         self.dev_method = method
+        self.load_csqa()
+        self.load_omcs()
+        self.load_wkdt()
         self.inject_wkdt_omcs()
 
     def inject_wkdt_omcs(self):
@@ -344,8 +344,7 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
 
             case['Qconcept_desc'] = desc_dict[Qconcept]
 
-            method = self.dev_method if self.dataset_type == 'dev' else 'trian_01'
-            # import pdb; pdb.set_trace()
+            method = self.dev_method if self.dataset_type in ['dev', 'test'] else self.train_method
             example = MSKEExample.load_from(case, cs4choice, desc_dict, method=method)
             self.examples.append(example)
 

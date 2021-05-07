@@ -12,21 +12,23 @@
 - make prediction by running model
 """
 import json
-import os
 import logging
+import os
 
-logger = logging.getLogger("controller")
-console = logging.StreamHandler();console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s %(name)s - %(message)s', datefmt = r"%y/%m/%d %H:%M")
-console.setFormatter(formatter)
-logger.addHandler(console)
-
-from torch.utils.data import dataloader
 import torch
+from torch.utils.data import dataloader
 from tqdm import tqdm
 from utils.common import get_device, mkdir_if_notexist, result_dump
 
 from csqa_task.trainer import Trainer
+
+logger = logging.getLogger("controller")
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+formatter = logging.Formatter(
+    '%(asctime)s %(name)s - %(message)s', datefmt=r"%y/%m/%d %H:%M")
+console.setFormatter(formatter)
+logger.addHandler(console)
 
 
 class MultipleChoice:
@@ -35,6 +37,7 @@ class MultipleChoice:
     2. self.train(...)
     3. cls.load(...)
     """
+
     def __init__(self, args, model_kwargs={}):
         self.config = args
         self.model_kwargs = model_kwargs    # args for model like cs_num
@@ -60,11 +63,12 @@ class MultipleChoice:
             if hasattr(ModelClass, 'from_pt'):
                 model = ModelClass.from_pt(model_dir, **self.model_kwargs)
             else:
-                model = ModelClass.from_pretrained(model_dir, **self.model_kwargs)
+                model = ModelClass.from_pretrained(
+                    model_dir, **self.model_kwargs)
 
         if self.multi_gpu:
             model = torch.nn.DataParallel(model, device_ids=self.gpu_ids)
-            
+
         self.trainer = Trainer(
             model, self.multi_gpu, self.device,
             self.config.print_step, self.config.eval_after_tacc,
@@ -87,7 +91,7 @@ class MultipleChoice:
             self.deval_dataloader = processor.make_dataloader(
                 tokenizer, self.config, shuffle=False)
             logger.info("dev dataset loaded")
-        
+
         elif self.config.mission == "eval":
             processor = ProcessorClass(self.config, 'dev')
             processor.load_data()
@@ -116,12 +120,15 @@ class MultipleChoice:
         deval_dataloader = self.deval_dataloader
         train_step = len(train_dataloader)
 
-        total_training_step = train_step // self.config.gradient_accumulation_steps * self.config.num_train_epochs
+        total_training_step = train_step // self.config.gradient_accumulation_steps * \
+            self.config.num_train_epochs
         warmup_proportion = self.config.warmup_proportion
 
         # make and set optimizer & scheduler
-        optimizer = self.trainer.make_optimizer(self.config.weight_decay, self.config.learning_rate)
-        scheduler = self.trainer.make_scheduler(optimizer, warmup_proportion, total_training_step)
+        optimizer = self.trainer.make_optimizer(
+            self.config.weight_decay, self.config.learning_rate)
+        scheduler = self.trainer.make_scheduler(
+            optimizer, warmup_proportion, total_training_step)
         self.trainer.set_optimizer(optimizer)
         self.trainer.set_scheduler(scheduler)
 
@@ -139,7 +146,8 @@ class MultipleChoice:
         record = self.trainer.evaluate(dataloader, True)
         eval_loss = record[0].avg()
         drn, dan = record.list()[1:]
-        logger.info(f"eval: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
+        logger.info(
+            f"eval: loss {eval_loss:.4f}; acc {int(drn)/int(dan):.4f} ({int(drn)}/{int(dan)})")
         return drn
 
     def run_dev(self, file_prefix=''):
@@ -153,11 +161,12 @@ class MultipleChoice:
         for batch in tqdm(dataloader):
             batch = batch[:-1]  # rm label
             with torch.no_grad():
-                batch = list(map(lambda x:x.to(self.device), batch))
+                batch = list(map(lambda x: x.to(self.device), batch))
                 logits = self.model.predict(*batch)
                 logits_list.extend(logits.cpu().numpy().tolist())
-                predict_list.extend(torch.argmax(logits, dim=1).cpu().numpy().tolist())
-        
+                predict_list.extend(torch.argmax(
+                    logits, dim=1).cpu().numpy().tolist())
+
         csqa_dev = self.processor.make_dev(predict_list, logits_list)
 
         right, wrong = [], []
@@ -166,25 +175,27 @@ class MultipleChoice:
                 right.append(case)
             else:
                 wrong.append(case)
-        
-        summary = {'total': len(csqa_dev), 'right': len(right), 'wrong': len(wrong), 'acc': str(len(right)/len(csqa_dev)*100)+'%'}
+
+        summary = {'total': len(csqa_dev), 'right': len(right), 'wrong': len(
+            wrong), 'acc': str(len(right)/len(csqa_dev)*100)+'%'}
         wrong.insert(0, summary)
-        result_dump(self.config, right, file_prefix + 'right_result.json')
-        result_dump(self.config, wrong, file_prefix + 'wrong_result.json')
+        result_dump(self.config, right, file_prefix +
+                    'right_result.json', folder='dev_result')
+        result_dump(self.config, wrong, file_prefix +
+                    'wrong_result.json', folder='dev_result')
 
         logger.info(f"eval: acc {len(right)}/{len(csqa_dev)}={summary['acc']}")
 
     def run_knowledge_ensemble_dev(self):
         # import pdb; pdb.set_trace()
         ke_method_list = self.processor.ke_method_list
-        for method in ke_method_list:
+        for index, method in enumerate(ke_method_list):
             logger.info(f'dev in {method}')
             self.processor.remake_data(method)
             self.deval_dataloader = self.processor.make_dataloader(
                 self.tokenizer, self.config, shuffle=False)
 
-            self.run_dev(method + '_')
-
+            self.run_dev(str(index) + method + '_')
 
     def predict_test(self):
         self.evaluate()
@@ -196,9 +207,10 @@ class MultipleChoice:
                 batch = self.trainer.clip_batch(batch)
             batch = batch[:-1]  # rm label
             with torch.no_grad():
-                batch = list(map(lambda x:x.to(self.device), batch))
+                batch = list(map(lambda x: x.to(self.device), batch))
                 logits = self.model.predict(*batch)
-                predict_list.extend(torch.argmax(logits, dim=1).cpu().numpy().tolist())
+                predict_list.extend(torch.argmax(
+                    logits, dim=1).cpu().numpy().tolist())
 
         raw_csqa = self.processor.set_predict_labels(predict_list)
         # import pdb; pdb.set_trace()

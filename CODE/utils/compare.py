@@ -18,10 +18,14 @@ import os
 import json
 from collections import Counter
 
-def load_result(model_dir):
+def load_result(model_dir, method=None):
     # file_neme = "right_result.json" "wrong_reuslt.json"
-    right_file = os.path.join(model_dir, "right_result.json")
-    wrong_file = os.path.join(model_dir, "wrong_result.json")
+    if not method:
+        right_file = os.path.join(model_dir, "right_result.json")
+        wrong_file = os.path.join(model_dir, "wrong_result.json")
+    else:
+        right_file = os.path.join(model_dir, f"{method}_right_result.json")
+        wrong_file = os.path.join(model_dir, f"{method}_wrong_result.json")
 
     f = open(right_file, 'r', encoding='utf-8')
     right_list = json.load(f)
@@ -41,42 +45,69 @@ def load_result(model_dir):
 
     return result
 
-def count_vote(result_list):
+def count_vote(result_list, choose_top, task_name):
     csqa_dict = {}
 
     # origin
-    origin = result_list.pop(0)
+    top_result_index = 0
+    if choose_top:
+        top_acc = 0
+        for index, result in enumerate(result_list):
+            acc = result['info']['right'] / result['info']['total']
+            if acc > top_acc:
+                top_acc = acc
+                top_result_index = index
+
+    origin = result_list.pop(top_result_index)
     origin['right_dict'].update(origin['wrong_dict'])
     for key, value in origin['right_dict'].items():
         csqa_dict[key] = {
             'answerKey': value['answerKey'],
-            'predictList': [value['AnswerKey_pred'], ]
+            'predictList': [value['AnswerKey_pred'], ],
+            'logitsList': [[choice['logit'] for choice in value['choices']], ]
         }
-    
     # add ohter
     for result in result_list:
         result['right_dict'].update(result['wrong_dict'])
 
         for key, value in result['right_dict'].items():
             csqa_dict[key]['predictList'].append(value['AnswerKey_pred'])
+            csqa_dict[key]['logitsList'].append([choice['logit'] for choice in value['choices']])
 
+    # import pdb; pdb.set_trace()
     # vote
     equal = 0
     for key, value in csqa_dict.items():
-        # import pdb; pdb.set_trace()
         equal_flag = False
-        c = Counter(value['predictList'])
-        common_list = list(c.most_common())
-        predict = common_list[0][0]
-        if len(common_list) > 1:
-            if common_list[0][1] == common_list[1][1]:
-                equal_flag = True
+        if task_name == 'vote':
+            c = Counter(value['predictList'])
+            common_list = list(c.most_common())
+            predict = common_list[0][0]
+            if len(common_list) > 1:
+                if common_list[0][1] == common_list[1][1]:
+                    equal_flag = True
 
-        if equal_flag:
-            value['predict'] = value['predictList'][0]
-            equal += 1
+            if equal_flag:
+                value['predict'] = value['predictList'][0]
+                equal += 1
+            else:
+                value['predict'] = predict
+
         else:
-            value['predict'] = predict
+            max_logit = [0, 0, 0, 0, 0]
+            for logits in value['logitsList']:
+                for index, choice in enumerate(logits):
+                    max_logit[index] = max(max_logit[index], choice)
+
+            max_index, max_value = 0, 0
+            for index, logit in enumerate(max_logit):
+                if logit > max_value:
+                    max_value = logit
+                    max_index = index
+
+            value['predict'] = chr(ord('A') + max_index)
+
+            # import pdb; pdb.set_trace()
 
         if value['predict'] == value["answerKey"]:
             value['TF'] = "T"
@@ -97,7 +128,19 @@ def main(args):
 
     result_list = []
     for file_dir in args.predict_dir:
-        result_list.append(load_result(file_dir))
+        file_list = os.listdir(file_dir)
+        method_list = []
+        for file in file_list:
+            if '_right_result.json' in file:
+                method =file.replace('_right_result.json', '')
+                method_list.append(method)
+        
+        if len(method_list) == 0:
+            result_list.append(load_result(file_dir, method=None))
+        else:
+            for method in method_list:
+                result_list.append(load_result(file_dir, method=method))
+
 
     if args.task_name == 'merge':
         right_dict = {}
@@ -110,23 +153,32 @@ def main(args):
         acc = total_right / 1221 * 100
         print(f"After merge, right [{total_right}]; acc [{acc:.4f}]")
 
-    if args.task_name == 'vote':
-        count_vote(result_list)
+    if args.task_name in ['vote', 'vote_logit']:
+        count_vote(result_list, args.choose_top, args.task_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task_name', type=str, choices=['compare', 'merge', 'vote'])
+    parser.add_argument('--task_name', type=str, choices=['vote_logit', 'merge', 'vote'])
     parser.add_argument('--predict_dir', nargs='+')
+    parser.add_argument('--choose_top', action='store_true')
 
-    args_str = """
-    --task_name vote
+    args_str = r"""
+    --task_name vote_logit
     --predict_dir 
-    /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/1712-Apr09_seed42/
-    /data/zhifli/model_save/albert-xxlarge-v2/WKDT_Albert_Baseline/1829-May04_seed5004_wkdtv4.0/
-    /data/zhifli/model_save/albert-xxlarge-v2/WKDT_Albert_Baseline/1138-Apr23_seed42_wkdtv3.0/
-    /data/zhifli/model_save/albert-xxlarge-v2/OMCS_Albert_Baseline/1311-Apr26_seed425_cs1_omcsv3.0/
-    /data/zhifli/model_save/albert-xxlarge-v2/OMCS_Albert_Baseline/1312-Apr26_seed42_cs2_omcsv3.0/
+    D:\CODE\Commonsense\CSQA_DATA\model_save\1319-May07_seed42_TMtrain_01_equal_DMtrain_01_equal\dev_result
+    --choose_top
     """
+
+    # args_str = """
+    # --task_name vote
+    # --predict_dir 
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\1528-Apr22_seed42\dev_result
+    # /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/1712-Apr09_seed42/
+    # /data/zhifli/model_save/albert-xxlarge-v2/WKDT_Albert_Baseline/1829-May04_seed5004_wkdtv4.0/
+    # /data/zhifli/model_save/albert-xxlarge-v2/WKDT_Albert_Baseline/1138-Apr23_seed42_wkdtv3.0/
+    # /data/zhifli/model_save/albert-xxlarge-v2/OMCS_Albert_Baseline/1311-Apr26_seed425_cs1_omcsv3.0/
+    # /data/zhifli/model_save/albert-xxlarge-v2/OMCS_Albert_Baseline/1312-Apr26_seed42_cs2_omcsv3.0/
+    # """
 
     args = parser.parse_args(args_str.split())
     print(args)

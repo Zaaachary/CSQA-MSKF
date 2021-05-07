@@ -29,7 +29,9 @@ def set_seed(args):
     #     torch.cuda.manual_seed_all(args.seed)
 
 def result_dump(args, target, file_name, folder=''):
-    with open(os.path.join(args.result_dir, file_name), 'w', encoding='utf-8') as f:
+    
+    mkdir_if_notexist(os.path.join(args.result_dir, folder, file_name))
+    with open(os.path.join(args.result_dir, folder, file_name), 'w', encoding='utf-8') as f:
         json.dump(target, f, ensure_ascii=False, indent=4)
 
 
