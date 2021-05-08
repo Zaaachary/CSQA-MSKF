@@ -443,7 +443,7 @@ class MSKEExample(BaseExample):
             cs = {
                 "024": cs4choice[choice_text][:5:2],
                 "135": cs4choice[choice_text][1:6:2],
-                "25": [cs4choice[choice_text][2],cs4choice[choice_text][5]],
+                "25": cs4choice[choice_text][1:6:3],
                 "01": cs4choice[choice_text][:2],
                 "34": cs4choice[choice_text][3:5],
                 'odd': cs4choice[choice_text][1::2],
@@ -470,6 +470,10 @@ class MSKEExample(BaseExample):
 
                 elif cs_type in list(cs.keys()):
                     text_temp = text + ' [SEP] '.join(cs[cs_type])
+
+                # elif cs_type in 
+                # 'shuffle2': random.sample(cs4choice[choice_text], k=2),
+                # 'shuffle3': random.sample(cs4choice[choice_text], k=3),
                 elif cs_type == 'origin':
                     text_temp = f"{question} {choice_text} [SEP] {question_concept} [SEP] {choice_text}"
 
