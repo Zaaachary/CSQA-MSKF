@@ -13,7 +13,7 @@ python CODE/run_csqa_task.py\
     --OMCS_version 3.0\
     --WKDT_version 4.0\
     --max_seq_len 130\
-    --cs_num 4\
+    --cs_num 8\
     --train_method train_01\
     \
     --train_batch_size 1\
