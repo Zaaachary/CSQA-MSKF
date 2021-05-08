@@ -3,18 +3,18 @@ python CODE/run_csqa_task.py\
     --mission train\
     --fp16 0\
     --seed 42\
-    --gpu_ids 5\
+    --gpu_ids 0\
     --save_mode step\
     --print_step 1000\
     --evltest_batch_size 12\
-    --eval_after_tacc 0.80\
-    --dev_method top2\
+    --eval_after_tacc 0.79\
+    --dev_method trian_02_equal\
     \
     --OMCS_version 3.0\
     --WKDT_version 4.0\
     --max_seq_len 130\
-    --cs_num 4\
-    --train_method train_01\
+    --cs_num 8\
+    --train_method trian_02_equal\
     \
     --train_batch_size 1\
     --gradient_accumulation_steps 16\

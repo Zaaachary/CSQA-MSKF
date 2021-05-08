@@ -187,7 +187,6 @@ class MultipleChoice:
         logger.info(f"eval: acc {len(right)}/{len(csqa_dev)}={summary['acc']}")
 
     def run_knowledge_ensemble_dev(self):
-        # import pdb; pdb.set_trace()
         ke_method_list = self.processor.ke_method_list
         for index, method in enumerate(ke_method_list):
             logger.info(f'dev in {method}')
