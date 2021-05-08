@@ -418,18 +418,18 @@ class MSKEExample(BaseExample):
                 m2 = random.choice(cs_type)
                 return (m1, m2)
             elif method == 'dev_5group':
-                cs_type = ["024", "135", "25", "01", "34"]
-                m1 = random.choice(cs_type)
-                cs_type.remove(m1)
-                m2 = random.choice(cs_type)
-                return (m1, m2)
+                cs_type = ["024", "135", "25", "34"]
+                m1 = random.sample(cs_type, k=3)
+                m1.append("01")
+                return m1
+
             elif method in cs_type_list:
                 return (method, )
 
         if method in ['trian_01', 'trian_02', 'train_01_equal', 'trian_02_equal']:
             text_stack = [[], [],]
         elif method == "dev_5group":
-            text_stack = [[], [], [], [], []]
+            text_stack = [[], [], [], []]
         elif method in cs_type_list:
             text_stack = [[],]
 
