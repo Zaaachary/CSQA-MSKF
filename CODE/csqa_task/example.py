@@ -417,11 +417,19 @@ class MSKEExample(BaseExample):
                 cs_type.remove(m1)
                 m2 = random.choice(cs_type)
                 return (m1, m2)
+            elif method == 'dev_5group':
+                cs_type = ["024", "135", "25", "01", "34"]
+                m1 = random.choice(cs_type)
+                cs_type.remove(m1)
+                m2 = random.choice(cs_type)
+                return (m1, m2)
             elif method in cs_type_list:
                 return (method, )
 
         if method in ['trian_01', 'trian_02', 'train_01_equal', 'trian_02_equal']:
-            text_stack = [[], []]
+            text_stack = [[], [],]
+        elif method == "dev_5group":
+            text_stack = [[], [], [], [], []]
         elif method in cs_type_list:
             text_stack = [[],]
 
@@ -433,6 +441,11 @@ class MSKEExample(BaseExample):
             choics_desc = desc_dict[choice_text]
 
             cs = {
+                "024": cs4choice[choice_text][:5:2],
+                "135": cs4choice[choice_text][1:6:2],
+                "25": [cs4choice[choice_text][2],cs4choice[choice_text][5]],
+                "01": cs4choice[choice_text][:2],
+                "34": cs4choice[choice_text][3:5],
                 'odd': cs4choice[choice_text][1::2],
                 'even': cs4choice[choice_text][::2],
                 'top2': cs4choice[choice_text][:2],
@@ -455,7 +468,7 @@ class MSKEExample(BaseExample):
                 elif cs_type == 'both_desc':
                     text_temp = f" {question} {choice_text} [SEP] {question_concept} : {Qconcept_desc} [SEP] {choice_text} : {choics_desc} [SEP] "
 
-                elif cs_type in ['odd', 'even', 'top2', 'shuffle3', 'shuffle2']:
+                elif cs_type in list(cs.keys()):
                     text_temp = text + ' [SEP] '.join(cs[cs_type])
                 elif cs_type == 'origin':
                     text_temp = f"{question} {choice_text} [SEP] {question_concept} [SEP] {choice_text}"

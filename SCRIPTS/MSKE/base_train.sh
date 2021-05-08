@@ -8,13 +8,13 @@ python CODE/run_csqa_task.py\
     --print_step 100\
     --evltest_batch_size 12\
     --eval_after_tacc 0.60\
-    --dev_method train_01_equal\
+    --dev_method dev_5group\
     \
     --OMCS_version 3.0\
     --WKDT_version 4.0\
     --max_seq_len 130\
     --cs_num 4\
-    --train_method train_01_equal\
+    --train_method train_02_equal\
     \
     --train_batch_size 5\
     --gradient_accumulation_steps 1\
