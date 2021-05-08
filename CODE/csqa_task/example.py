@@ -391,6 +391,7 @@ class MSKEExample(BaseExample):
         cs_type_list = [
             'Qconcept_desc', 'Choice_desc', 'both_desc',
             'odd', 'even', 'origin', 'top2', 'shuffle3', 'shuffle2',
+            'top3',
             ]
 
         def choose_cs_type(method):
@@ -412,7 +413,8 @@ class MSKEExample(BaseExample):
                 return (m1, m2)
             elif method == 'trian_02_equal':
                 cs_type = ['shuffle2', 'shuffle3']
-                m1 = 'top2'
+                m1 = random.choice(cs_type)
+                cs_type.remove(m1)
                 m2 = random.choice(cs_type)
                 return (m1, m2)
             elif method in cs_type_list:
@@ -434,6 +436,7 @@ class MSKEExample(BaseExample):
                 'odd': cs4choice[choice_text][1::2],
                 'even': cs4choice[choice_text][::2],
                 'top2': cs4choice[choice_text][:2],
+                'top3': cs4choice[choice_text][:3],
                 'shuffle2': random.sample(cs4choice[choice_text], k=2),
                 'shuffle3': random.sample(cs4choice[choice_text], k=3),
             }
