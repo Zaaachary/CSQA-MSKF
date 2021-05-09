@@ -391,7 +391,7 @@ class MSKEExample(BaseExample):
         cs_type_list = [
             'Qconcept_desc', 'Choice_desc', 'both_desc',
             'odd', 'even', 'origin', 'top2', 'shuffle3', 'shuffle2',
-            'top3',
+            'top3', "024", "135", "25", "34", "01"
             ]
 
         def choose_cs_type(method):
@@ -450,14 +450,11 @@ class MSKEExample(BaseExample):
                 'even': cs4choice[choice_text][::2],
                 'top2': cs4choice[choice_text][:2],
                 'top3': cs4choice[choice_text][:3],
-                'shuffle2': random.sample(cs4choice[choice_text], k=2),
-                'shuffle3': random.sample(cs4choice[choice_text], k=3),
             }
 
             text = f" {question} {choice_text} [SEP] {question_concept} [SEP] {choice_text} [SEP] "
 
             cstype_list = choose_cs_type(method)
-            # import pdb; pdb.set_trace()
             cstype_stack.append(cstype_list)
 
             for index, cs_type in enumerate(cstype_list):
@@ -471,9 +468,13 @@ class MSKEExample(BaseExample):
                 elif cs_type in list(cs.keys()):
                     text_temp = text + ' [SEP] '.join(cs[cs_type])
 
-                # elif cs_type in 
-                # 'shuffle2': random.sample(cs4choice[choice_text], k=2),
-                # 'shuffle3': random.sample(cs4choice[choice_text], k=3),
+                elif cs_type == 'shuffle2':
+                    temp_cs = random.sample(cs4choice[choice_text], k=2)
+                    text_temp = text + ' [SEP] '.join(temp_cs)
+                elif cs_type == 'shuffle3':
+                    temp_cs = random.sample(cs4choice[choice_text], k=3)
+                    text_temp = text + ' [SEP] '.join(temp_cs)
+
                 elif cs_type == 'origin':
                     text_temp = f"{question} {choice_text} [SEP] {question_concept} [SEP] {choice_text}"
 

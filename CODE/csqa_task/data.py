@@ -288,7 +288,7 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
     def __init__(self, args, dataset_type):
         super(MSKE_Processor, self).__init__(args, dataset_type)
         self.dev_method = None
-        self.ke_method_list = ['shuffle3',  'shuffle2']
+        self.ke_method_list = ["024", "135", "25", "34", "01", "top3"]
         # self.ke_method_list = ['shuffle3', 'shuffle3', 'shuffle2', 'shuffle2', 'top2', 'odd', 'even']
 
         if dataset_type in ['dev', 'test']:
