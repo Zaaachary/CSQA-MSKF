@@ -70,6 +70,7 @@ def select_task(args):
         "MSKE": MSKE_Processor,
         "OMCSrerank": OMCS_rerank_Processor,
         "CSLinear": CSLinear_Processor,
+        "CSLE": CSLinearEnhanced_Processor,
     }
 
     processor_name, model_name = args.task_name.split('_', maxsplit=1)

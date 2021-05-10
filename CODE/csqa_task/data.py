@@ -395,12 +395,69 @@ class CSLinear_Processor(OMCS_Processor):
     
     @staticmethod
     def load_example(case, cs4choice):
-        # import pdb; pdb.set_trace()
         return CSLinearExample.load_from(case, cs4choice)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
         return super().make_dataloader(tokenizer, args, shuffle=shuffle)
 
+
+class CSLinearEnhanced_Processor(OMCS_Processor):
+    '''
+    Base on OMCS_Processor, add restriction to the sequence len.
+    question_len, cs_len, cs_num, max_qa_len 54, max_cs_len 18
+    '''
+    
+    def __init__(self, args, dataset_type):
+        super().__init__(args, dataset_type)
+        self.max_qa_len = args.max_qa_len
+        self.max_cs_len = args.max_cs_len
+        self.max_seq_len = args.max_seq_len
+
+        self.ke_method_list = ["024", "135", "25", "34", "01", "top3"]
+
+        if dataset_type in ['dev', 'test']:
+            self.dev_method = args.dev_method
+            logger.info(f"dev method {args.dev_method}")
+        elif dataset_type == 'train':
+            self.train_method = args.train_method
+            logger.info(f"dev method {args.train_method}")
+    
+    def load_data(self):
+        self.load_csqa()
+        self.load_omcs()
+        if self.dataset_type not in ['dev', 'test'] or self.dev_method is not None:
+            self.inject_omcs()
+
+    def inject_omcs(self):
+        omcs_index = 0
+        self.examples.clear()
+
+        for case in self.raw_csqa:
+            cs4choice = {}
+            question = case['question']
+            for choice in question['choices']:
+                # 处理每一个 choice
+                choice_text = choice['text']
+                cs_list = self.omcs_cropus[omcs_index]['cs_list'][:self.args.cs_num]
+                omcs_index += 1
+                cs4choice[choice_text] = cs_list
+
+                temp = self.args.cs_num - len(cs_list)
+                if temp:
+                    cs_list.extend([' ']*temp)
+
+                cs4choice[choice_text] = cs_list
+
+            method = self.dev_method if self.dataset_type in ['dev', 'test'] else self.train_method
+            example = CSLinearEnhanceExample.load_from(case, cs4choice, method=method)
+            self.examples.append(example)
+
+    @staticmethod
+    def load_example(case, cs4choice):
+        return CSLinearExample.load_from(case, cs4choice)
+
+    def make_dataloader(self, tokenizer, args, shuffle=True):
+        return super().make_dataloader(tokenizer, args, shuffle=shuffle)
 
 class OMCS_rerank_Processor(OMCS_Processor):
 

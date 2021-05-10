@@ -139,8 +139,8 @@ class OMCSExample(BaseExample):
 
 class CSLinearExample(OMCSExample):
 
-    def __init__(self, example_id, label, text_list):
-        super().__init__(example_id, label, text_list)
+    def __init__(self, example_id, label, text_list, mode='origin'):
+        super().__init__(example_id, label, text_list, mode)
 
     def tokenize(self, tokenizer, args):
         '''
@@ -180,7 +180,7 @@ class CSLinearExample(OMCSExample):
             self.text_list[index] = qa_ids, cs_ids
 
     @staticmethod
-    def make_text(question, choices, cs4choice, question_concept):
+    def make_text(question, choices, cs4choice, question_concept, mode):
         """
         "[CLS] question [SEP] question_concept [SEP] Choice [SEP] cs_1 [SEP] ... [SEP] cs_n [SEP]"
 
@@ -200,6 +200,149 @@ class CSLinearExample(OMCSExample):
             cs_list = [cs for cs in cs4choice[choice_str]]
             text_list.append((qa_list, cs_list))
         return text_list
+
+
+class CSLinearEnhanceExample(BaseExample):
+
+    def __init__(self, example_id, label, text_stack):
+        super().__init__(example_id, label)
+        self.text_stack = text_stack
+
+    def tokenize(self, tokenizer, args):
+        '''
+        feature_dict: 'input_ids', 'token_type_ids', 'attention_mask'
+        [CLS] question [SEP] question_concept [SEP] Choice [SEP] PADDING cs_1 [SEP] ... [SEP] cs_n [SEP]
+        '''
+        max_qa_len = args.max_qa_len
+        max_cs_len = args.max_cs_len
+        max_seq_len = args.max_seq_len
+
+        all_feature_dict = {
+            'input_ids': [],
+            'token_type_ids': [],
+            'attention_mask': []
+        }
+        labels = [self.label for _ in range(len(self.text_stack))]
+
+        for text_list in self.text_stack:
+            text_list = self.cut_add(tokenizer, max_qa_len, max_cs_len, text_list)
+            all_qa_ids = [case[0] for case in text_list]
+            all_cs_ids = [case[1] for case in text_list]
+
+            feature_dict = tokenizer.batch_encode_plus(list(zip(all_qa_ids, all_cs_ids)), add_special_tokens=True, max_length=max_seq_len, padding='max_length', truncation=True, return_tensors='pt')
+
+            all_feature_dict['input_ids'].append(feature_dict['input_ids'])
+            all_feature_dict['token_type_ids'].append(feature_dict['token_type_ids'])
+            all_feature_dict['attention_mask'].append(feature_dict['attention_mask'])
+
+        return all_feature_dict, labels
+
+    def cut_add(self, tokenizer, max_qa_len, max_cs_len, text_list):
+        sep = tokenizer.sep_token
+        max_qa_len -= 2  # current qa doesn't contain cls and endsep
+
+        for index, case in enumerate(text_list):
+            qa_list, cs_list = case
+            qa_ids = tokenizer.tokenize(f' {sep} '.join(qa_list))
+            if len(qa_ids) > max_qa_len:
+                qa_ids = qa_ids[len(qa_ids)-max_qa_len:]
+            
+            cs_ids = []
+            for j, cs in enumerate(cs_list):
+                temp = tokenizer.tokenize(cs)
+                temp = temp[:max_cs_len-1] # last place for sep
+                if j != len(cs_list)-1:
+                    temp = temp + [tokenizer.sep_token]
+                cs_ids.extend(temp)
+
+            text_list[index] = qa_ids, cs_ids
+
+        return text_list
+
+    @staticmethod
+    def make_text_stack(question, choices, cs4choice, question_concept, method):
+
+        cs_type_list = [
+            'odd', 'even', 'origin', 'top2', 'shuffle3', 'shuffle2',
+            'top3', "024", "135", "25", "34", "01"
+            ]
+
+        def choose_cs_type(method):
+            if method == 'trian_01':
+                cs_type = ['odd', 'even']
+                m1 = 'top2'
+                m2 = random.choice(cs_type)
+                return (m1, m2)
+            elif method == 'train_01_equal':
+                cs_type = ['odd', 'even', 'top2']
+                m1 = random.choice(cs_type)
+                cs_type.remove(m1)
+                m2 = random.choice(cs_type)
+                return (m1, m2)
+            elif method == 'trian_02':
+                cs_type = ['shuffle2', 'shuffle3']
+                m1 = 'top2'
+                m2 = random.choice(cs_type)
+                return (m1, m2)
+            elif method == 'trian_02_equal':
+                cs_type = ['shuffle2', 'shuffle3']
+                m1 = random.choice(cs_type)
+                cs_type.remove(m1)
+                m2 = random.choice(cs_type)
+                return (m1, m2)
+
+            elif method in cs_type_list:
+                return (method, )
+
+        if method in ['trian_01', 'trian_02', 'train_01_equal', 'trian_02_equal']:
+            text_stack = [[], [],]
+        elif method == "dev_5group":
+            text_stack = [[], [], [], []]
+        elif method in cs_type_list:
+            text_stack = [[],]
+        cstype_stack = []
+
+        for choice in choices:
+            choice_text = choice['text']
+
+            cs = {
+                "024": cs4choice[choice_text][:5:2],
+                "135": cs4choice[choice_text][1:6:2],
+                "25": cs4choice[choice_text][1:6:3],
+                "34": cs4choice[choice_text][3:5],
+                'odd': cs4choice[choice_text][1::2],
+                'even': cs4choice[choice_text][::2],
+                'top2': cs4choice[choice_text][:2],
+                'top3': cs4choice[choice_text][:3],
+            }
+            qa_list = [question, question_concept, choice_text]
+
+            cstype_list = choose_cs_type(method)
+            cstype_stack.append(cstype_list)
+
+            for index, cs_type in enumerate(cstype_list):
+                if cs_type in list(cs.keys()):
+                    cs_list = cs[cs_type]
+                elif cs_type == "shuffle2":
+                    temp_cs = random.sample(cs4choice[choice_text], k=2)
+                elif cs_type == "shuffle3":
+                    temp_cs = random.sample(cs4choice[choice_text], k=3)
+
+                text_stack[index].append((qa_list, cs_list))
+        return text_stack
+
+    @classmethod
+    def load_from(cls, case, cs4choice, method):
+        example_id = case['id']
+
+        label = ord(case.get('answerKey', 'A')) - ord('A')
+        question = case['question']['stem']
+        question_concept = case['question']['question_concept']
+        choices = case['question']['choices']
+
+        text_stack = cls.make_text_stack(question, question_concept, choices, desc_dict, cs4choice, method)
+
+        return cls(example_id, label, text_stack)
 
 
 class WKDTExample(BaseExample):
