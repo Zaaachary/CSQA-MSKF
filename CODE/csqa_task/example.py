@@ -273,6 +273,8 @@ class CSLinearEnhanceExample(BaseExample):
                 m1 = 'top2'
                 m2 = random.choice(cs_type)
                 return (m1, m2)
+            elif method == 'trian_02':
+                return ('top2', 'shuffle2', 'shuffle2')
             elif method == 'train_01_equal':
                 cs_type = ['odd', 'even', 'top2']
                 m1 = random.choice(cs_type)
