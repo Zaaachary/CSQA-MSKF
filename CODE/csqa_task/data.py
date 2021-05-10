@@ -457,7 +457,33 @@ class CSLinearEnhanced_Processor(OMCS_Processor):
         return CSLinearExample.load_from(case, cs4choice)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        return super().make_dataloader(tokenizer, args, shuffle=shuffle)
+        drop_last = False
+
+        if self.dataset_type in ['dev', 'test'] and self.dev_method is None:
+            return None
+
+        all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
+        all_label = []
+
+        for example in tqdm(self.examples):
+            feature_dict, labels = example.tokenize(tokenizer, args)
+            all_input_ids.extend(feature_dict['input_ids'])
+            all_token_type_ids.extend(feature_dict['token_type_ids'])
+            all_attention_mask.extend(feature_dict['attention_mask'])
+            all_label.extend(labels)
+
+        all_input_ids = torch.stack(all_input_ids)
+        all_attention_mask = torch.stack(all_attention_mask)
+        all_token_type_ids = torch.stack(all_token_type_ids)
+        all_label = torch.tensor(all_label, dtype=torch.long)
+
+        data = (all_input_ids, all_attention_mask, all_token_type_ids, all_label)
+
+        dataset = TensorDataset(*data)
+        sampler = RandomSampler(dataset) if shuffle else None
+        dataloader = DataLoader(dataset, sampler=sampler, batch_size=self.batch_size, drop_last=drop_last)
+
+        return dataloader
 
 class OMCS_rerank_Processor(OMCS_Processor):
 

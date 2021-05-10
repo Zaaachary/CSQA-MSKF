@@ -55,12 +55,12 @@ def select_task(args):
 
         "Albert_CrossAttn": (AlbertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
 
-        "Albert_BurgerAlpha0": (AlbertBurgerAlpha0, ['cs_num', 'max_qa_len', 'max_cs_len']),
+        "Albert_BurgerAlpha0": (AlbertBurgerAlpha0, ['model_cs_num', 'max_qa_len', 'max_cs_len']),
         # "Albert_BurgerAlpha1": (AlbertBurgerAlpha1, ['albert1_layers']),
-        "Albert_BurgerAlpha2": (AlbertBurgerAlpha2, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
+        "Albert_BurgerAlpha2": (AlbertBurgerAlpha2, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
         # 3 4 5
         # "Albert_BurgerAlphaX": (AlbertBurgerAlphaX, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
-        "Albert_BurgerAlpha6": (AlbertBurgerAlpha6, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers'])
+        "Albert_BurgerAlpha6": (AlbertBurgerAlpha6, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers'])
     }
 
     processor_dict = {
@@ -187,6 +187,7 @@ if __name__ == "__main__":
     parser.add_argument('--max_cs_len', type=int, default=None)
     parser.add_argument('--max_desc_len', type=int, default=None)
     parser.add_argument('--cs_num', type=int, default=0, help='the cs num of a qc pair')
+    parser.add_argument('--model_cs_num', type=int, default=0, help='the cs num of a qc pair')
     parser.add_argument('--train_method', type=str, default=None)
     parser.add_argument('--OMCS_version', type=str, default=None)
     parser.add_argument('--WKDT_version', type=str, default=None)

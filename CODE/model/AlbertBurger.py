@@ -28,7 +28,7 @@ class AlbertBurgerAlpha6(nn.Module, CSLinearBase, BurgerBase):
         super(AlbertBurgerAlpha6, self).__init__()
 
         self.albert1_layers = kwargs['albert1_layers']
-        self.cs_num = kwargs['cs_num']
+        self.cs_num = kwargs['model_cs_num']
         self.max_cs_len = kwargs['max_cs_len']
         self.max_qa_len  = kwargs['max_qa_len']
 
@@ -110,7 +110,7 @@ class AlbertBurgerAlpha5(nn.Module, CSLinearBase, BurgerBase):
         super(AlbertBurgerAlpha5, self).__init__()
 
         self.albert1_layers = kwargs['albert1_layers']
-        self.cs_num = kwargs['cs_num']
+        self.cs_num = kwargs['model_cs_num']
         self.max_cs_len = kwargs['max_cs_len']
         self.max_qa_len  = kwargs['max_qa_len']
 
@@ -194,7 +194,7 @@ class AlbertBurgerAlpha4(nn.Module, CSLinearBase, BurgerBase):
         super(AlbertBurgerAlpha4, self).__init__()
 
         self.albert1_layers = kwargs['albert1_layers']
-        self.cs_num = kwargs['cs_num']
+        self.cs_num = kwargs['model_cs_num']
         self.max_cs_len = kwargs['max_cs_len']
         self.max_qa_len  = kwargs['max_qa_len']
 
@@ -281,7 +281,7 @@ class AlbertBurgerAlpha3(nn.Module, CSLinearBase, BurgerBase):
         super(AlbertBurgerAlpha3, self).__init__()
 
         self.albert1_layers = kwargs['albert1_layers']
-        self.cs_num = kwargs['cs_num']
+        self.cs_num = kwargs['model_cs_num']
         self.max_cs_len = kwargs['max_cs_len']
         self.max_qa_len  = kwargs['max_qa_len']
 
@@ -354,7 +354,7 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         super(AlbertBurgerAlpha2, self).__init__()
 
         self.albert1_layers = kwargs['albert1_layers']
-        self.cs_num = kwargs['cs_num']
+        self.cs_num = kwargs['model_cs_num']
         self.max_cs_len = kwargs['max_cs_len']
         self.max_qa_len  = kwargs['max_qa_len']
 
@@ -532,7 +532,7 @@ class AlbertBurgerAlpha0(AlbertPreTrainedModel):
     def __init__(self, config, **kwargs):
         super(AlbertBurgerAlpha0, self).__init__(config)
         # length config
-        self.cs_num = kwargs['cs_num']
+        self.cs_num = kwargs['model_cs_num']
         self.max_cs_len = kwargs['max_cs_len']
         self.max_qa_len  = kwargs['max_qa_len']
 
