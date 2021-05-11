@@ -163,14 +163,20 @@ if __name__ == "__main__":
     parser.add_argument('--choose_top', action='store_true')
 
     args_str = r"""
-    --task_name vote
+    --task_name merge
     --predict_dir 
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_01_80.01
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_equal_dev5_group
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_train02_80.26
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\4.0
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\3.0
+    /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/result_80.01/
+    /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/0941-May11_seed42/dev_result/
     """
+    # args_str = r"""
+    # --task_name vote
+    # --predict_dir 
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_01_80.01
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_equal_dev5_group
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_train02_80.26
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\4.0
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\3.0
+    # """
     # --choose_top
 
     # args_str = """
