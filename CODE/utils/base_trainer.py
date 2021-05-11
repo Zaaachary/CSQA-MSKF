@@ -25,7 +25,7 @@ try:
     from apex import amp
 except ImportError:
     print("apex, tensorboard may not imported")
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 
 from .common import Vn, mkdir_if_notexist
 
@@ -62,7 +62,7 @@ class BaseTrainer:
         self.print_step = print_step
         self.eval_after_tacc = eval_after_tacc
         self.best_loss, self.best_acc = float('inf'), 0
-        self.writer = SummaryWriter(f'./DATA/runs/{exp_name}')
+        # self.writer = SummaryWriter(f'./DATA/runs/{exp_name}')
         self.start_epoch = -1
 
     def set_best_acc(self, acc):
@@ -89,11 +89,11 @@ class BaseTrainer:
                 if self.global_step % self.print_step == 0:
                     print(' ')
                     self._report(self.train_record, 'Train')
-                    self.writer.add_scalar(
-                        'training loss', 
-                        self.train_record[0].avg(),
-                        epoch * len(train_dataloader) + self.global_step
-                    )
+                    # self.writer.add_scalar(
+                    #     'training loss', 
+                    #     self.train_record[0].avg(),
+                    #     epoch * len(train_dataloader) + self.global_step
+                    # )
                     right, all_num = self.train_record.list()[-2:]
                     train_acc = right / all_num
                     self.train_record.init()
@@ -102,11 +102,11 @@ class BaseTrainer:
                     if save_mode == 'step' and train_acc >= self.eval_after_tacc:
                         dev_record = self.evaluate(dev_dataloader)  # loss, right_num, all_num
                         self._report(dev_record, 'Dev')
-                        self.writer.add_scalar(
-                            'Develop loss', 
-                            dev_record[0].avg(),
-                            epoch * len(train_dataloader) + self.global_step
-                        )
+                        # self.writer.add_scalar(
+                        #     'Develop loss', 
+                        #     dev_record[0].avg(),
+                        #     epoch * len(train_dataloader) + self.global_step
+                        # )
                         dev_list = dev_record.list()
                         cur_loss = dev_list[0]
                         right_num, all_num  = dev_list[-2:]
