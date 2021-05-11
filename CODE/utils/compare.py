@@ -163,11 +163,15 @@ if __name__ == "__main__":
     parser.add_argument('--choose_top', action='store_true')
 
     args_str = r"""
-    --task_name vote_logit
+    --task_name vote
     --predict_dir 
-    D:\CODE\Commonsense\CSQA_DATA\model_save\1319-May07_seed42_TMtrain_01_equal_DMtrain_01_equal\dev_result
-    --choose_top
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_01_80.01
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_equal_dev5_group
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_train02_80.26
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\4.0
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\3.0
     """
+    # --choose_top
 
     # args_str = """
     # --task_name vote
