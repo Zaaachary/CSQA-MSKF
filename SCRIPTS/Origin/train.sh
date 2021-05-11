@@ -20,4 +20,4 @@ python CODE/run_csqa_task.py\
     \
     --dataset_dir /home/zhifli/DATA\
     --result_dir  /data/zhifli/model_save\
-    --PTM_model_vocab_dir /home/zhifli/DATA/transformers-models/albert-xxlarge-v2/
+    --PTM_model_vocab_dir /home/zhifli/DATA/transformers-models/albert-xxlarge-v2/ 

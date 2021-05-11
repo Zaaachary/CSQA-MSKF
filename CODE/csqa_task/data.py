@@ -7,7 +7,6 @@
 """
 import os
 import json
-import pdb
 from random import random, sample
 from copy import deepcopy
 import logging
@@ -55,7 +54,6 @@ class ProcessorBase(object):
 
         for example in tqdm(self.examples):
             feature_dict = example.tokenize(tokenizer, args)
-            # import pdb; pdb.set_trace()
             all_input_ids.append(feature_dict['input_ids'])
             all_token_type_ids.append(feature_dict['token_type_ids'])
             all_attention_mask.append(feature_dict['attention_mask'])
@@ -248,9 +246,13 @@ class Wiktionary_Processor(ProcessorBase):
         
         with open(wiktionary_file, 'r', encoding='utf-8') as f:
             self.wiktionary = json.load(f)
-    
-    def inject_description(self):
         
+
+    def inject_description(self):
+        if self.wkdt_version == "5.0":
+            for key, value in self.wiktionary.items():
+                self.wiktionary[key] = value[0]
+
         for case in self.raw_csqa:
             desc_dict = {}    # question concept, choice
             Qconcept = case['question']['question_concept']

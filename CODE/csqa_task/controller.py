@@ -80,17 +80,18 @@ class MultipleChoice:
     def load_data(self, ProcessorClass, tokenizer):
         self.tokenizer = tokenizer
         if self.config.mission in ("train", 'conti-train'):
+            processor = ProcessorClass(self.config, 'dev')
+            processor.load_data()
+            self.deval_dataloader = processor.make_dataloader(
+                tokenizer, self.config, shuffle=False)
+            logger.info("dev dataset loaded")
+            
             processor = ProcessorClass(self.config, 'train')
             processor.load_data()
             self.train_dataloader = processor.make_dataloader(
                 tokenizer, self.config)
             logger.info("train dataset loaded")
 
-            processor = ProcessorClass(self.config, 'dev')
-            processor.load_data()
-            self.deval_dataloader = processor.make_dataloader(
-                tokenizer, self.config, shuffle=False)
-            logger.info("dev dataset loaded")
 
         elif self.config.mission == "eval":
             processor = ProcessorClass(self.config, 'dev')
