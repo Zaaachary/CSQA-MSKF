@@ -215,7 +215,7 @@ class MultipleChoice:
                     logits, dim=1).cpu().numpy().tolist())
 
         raw_csqa = self.processor.set_predict_labels(predict_list)
-        result_dump(self.config, raw_csqa, file_prefix + 'predict.json')
+        result_dump(self.config, raw_csqa, file_prefix + 'predict.json', folder='predict_result')
 
     def predict_knowledge_ensemble_test(self):
         ke_method_list = self.processor.ke_method_list

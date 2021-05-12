@@ -74,7 +74,6 @@ def count_vote(result_list, choose_top, task_name):
             csqa_dict[key]['predictList'].append(value['AnswerKey_pred'])
             csqa_dict[key]['logitsList'].append([choice['logit'] for choice in value['choices']])
 
-    # import pdb; pdb.set_trace()
     # vote
     equal = 0
     for key, value in csqa_dict.items():
@@ -171,16 +170,15 @@ if __name__ == "__main__":
     args_str = r"""
     --task_name vote
     --predict_dir 
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10\dev_result
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_01_80.01
     D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\4.0
     D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\3.0
     D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_equal_dev5_group
     D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_train02_80.26
     """
-    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_01_80.01
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10\dev_result
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_02_77.96\dev_result
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\BurgerAlpha2\layer11_80.18\dev_result
-
 
     # args_str = """
     # --task_name vote

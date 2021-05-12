@@ -351,7 +351,6 @@ class MSKE_Processor(OMCS_Processor, Wiktionary_Processor):
             self.examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        # return super().make_dataloader(tokenizer, args, shuffle=shuffle)
         drop_last = False
 
         if self.dataset_type in ['dev', 'test'] and self.dev_method is None:
@@ -486,6 +485,7 @@ class CSLinearEnhanced_Processor(OMCS_Processor):
         dataloader = DataLoader(dataset, sampler=sampler, batch_size=self.batch_size, drop_last=drop_last)
 
         return dataloader
+
 
 class OMCS_rerank_Processor(OMCS_Processor):
 
