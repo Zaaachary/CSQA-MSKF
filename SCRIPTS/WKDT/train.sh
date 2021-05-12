@@ -2,7 +2,7 @@ python CODE/run_csqa_task.py\
     --task_name WKDT_Albert_Baseline\
     --mission train\
     --fp16 0\
-    --seed 42\
+    --seed 5200\
     --gpu_ids 5\
     --save_mode step\
     --print_step 500\
@@ -15,7 +15,7 @@ python CODE/run_csqa_task.py\
     --WKDT_version 4.0\
     \
     --train_batch_size 1\
-    --gradient_accumulation_steps 8\
+    --gradient_accumulation_steps 16\
     --learning_rate 2e-5\
     --num_train_epochs 10\
     --warmup_proportion 0.1\

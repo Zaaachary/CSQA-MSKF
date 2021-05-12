@@ -132,7 +132,7 @@ def main(args):
         method_list = []
         for file in file_list:
             if '_right_result.json' in file:
-                method =file.replace('_right_result.json', '')
+                method = file.replace('_right_result.json', '')
                 method_list.append(method)
         
         if len(method_list) == 0:
@@ -162,22 +162,25 @@ if __name__ == "__main__":
     parser.add_argument('--predict_dir', nargs='+')
     parser.add_argument('--choose_top', action='store_true')
 
-    args_str = r"""
-    --task_name merge
-    --predict_dir 
-    /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/result_80.01/
-    /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/0941-May11_seed42/dev_result/
-    """
     # args_str = r"""
-    # --task_name vote
+    # --task_name merge
     # --predict_dir 
-    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_01_80.01
-    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_equal_dev5_group
-    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_train02_80.26
-    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\4.0
-    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\3.0
+    # /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/result_80.01/
+    # /data/zhifli/model_save/albert-xxlarge-v2/Origin_Albert_Baseline/0941-May11_seed42/dev_result/
     # """
-    # --choose_top
+    args_str = r"""
+    --task_name vote
+    --predict_dir 
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10\dev_result
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\4.0
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\3.0
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_equal_dev5_group
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_train02_80.26
+    """
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_01_80.01
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_02_77.96\dev_result
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\BurgerAlpha2\layer11_80.18\dev_result
+
 
     # args_str = """
     # --task_name vote

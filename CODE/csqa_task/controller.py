@@ -197,8 +197,10 @@ class MultipleChoice:
 
             self.run_dev(str(index) + method + '_')
 
-    def predict_test(self):
-        self.evaluate()
+    def predict_test(self, file_prefix='', evaluate=True):
+        if evaluate:
+            self.evaluate()
+            
         predict_list = []
         dataloader = self.test_dataloader
         self.model.eval()
@@ -213,6 +215,14 @@ class MultipleChoice:
                     logits, dim=1).cpu().numpy().tolist())
 
         raw_csqa = self.processor.set_predict_labels(predict_list)
-        # import pdb; pdb.set_trace()
-        result_dump(self.config, raw_csqa, 'predict.json')
-        # output_dir = os.path.join(self.config.result_dir, 'predict.json')
+        result_dump(self.config, raw_csqa, file_prefix + 'predict.json')
+
+    def predict_knowledge_ensemble_test(self):
+        ke_method_list = self.processor.ke_method_list
+        for index, method in enumerate(ke_method_list):
+            logger.info(f'predict test in {method}')
+            self.processor.remake_data(method)
+            self.test_dataloader = self.processor.make_dataloader(
+                self.tokenizer, self.config, shuffle=False)
+
+            self.predict_test(str(index) + method + '_', evaluate=False)

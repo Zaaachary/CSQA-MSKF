@@ -156,7 +156,10 @@ def main(args):
         else:
             controller.run_dev()
     elif args.mission == 'predict':
-        controller.predict_test()
+        if args.knowledge_ensemble:
+            controller.predict_knowledge_ensemble_test()
+        else:
+            controller.predict_test()
 
     end = time.time()
     logger.info(f"task total run time {end-start:.2f} second")
