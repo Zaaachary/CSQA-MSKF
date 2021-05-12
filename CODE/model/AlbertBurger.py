@@ -354,7 +354,7 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         super(AlbertBurgerAlpha2, self).__init__()
 
         self.albert1_layers = kwargs['albert1_layers']
-        self.cs_num = kwargs['model_cs_num']
+        self.cs_num = kwargs['cs_num']
         self.max_cs_len = kwargs['max_cs_len']
         self.max_qa_len  = kwargs['max_qa_len']
 
@@ -370,6 +370,7 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         self.cs_attention_scorer = AttentionLayer(config, self.cs_num)
 
         self.albert2 = AlbertModel(self.config2)
+        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
             nn.Linear(config.hidden_size, 1)
@@ -413,15 +414,15 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
         attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
         middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, middle_hidden_state)
+        outputs = self.albert2(inputs_embeds=middle_hidden_state)
+        # pooler_output = outputs.pooler_output  # [CLS]
+        # # [B*5, H] => [B*5, 1] => [B, 5]
+        # logits = self.scorer(pooler_output).view(-1, 5)
 
-        outputs = self.albert2(inputs_embeds=middle_hidden_state, attention_mask=flat_attention_mask)
-        
-        pooler_output = outputs.pooler_output  # [CLS]
-        # [B*5, H] => [B*5, 1] => [B, 5]
-        logits = self.scorer(pooler_output).view(-1, 5)
+        merged_output = self.attention_merge(outputs, flat_attention_mask)
+        logits = self.scorer(merged_output).view(-1, 5)
 
         return logits
-
 
 class AlbertBurgerAlpha1(nn.Module):
 

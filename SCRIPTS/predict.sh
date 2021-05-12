@@ -10,6 +10,6 @@ python CODE/run_csqa_task.py\
     --max_qa_len 54\
     --WKDT_version 4.0\
     \
-    --dataset_dir DATA\
+    --dataset_dir /home/zhifli/DATA、\
     --saved_model_dir /home/zhifli/DATA/model_save/WKDT_Albert_Baseline/1829-May04_seed5004_wkdtv4.0/\
-    --PTM_model_vocab_dir /home/zhifli/DATA/transformers-models/albert-xxlarge-v2/
+    --PTM_model_vocab_dir /home/zhifli/DATA/transformers-models/albert-xxlarge-v2
