@@ -263,47 +263,31 @@ class CSLinearEnhanceExample(BaseExample):
     def make_text_stack(question, choices, cs4choice, question_concept, method):
 
         cs_type_list = [
-            'odd', 'even', 'origin', 'top2', 'shuffle3', 'shuffle2',
-            'top3', "024", "135", "25", "34", "01"
+            "0246", "1357", "0123", "4567"
             ]
 
         def choose_cs_type(method):
-            if method == 'trian_01':
-                cs_type = ['shuffle2', 'shuffle2']
-                m1 = 'top2'
-                m2 = random.choice(cs_type)
-                return (m1, m2)
-            elif method == 'trian_02':
-                return ('top2', 'shuffle2', 'shuffle2')
-            elif method == 'train_01_equal':
-                cs_type = ['odd', 'even', 'top2']
-                m1 = random.choice(cs_type)
-                cs_type.remove(m1)
-                m2 = random.choice(cs_type)
-                return (m1, m2)
+            if method == 'train_01':
+                cs_type = ["0246", "1357", "0123", "4567"]
+                return cs_type
             elif method in cs_type_list:
-                return (method, )
+                return [method, ]
 
-        if method in ['trian_01', 'trian_02', 'train_01_equal', 'trian_02_equal']:
-            text_stack = [[], [],]
-        elif method == "dev_5group":
+        if method in ['train_01',]:
             text_stack = [[], [], [], []]
         elif method in cs_type_list:
             text_stack = [[],]
+
         cstype_stack = []
 
         for choice in choices:
             choice_text = choice['text']
 
             cs = {
-                "024": cs4choice[choice_text][:5:2],
-                "135": cs4choice[choice_text][1:6:2],
-                "25": cs4choice[choice_text][1:6:3],
-                "34": cs4choice[choice_text][3:5],
-                'odd': cs4choice[choice_text][1::2],
-                'even': cs4choice[choice_text][::2],
-                'top2': cs4choice[choice_text][:2],
-                'top3': cs4choice[choice_text][:3],
+                "0246": cs4choice[choice_text][:8:2],
+                "1357": cs4choice[choice_text][1:8:2],
+                "0123": cs4choice[choice_text][:4],
+                "4567": cs4choice[choice_text][4:8],
             }
             qa_list = [question, question_concept, choice_text]
 
@@ -313,10 +297,6 @@ class CSLinearEnhanceExample(BaseExample):
             for index, cs_type in enumerate(cstype_list):
                 if cs_type in list(cs.keys()):
                     cs_list = cs[cs_type]
-                elif cs_type == "shuffle2":
-                    temp_cs = random.sample(cs4choice[choice_text], k=2)
-                elif cs_type == "shuffle3":
-                    temp_cs = random.sample(cs4choice[choice_text], k=3)
 
                 text_stack[index].append((qa_list, cs_list))
         return text_stack
