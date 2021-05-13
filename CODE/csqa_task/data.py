@@ -181,6 +181,7 @@ class OMCS_Processor(ProcessorBase):
         omcs_index = 0
         for case in self.raw_csqa:
             cs4choice = {}
+            question = case['question']
             for choice in case['question']['choices']:
                 choice_text = choice['text']
                 cs_list = self.omcs_cropus[omcs_index]['cs_list'][:self.args.cs_num]
@@ -188,18 +189,18 @@ class OMCS_Processor(ProcessorBase):
 
                 # cs_list.sort(key=lambda x:len(x)) # sort by cs_len
 
-                temp = self.args.cs_num - len(cs_list)
-                if temp:
-                    cs_list.extend(['<unk>']*temp)
+                # temp = self.args.cs_num - len(cs_list)
+                # if temp:
+                #     cs_list.extend(['<unk>']*temp)
 
-                # if len(cs_list) == 0:
-                #     cs_list.append('choice_text')
-                #     cs_list.append(question['question_concept'])
+                if len(cs_list) == 0:
+                    cs_list.append('choice_text')
+                    # cs_list.append(question['question_concept'])
                     
-                # distance = self.args.cs_num - len(cs_list)
-                # while distance > 0:
-                #     cs_list.extend(cs_list[:distance])
-                #     distance = self.args.cs_num - len(cs_list)
+                distance = self.args.cs_num - len(cs_list)
+                while distance > 0:
+                    cs_list.extend(cs_list[:distance])
+                    distance = self.args.cs_num - len(cs_list)
 
 
                 cs4choice[choice_text] = cs_list
