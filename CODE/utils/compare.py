@@ -113,7 +113,7 @@ def count_vote(result_list, choose_top, task_name):
         else:
             value['TF'] = "F"
 
-    # count true
+    # count true    
     right, wrong = 0, 0
     for value in csqa_dict.values():
         if value['TF'] == "T":
@@ -139,7 +139,6 @@ def main(args):
         else:
             for method in method_list:
                 result_list.append(load_result(file_dir, method=method))
-
 
     if args.task_name == 'merge':
         right_dict = {}
