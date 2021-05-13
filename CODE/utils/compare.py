@@ -256,7 +256,6 @@ if __name__ == "__main__":
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_02_77.96
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\1312-May11_seed5004_wkdtv5.0_75.53
 
-
     # args_str = """
     # --task_name vote
     # --predict_dir 

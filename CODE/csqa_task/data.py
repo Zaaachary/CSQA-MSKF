@@ -486,6 +486,7 @@ class CSLinearEnhanced_Processor(OMCS_Processor):
 
         return dataloader
 
+
 class OMCS_rerank_Processor(OMCS_Processor):
 
     def __init__(self, args, dataset_type):
