@@ -199,7 +199,7 @@ class CSLinearExample(OMCSExample):
             qa_list = [question, question_concept, choice_str]
             cs_list = [cs for cs in cs4choice[choice_str]]
             cs_list.sort(key=lambda x:len(x))
-            
+
             text_list.append((qa_list, cs_list))
         return text_list
 
@@ -272,11 +272,16 @@ class CSLinearEnhanceExample(BaseExample):
             if method == 'train_01':
                 cs_type = ["0246", "1357", "0123", "4567"]
                 return cs_type
+            elif method == 'train_02':
+                cs_type = ["0246", "1357", "0123", "4567"]
+                return random.sample(cs_type, k=2)
             elif method in cs_type_list:
                 return [method, ]
 
         if method in ['train_01',]:
             text_stack = [[], [], [], []]
+        elif method == ['train_02',]:
+            text_stack = [[], []]
         elif method in cs_type_list:
             text_stack = [[],]
 
