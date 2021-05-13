@@ -468,7 +468,7 @@ class CSLinearEnhanced_Processor(OMCS_Processor):
             example = CSLinearEnhanceExample.load_from(case, cs4choice, method=method)
             self.examples.append(example)
 
-        logger.info('count empty cs_list:', count)
+        logger.info(f"count empty cs_list:, {count}")
 
     @staticmethod
     def load_example(case, cs4choice):
