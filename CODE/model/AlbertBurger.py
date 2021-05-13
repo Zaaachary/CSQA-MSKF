@@ -20,88 +20,121 @@ from .BurgerBase import CSLinearBase, BurgerBase
 
 from utils import common
 
+class CSDecoderLayer(nn.Module):
 
-class AlbertBurgerAlpha6(nn.Module, CSLinearBase, BurgerBase):
+    def __init__(self, config, cs_num):
+        super().__init__()
+        self.hidden_size = config.hidden_size
+        self.cs_num = cs_num
+        self.tfm_decoder = nn.TransformerDecoderLayer(d_model=config.hidden_size, nhead=8)
 
-    def __init__(self, config, **kwargs):
+    def forward(self, qa_expand, cs, qa_padding_mask_expand, cs_padding_mask):
+        '''
+        qa_expand   [B, cs_num, qa_len, H] -> [qa_len, B*cs_num, H]
+        cs          [B, cs_num, cs_len, H] -> [cs_len, B*cs_num, H]
+        qa_padding  [B, cs_num, qa_len]    -> [B*cs_num, qa_len]
+        cs_padding  [B, cs_num, cs_len]    -> [B*cs_num, cs_len]
 
-        super(AlbertBurgerAlpha6, self).__init__()
+        decoder_output [cs_len, B*cs_num, H] -> [B, cs_num, cs_len, H]
+        '''
+        batch_size, cs_num, qa_len, hidden_size = qa_expand.shape
+        cs_len = cs.shape[-2]
 
-        self.albert1_layers = kwargs['albert1_layers']
-        self.cs_num = kwargs['model_cs_num']
-        self.max_cs_len = kwargs['max_cs_len']
-        self.max_qa_len  = kwargs['max_qa_len']
+        qa_expand = qa_expand.contiguous().view(batch_size*cs_num, qa_len, hidden_size)
+        qa = qa_expand.transpose(0, 1)
+        cs = cs.contiguous().view(batch_size*cs_num, cs_len, hidden_size)
+        cs = cs.transpose(0, 1)
+        qa_padding = qa_padding_mask_expand.contiguous().view(batch_size*cs_num, qa_len)
+        cs_padding = cs_padding_mask.contiguous().view(batch_size*cs_num, cs_len)
 
-        self.config = config
-        self.config1 = deepcopy(config)
-        self.config1.num_hidden_layers = self.albert1_layers
-        self.config2 = deepcopy(config)
-        self.config2.num_hidden_layers = config.num_hidden_layers - self.albert1_layers
-        self.config2.without_embedding = True
-
-        # modules
-        self.albert1 = AlbertModel(self.config1)
-        self.cs_qa_attn = CSDecoderLayer(self.config, self.cs_num)
-
-        self.albert2 = AlbertModel(self.config2)
-        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
-
-        self.scorer = nn.Sequential(
-            nn.Dropout(0.1),
-            nn.Linear(config.hidden_size, 1)
-        )
-
-        self.apply(self.init_weights)
-
-    def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
-        """
-        input_ids: [B, 5, L]
-        labels: [B, ]
-        """
-        logits = self._forward(input_ids, attention_mask, token_type_ids)
-        loss = F.cross_entropy(logits, labels)      # get the CELoss
-
-        with torch.no_grad():
-            logits = F.softmax(logits, dim=1)       # get the score
-            predicts = torch.argmax(logits, dim=1)  # find the result
-            right_num = torch.sum(predicts == labels)
-
-        return loss, right_num
-
-    def _forward(self, input_ids, attention_mask, token_type_ids):
-        # [B, 5, L] => [B * 5, L]
-        flat_input_ids = input_ids.view(-1, input_ids.size(-1))
-        flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
-        flat_token_type_ids = token_type_ids.view(-1, token_type_ids.size(-1))
-
-        outputs = self.albert1(
-            input_ids = flat_input_ids,
-            attention_mask = flat_attention_mask,
-            token_type_ids = flat_token_type_ids
-        )
-        middle_hidden_state = outputs.last_hidden_state
-
-        cs_encoding, cs_padding_mask, qa_encoding, qa_padding_mask = self._pad_qacs_to_maxlen(flat_input_ids, middle_hidden_state)
-        qa_encoding_expand = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
-        qa_padding_mask_expand = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
-
-        # qa_expand, cs, qa_padding_mask_expand, cs_padding_mask
-        qa_encoding_expand = self.cs_qa_attn(cs_encoding, qa_encoding_expand, cs_padding_mask, qa_padding_mask_expand)
-        qa_encoding = qa_encoding_expand.mean(dim=1)
-        # TODO
         # import pdb; pdb.set_trace()
+        decoder_output = self.tfm_decoder(tgt=cs, memory=qa, tgt_key_padding_mask=cs_padding, memory_key_padding_mask=qa_padding)
 
-        middle_hidden_state = torch.cat((middle_hidden_state[:,0,:].unsqueeze(1), qa_encoding), dim=1)
-        middle_padding_mask = torch.cat((flat_attention_mask[:,0].unsqueeze(1), qa_padding_mask), dim=1)
+        decoder_output = decoder_output.transpose(0, 1)
+        decoder_output = decoder_output.contiguous().view(batch_size, cs_num, cs_len, hidden_size)
 
-        outputs = self.albert2(inputs_embeds=middle_hidden_state, attention_mask=middle_padding_mask)
+        return decoder_output
 
-        pooler_output = outputs.pooler_output  # [CLS]
-        # [B*5, H] => [B*5, 1] => [B, 5]
-        logits = self.scorer(pooler_output).view(-1, 5)
+
+class AttentionLayer(nn.Module):
+    
+    def __init__(self, config, cs_num):
+        super().__init__()
+        self.hidden_size = config.hidden_size
+        self.cs_num = cs_num
+        self.mult_attn = nn.MultiheadAttention(self.hidden_size, num_heads=1)
+
+    def forward(self, query, keyvalue, attn_mask):
+        '''
+        input:
+        - query: [b, cs_num, Lq, hidden]
+        - keyvalue: [b, cs_num, Lkv, hidden]
         
-        return logits
+        output:
+        - attn_output_weights: [B, cs_num, Lq, Lkv]
+        - attn_output: [B, cs_num, Lq, H]
+        '''
+        Batch_size, cs_num, Lq, hidden_size = query.shape
+        Lkv = keyvalue.shape[-2]
+        
+        # [B, cs_num, L, H] -> [B * cs_num, L, H] -> [L, B*cs_num, H]
+        query = query.contiguous().view(-1, query.size(-2), query.size(-1))
+        query = query.transpose(0, 1)
+        keyvalue = keyvalue.contiguous().view(-1, keyvalue.size(-2), keyvalue.size(-1))
+        keyvalue = keyvalue.transpose(0, 1)
+        
+        # [B, cs_num, L] -> [B*cs_num, L]
+        attn_mask = attn_mask.contiguous().view(-1, attn_mask.size(-1))
 
+        # [Lq, B*cs_num, H], [B*cs_num, Lq, Ls]
+        attn_output, attn_output_weights = self.mult_attn(query, keyvalue, keyvalue, key_padding_mask=attn_mask)
+        
+        # [Lq, B*cs_num, H] -> [B*cs_num, Lq, H] -> [B, cs_num, Lq, H]
+        attn_output = attn_output.transpose(0, 1)
+        attn_output = attn_output.view(Batch_size, cs_num, Lq, hidden_size)
+
+        # [B*cs_num, Lq, Lkv] -> [B, cs_num, Lq, Lkv]
+        attn_output_weights = attn_output_weights.view(Batch_size, self.cs_num, Lq, Lkv)
+        return attn_output, attn_output_weights
+
+
+class AttentionMerge(nn.Module):
+
+    def __init__(self, input_size, attention_size, dropout_prob):
+        super(AttentionMerge, self).__init__()
+        self.attention_size = attention_size
+        self.hidden_layer = nn.Linear(input_size, self.attention_size)
+        self.query_ = nn.Parameter(torch.Tensor(self.attention_size, 1))
+        self.dropout = nn.Dropout(dropout_prob)
+
+        self.query_.data.normal_(mean=0.0, std=0.02)
+
+    def forward(self, values, mask=None):
+        """
+        H (B, L, hidden_size) => h (B, hidden_size)
+        """
+        if mask is None:
+            mask = torch.zeros_like(values)
+            # mask = mask.data.normal_(mean=0.0, std=0.02)
+        else:
+            mask = (1 - mask.unsqueeze(-1).type(torch.float)) * -1000.
+        # values [batch*5, len, hidden]
+        keys = self.hidden_layer(values)
+        keys = torch.tanh(keys)
+        query_var = torch.var(self.query_)
+        # (b, l, h) + (h, 1) -> (b, l, 1)
+        attention_probs = keys @ self.query_ / math.sqrt(self.attention_size * query_var)
+        # attention_probs = keys @ self.query_ / math.sqrt(self.attention_size)
+        # import pdb; pdb.set_trace()
+        attention_probs = F.softmax(attention_probs * mask, dim=-2)  # [batch*5, len, 1]
+        attention_probs = self.dropout(attention_probs)
+
+        context = torch.sum(attention_probs + values, dim=-2)    # [batch*5, hidden]
+        return context
+
+
+
+# Burger Here
 
 class AlbertBurgerAlpha5(nn.Module, CSLinearBase, BurgerBase):
 
@@ -413,11 +446,9 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         # attn_output:[5B, cs_num, L, H] attn_weights:[5B, cs_num, Lq, Lc]
         attn_output, attn_weights = self.cs_attention_scorer(cs_encoding, qa_encoding_expand, qa_padding_mask_expand)
         middle_hidden_state = self._remvoe_cs_pad_add_to_last_hidden_state(attn_output, middle_hidden_state)
-        outputs = self.albert2(inputs_embeds=middle_hidden_state)
+
+        outputs = self.albert2(inputs_embeds=middle_hidden_state, attention_mask=flat_attention_mask)
         outputs = outputs.last_hidden_state
-        # pooler_output = outputs.pooler_output  # [CLS]
-        # # [B*5, H] => [B*5, 1] => [B, 5]
-        # logits = self.scorer(pooler_output).view(-1, 5)
 
         merged_output = self.attention_merge(outputs, flat_attention_mask)
         logits = self.scorer(merged_output).view(-1, 5)
@@ -431,6 +462,88 @@ class AlbertBurgerAlpha2(nn.Module, CSLinearBase, BurgerBase):
         logits = self._forward(input_ids, attention_mask, token_type_ids)
         logits = F.softmax(logits, dim=1)
         return logits
+
+class AlbertBurgerAlpha6(nn.Module, CSLinearBase, BurgerBase):
+
+    def __init__(self, config, **kwargs):
+
+        super(AlbertBurgerAlpha6, self).__init__()
+
+        self.albert1_layers = kwargs['albert1_layers']
+        self.cs_num = kwargs['model_cs_num']
+        self.max_cs_len = kwargs['max_cs_len']
+        self.max_qa_len  = kwargs['max_qa_len']
+
+        self.config = config
+        self.config1 = deepcopy(config)
+        self.config1.num_hidden_layers = self.albert1_layers
+        self.config2 = deepcopy(config)
+        self.config2.num_hidden_layers = config.num_hidden_layers - self.albert1_layers
+        self.config2.without_embedding = True
+
+        # modules
+        self.albert1 = AlbertModel(self.config1)
+        self.cs_qa_attn = CSDecoderLayer(self.config, self.cs_num)
+
+        self.albert2 = AlbertModel(self.config2)
+        self.attention_merge = AttentionMerge(config.hidden_size, config.hidden_size//4, 0.1)
+
+        self.scorer = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(config.hidden_size, 1)
+        )
+
+        self.apply(self.init_weights)
+
+    def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
+        """
+        input_ids: [B, 5, L]
+        labels: [B, ]
+        """
+        logits = self._forward(input_ids, attention_mask, token_type_ids)
+        loss = F.cross_entropy(logits, labels)      # get the CELoss
+
+        with torch.no_grad():
+            logits = F.softmax(logits, dim=1)       # get the score
+            predicts = torch.argmax(logits, dim=1)  # find the result
+            right_num = torch.sum(predicts == labels)
+
+        return loss, right_num
+
+    def _forward(self, input_ids, attention_mask, token_type_ids):
+        # [B, 5, L] => [B * 5, L]
+        flat_input_ids = input_ids.view(-1, input_ids.size(-1))
+        flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
+        flat_token_type_ids = token_type_ids.view(-1, token_type_ids.size(-1))
+
+        outputs = self.albert1(
+            input_ids = flat_input_ids,
+            attention_mask = flat_attention_mask,
+            token_type_ids = flat_token_type_ids
+        )
+        middle_hidden_state = outputs.last_hidden_state
+
+        cs_encoding, cs_padding_mask, qa_encoding, qa_padding_mask = self._pad_qacs_to_maxlen(flat_input_ids, middle_hidden_state)
+        qa_encoding_expand = qa_encoding.unsqueeze(1).expand(-1, self.cs_num, -1, -1)
+        qa_padding_mask_expand = qa_padding_mask.unsqueeze(1).expand(-1, self.cs_num, -1)
+
+        # qa_expand, cs, qa_padding_mask_expand, cs_padding_mask
+        qa_encoding_expand = self.cs_qa_attn(cs_encoding, qa_encoding_expand, cs_padding_mask, qa_padding_mask_expand)
+        qa_encoding = qa_encoding_expand.mean(dim=1)
+        # TODO
+        # import pdb; pdb.set_trace()
+
+        middle_hidden_state = torch.cat((middle_hidden_state[:,0,:].unsqueeze(1), qa_encoding), dim=1)
+        middle_padding_mask = torch.cat((flat_attention_mask[:,0].unsqueeze(1), qa_padding_mask), dim=1)
+
+        outputs = self.albert2(inputs_embeds=middle_hidden_state, attention_mask=middle_padding_mask)
+
+        pooler_output = outputs.pooler_output  # [CLS]
+        # [B*5, H] => [B*5, 1] => [B, 5]
+        logits = self.scorer(pooler_output).view(-1, 5)
+        
+        return logits
+
 
 class AlbertBurgerAlpha1(nn.Module):
 
@@ -690,114 +803,3 @@ class AlbertBurgerAlpha0(AlbertPreTrainedModel):
         return last_hidden_state
             
 
-class CSDecoderLayer(nn.Module):
-
-    def __init__(self, config, cs_num):
-        super().__init__()
-        self.hidden_size = config.hidden_size
-        self.cs_num = cs_num
-        self.tfm_decoder = nn.TransformerDecoderLayer(d_model=config.hidden_size, nhead=8)
-
-    def forward(self, qa_expand, cs, qa_padding_mask_expand, cs_padding_mask):
-        '''
-        qa_expand   [B, cs_num, qa_len, H] -> [qa_len, B*cs_num, H]
-        cs          [B, cs_num, cs_len, H] -> [cs_len, B*cs_num, H]
-        qa_padding  [B, cs_num, qa_len]    -> [B*cs_num, qa_len]
-        cs_padding  [B, cs_num, cs_len]    -> [B*cs_num, cs_len]
-
-        decoder_output [cs_len, B*cs_num, H] -> [B, cs_num, cs_len, H]
-        '''
-        batch_size, cs_num, qa_len, hidden_size = qa_expand.shape
-        cs_len = cs.shape[-2]
-
-        qa_expand = qa_expand.contiguous().view(batch_size*cs_num, qa_len, hidden_size)
-        qa = qa_expand.transpose(0, 1)
-        cs = cs.contiguous().view(batch_size*cs_num, cs_len, hidden_size)
-        cs = cs.transpose(0, 1)
-        qa_padding = qa_padding_mask_expand.contiguous().view(batch_size*cs_num, qa_len)
-        cs_padding = cs_padding_mask.contiguous().view(batch_size*cs_num, cs_len)
-
-        # import pdb; pdb.set_trace()
-        decoder_output = self.tfm_decoder(tgt=cs, memory=qa, tgt_key_padding_mask=cs_padding, memory_key_padding_mask=qa_padding)
-
-        decoder_output = decoder_output.transpose(0, 1)
-        decoder_output = decoder_output.contiguous().view(batch_size, cs_num, cs_len, hidden_size)
-
-        return decoder_output
-
-
-class AttentionLayer(nn.Module):
-    
-    def __init__(self, config, cs_num):
-        super().__init__()
-        self.hidden_size = config.hidden_size
-        self.cs_num = cs_num
-        self.mult_attn = nn.MultiheadAttention(self.hidden_size, num_heads=1)
-
-    def forward(self, query, keyvalue, attn_mask):
-        '''
-        input:
-        - query: [b, cs_num, Lq, hidden]
-        - keyvalue: [b, cs_num, Lkv, hidden]
-        
-        output:
-        - attn_output_weights: [B, cs_num, Lq, Lkv]
-        - attn_output: [B, cs_num, Lq, H]
-        '''
-        Batch_size, cs_num, Lq, hidden_size = query.shape
-        Lkv = keyvalue.shape[-2]
-        
-        # [B, cs_num, L, H] -> [B * cs_num, L, H] -> [L, B*cs_num, H]
-        query = query.contiguous().view(-1, query.size(-2), query.size(-1))
-        query = query.transpose(0, 1)
-        keyvalue = keyvalue.contiguous().view(-1, keyvalue.size(-2), keyvalue.size(-1))
-        keyvalue = keyvalue.transpose(0, 1)
-        
-        # [B, cs_num, L] -> [B*cs_num, L]
-        attn_mask = attn_mask.contiguous().view(-1, attn_mask.size(-1))
-
-        # [Lq, B*cs_num, H], [B*cs_num, Lq, Ls]
-        attn_output, attn_output_weights = self.mult_attn(query, keyvalue, keyvalue, key_padding_mask=attn_mask)
-        
-        # [Lq, B*cs_num, H] -> [B*cs_num, Lq, H] -> [B, cs_num, Lq, H]
-        attn_output = attn_output.transpose(0, 1)
-        attn_output = attn_output.view(Batch_size, cs_num, Lq, hidden_size)
-
-        # [B*cs_num, Lq, Lkv] -> [B, cs_num, Lq, Lkv]
-        attn_output_weights = attn_output_weights.view(Batch_size, self.cs_num, Lq, Lkv)
-        return attn_output, attn_output_weights
-
-
-class AttentionMerge(nn.Module):
-
-    def __init__(self, input_size, attention_size, dropout_prob):
-        super(AttentionMerge, self).__init__()
-        self.attention_size = attention_size
-        self.hidden_layer = nn.Linear(input_size, self.attention_size)
-        self.query_ = nn.Parameter(torch.Tensor(self.attention_size, 1))
-        self.dropout = nn.Dropout(dropout_prob)
-
-        self.query_.data.normal_(mean=0.0, std=0.02)
-
-    def forward(self, values, mask=None):
-        """
-        H (B, L, hidden_size) => h (B, hidden_size)
-        """
-        if mask is None:
-            mask = torch.zeros_like(values)
-            # mask = mask.data.normal_(mean=0.0, std=0.02)
-        else:
-            mask = (1 - mask.unsqueeze(-1).type(torch.float)) * -1000.
-        # values [batch*5, len, hidden]
-        keys = self.hidden_layer(values)
-        keys = torch.tanh(keys)
-        query_var = torch.var(self.query_)
-        # (b, l, h) + (h, 1) -> (b, l, 1)
-        attention_probs = keys @ self.query_ / math.sqrt(self.attention_size * query_var)
-        # attention_probs = keys @ self.query_ / math.sqrt(self.attention_size)
-        # import pdb; pdb.set_trace()
-        attention_probs = F.softmax(attention_probs * mask, dim=-2)  # [batch*5, len, 1]
-        attention_probs = self.dropout(attention_probs)
-
-        context = torch.sum(attention_probs + values, dim=-2)    # [batch*5, hidden]
-        return context
