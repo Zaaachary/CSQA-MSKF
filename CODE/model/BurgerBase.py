@@ -74,7 +74,7 @@ class CSLinearBase(object):
                 zero = zero.to(last_hidden_state.device)
                 cs_case_list.append(torch.cat((cs, zero), dim=-2))
 
-                mask = torch.cat((torch.zeros(cs.shape[:-1]), torch.ones(pad_len))).bool()
+                mask = torch.cat((torch.zeros(cs.shape[:-1]), torch.ones(pad_len))).type(torch.bool)
                 mask = mask.to(last_hidden_state.device)
                 cs_padding_list.append(mask)
 
@@ -95,7 +95,7 @@ class CSLinearBase(object):
             zero = zero.to(last_hidden_state.device)
             qa_batch_list.append(torch.cat((qa, zero), dim=-2))
 
-            mask = torch.cat((torch.zeros(qa.shape[:-1]), torch.ones(pad_len))).bool()
+            mask = torch.cat((torch.zeros(qa.shape[:-1]), torch.ones(pad_len))).type(torch.bool)
             mask = mask.to(last_hidden_state.device)
             qa_padding_batch_list.append(mask)
 

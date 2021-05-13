@@ -297,6 +297,7 @@ class CSLinearEnhanceExample(BaseExample):
             for index, cs_type in enumerate(cstype_list):
                 if cs_type in list(cs.keys()):
                     cs_list = cs[cs_type]
+                    cs_list.sort(key=lambda x:len(x))
 
                 text_stack[index].append((qa_list, cs_list))
         return text_stack

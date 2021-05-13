@@ -2,7 +2,8 @@ python CODE/run_csqa_task.py\
     --task_name CSLE_Albert_BurgerAlpha2\
     --mission train\
     --fp16 0\
-    --gpu_ids 6\
+    -seed 42\
+    --gpu_ids 5\
     --save_mode step\
     --print_step 100\
     --eval_after_tacc 0.59\
@@ -18,7 +19,7 @@ python CODE/run_csqa_task.py\
     --OMCS_version 3.0\
     --albert1_layers 10\
     \
-    --train_batch_size 8\
+    --train_batch_size 2\
     --gradient_accumulation_steps 1\
     --learning_rate 2e-5\
     --num_train_epochs 6\

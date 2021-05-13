@@ -442,7 +442,7 @@ class CSLinearEnhanced_Processor(OMCS_Processor):
     def inject_omcs(self):
         omcs_index = 0
         self.examples.clear()
-
+        count = 0
         for case in self.raw_csqa:
             cs4choice = {}
             question = case['question']
@@ -454,8 +454,8 @@ class CSLinearEnhanced_Processor(OMCS_Processor):
                 cs4choice[choice_text] = cs_list
 
                 if len(cs_list) == 0:
+                    count += 1
                     cs_list.append('choice_text')
-                    cs_list.append(question['question_concept'])
                     
                 distance = self.args.cs_num - len(cs_list)
                 while distance > 0:
@@ -467,6 +467,8 @@ class CSLinearEnhanced_Processor(OMCS_Processor):
             method = self.dev_method if self.dataset_type in ['dev', 'test'] else self.train_method
             example = CSLinearEnhanceExample.load_from(case, cs4choice, method=method)
             self.examples.append(example)
+
+        logger.info('count empty cs_list:', count)
 
     @staticmethod
     def load_example(case, cs4choice):
