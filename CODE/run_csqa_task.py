@@ -15,6 +15,7 @@ from transformers import AlbertTokenizer, BertTokenizer
 
 from csqa_task.data import *
 from csqa_task.controller import MultipleChoice
+from csqa_task.rank_data import RankOMCS_Processor
 
 from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
 from model.Baselines import AlbertBaseline, BertBaseline
@@ -66,6 +67,7 @@ def select_task(args):
     processor_dict = {
         "Origin": Baseline_Processor,
         "OMCS": OMCS_Processor,
+        "RankOMCS": RankOMCS_Processor,
         "WKDT": Wiktionary_Processor,
         "MSKE": MSKE_Processor,
         "OMCSrerank": OMCS_rerank_Processor,
@@ -160,6 +162,8 @@ def main(args):
             controller.predict_knowledge_ensemble_test()
         else:
             controller.predict_test()
+    elif args.mission == 'rankcs':
+        controller.rankcs()
 
     end = time.time()
     logger.info(f"task total run time {end-start:.2f} second")
@@ -170,7 +174,7 @@ if __name__ == "__main__":
 
     # device param
     parser.add_argument('--task_name', type=str, help="model & processor will be selected according to task")
-    parser.add_argument('--mission', type=str, choices=['train', 'eval', 'predict', 'conti-train'])
+    parser.add_argument('--mission', type=str, choices=['train', 'eval', 'predict', 'conti-train', 'rankcs'])
     parser.add_argument('--fp16', type=int, default=0)
     parser.add_argument('--gpu_ids', type=str, default='-1')
     parser.add_argument('--seed', type=int, default=42)

@@ -198,7 +198,7 @@ class CSLinearExample(OMCSExample):
             choice_str = choice['text']
             qa_list = [question, question_concept, choice_str]
             cs_list = [cs for cs in cs4choice[choice_str]]
-            cs_list.sort(key=lambda x:len(x))
+            # cs_list.sort(key=lambda x:len(x))
 
             text_list.append((qa_list, cs_list))
         return text_list

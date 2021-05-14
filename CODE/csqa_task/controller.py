@@ -79,19 +79,20 @@ class MultipleChoice:
 
     def load_data(self, ProcessorClass, tokenizer):
         self.tokenizer = tokenizer
-        if self.config.mission in ("train", 'conti-train'):
+        if self.config.mission in ("train", 'conti-train', 'rankcs'):
             processor = ProcessorClass(self.config, 'dev')
             processor.load_data()
             self.deval_dataloader = processor.make_dataloader(
                 tokenizer, self.config, shuffle=False)
+            self.dev_processor = processor
             logger.info("dev dataset loaded")
             
-            processor = ProcessorClass(self.config, 'train')
-            processor.load_data()
-            self.train_dataloader = processor.make_dataloader(
-                tokenizer, self.config)
-            logger.info("train dataset loaded")
-
+            # processor = ProcessorClass(self.config, 'train')
+            # processor.load_data()
+            # self.train_dataloader = processor.make_dataloader(
+            #     tokenizer, self.config)
+            # self.train_processor = processor
+            # logger.info("train dataset loaded")
 
         elif self.config.mission == "eval":
             processor = ProcessorClass(self.config, 'dev')
@@ -114,6 +115,30 @@ class MultipleChoice:
                 tokenizer, self.config, shuffle=False)
             self.processor = processor
             logger.info("test dataset loaded")
+
+    def rankcs(self):
+        loss = torch.nn.CrossEntropyLoss(reduction='none')
+
+        for task in ['dev', ]:
+        # for task in ['dev', 'train']:
+            loss_list = []
+            dataloader = self.deval_dataloader if task == 'dev' else self.train_dataloader
+            self.model.eval()
+            for batch in tqdm(dataloader):
+                if not self.config.clip_batch_off:
+                    batch = self.trainer.clip_batch(batch)
+                with torch.no_grad():
+                    batch = list(map(lambda x: x.to(self.device), batch))
+                    labels = batch[-1]
+                    batch = batch[:-1]  # rm label
+
+                    logits = self.model.predict(*batch) # [B, 5]
+                    batch_loss_list = loss(logits, labels)  # [B]
+                    loss_list.extend(batch_loss_list.cpu().tolist())
+
+            csqa_cslist = self.dev_processor.set_cs_loss(loss_list)
+            result_dump(self.config, csqa_cslist, f'{task}_csrank.json', folder='csqa_csrank')
+
 
     def train(self):
         # t_total = train_step // args.gradient_accumulation_steps * args.num_train_epochs // device_num
