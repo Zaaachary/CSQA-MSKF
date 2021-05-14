@@ -87,12 +87,12 @@ class MultipleChoice:
             self.dev_processor = processor
             logger.info("dev dataset loaded")
             
-            # processor = ProcessorClass(self.config, 'train')
-            # processor.load_data()
-            # self.train_dataloader = processor.make_dataloader(
-            #     tokenizer, self.config)
-            # self.train_processor = processor
-            # logger.info("train dataset loaded")
+            processor = ProcessorClass(self.config, 'train')
+            processor.load_data()
+            self.train_dataloader = processor.make_dataloader(
+                tokenizer, self.config)
+            self.train_processor = processor
+            logger.info("train dataset loaded")
 
         elif self.config.mission == "eval":
             processor = ProcessorClass(self.config, 'dev')
@@ -119,8 +119,7 @@ class MultipleChoice:
     def rankcs(self):
         loss = torch.nn.CrossEntropyLoss(reduction='none')
 
-        for task in ['dev', ]:
-        # for task in ['dev', 'train']:
+        for task in ['dev', 'train']:
             loss_list = []
             dataloader = self.deval_dataloader if task == 'dev' else self.train_dataloader
             self.model.eval()
