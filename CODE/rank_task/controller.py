@@ -20,7 +20,7 @@ from torch.utils.data import dataloader
 from tqdm import tqdm
 from utils.common import get_device, mkdir_if_notexist, result_dump
 
-from csqa_task.trainer import Trainer
+from rank_task.trainer import Trainer
 
 logger = logging.getLogger("controller")
 console = logging.StreamHandler()
@@ -31,7 +31,7 @@ console.setFormatter(formatter)
 logger.addHandler(console)
 
 
-class MultipleChoice:
+class TextClassification:
     """
     1. self.init()
     2. self.train(...)
@@ -58,13 +58,7 @@ class MultipleChoice:
         if self.config.mission == "train":
             model_dir = self.config.PTM_model_vocab_dir
             model = ModelClass.from_pretrained(model_dir, **self.model_kwargs)
-        else:
-            model_dir = self.config.saved_model_dir
-            if hasattr(ModelClass, 'from_pt'):
-                model = ModelClass.from_pt(model_dir, **self.model_kwargs)
-            else:
-                model = ModelClass.from_pretrained(
-                    model_dir, **self.model_kwargs)
+            # import pdb; pdb.set_trace()
 
         if self.multi_gpu:
             model = torch.nn.DataParallel(model, device_ids=self.gpu_ids)
@@ -79,7 +73,7 @@ class MultipleChoice:
 
     def load_data(self, ProcessorClass, tokenizer):
         self.tokenizer = tokenizer
-        if self.config.mission in ("train", 'conti-train', 'rankcs'):
+        if self.config.mission in ("train"):
             processor = ProcessorClass(self.config, 'dev')
             processor.load_data()
             self.deval_dataloader = processor.make_dataloader(
@@ -142,7 +136,6 @@ class MultipleChoice:
 
 
     def train(self):
-        # t_total = train_step // args.gradient_accumulation_steps * args.num_train_epochs // device_num
         train_dataloader = self.train_dataloader
         deval_dataloader = self.deval_dataloader
         train_step = len(train_dataloader)
@@ -158,12 +151,6 @@ class MultipleChoice:
             optimizer, warmup_proportion, total_training_step)
         self.trainer.set_optimizer(optimizer)
         self.trainer.set_scheduler(scheduler)
-
-        # 断点续训则先进行一次 Eval
-        if self.config.mission == 'conti-train':
-            right_num = self.evaluate()
-            self.trainer.set_best_acc(right_num)
-            self.trainer.load_train_info(self.config.saved_model_dir)
 
         self.trainer.train(
             self.config.num_train_epochs, self.config.gradient_accumulation_steps, train_dataloader, deval_dataloader, self.config.save_mode)

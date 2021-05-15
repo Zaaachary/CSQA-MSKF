@@ -120,10 +120,9 @@ class BertBaseline(BertPreTrainedModel):
 
         return logits
 
-    def _to_tensor(self, it, device): return torch.tensor(it, device=device, dtype=torch.float)
-
     def predict(self, input_ids, attention_mask, token_type_ids):
         """
         return: [B, 5]
         """
         return self._forward(input_ids, attention_mask, token_type_ids)
+

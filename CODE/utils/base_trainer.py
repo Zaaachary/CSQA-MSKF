@@ -113,7 +113,8 @@ class BaseTrainer:
                         self.save_or_not(cur_loss, right_num)
                         logger.info(f'current best dev acc: [{self.best_acc/all_num:.4f}]')
             else:
-                self._report(self.train_record)  # last steps not reach print_step
+                if self.train_record.list()[-1] != 0:
+                    self._report(self.train_record)  # last steps not reach print_step
 
             # epoch report
             dev_record = self.evaluate(dev_dataloader, True)  # loss, right_num, all_num

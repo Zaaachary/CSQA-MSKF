@@ -1,6 +1,4 @@
 import json
-from os import truncate
-import pdb
 import random
 
 import torch
@@ -439,7 +437,7 @@ class MSKEExample(BaseExample):
         cs_type_list = [
             'Qconcept_desc', 'Choice_desc', 'both_desc',
             'odd', 'even', 'origin', 'top2', 'shuffle3', 'shuffle2',
-            'top3', "024", "135", "25", "34", "01"
+            'top3', "024", "135", "25", "34", "01", "shuffle1"
             ]
 
         def choose_cs_type(method):
@@ -470,11 +468,13 @@ class MSKEExample(BaseExample):
                 m1 = random.sample(cs_type, k=3)
                 m1.append("01")
                 return m1
+            elif method == "train_03_equal":
+                return random.sample(['1', '2', '3', '4', '5', '6', '7', '8'], k = 2)
 
             elif method in cs_type_list:
                 return (method, )
 
-        if method in ['trian_01', 'trian_02', 'train_01_equal', 'trian_02_equal']:
+        if method in ['trian_01', 'trian_02', 'train_01_equal', 'trian_02_equal', "train_03_equal"]:
             text_stack = [[], [],]
         elif method == "dev_5group":
             text_stack = [[], [], [], []]
@@ -515,6 +515,14 @@ class MSKEExample(BaseExample):
 
                 elif cs_type in list(cs.keys()):
                     text_temp = text + ' [SEP] '.join(cs[cs_type])
+
+                elif cs_type in ['1', '2', '3', '4', '5', '6', '7', '8']:
+                    idx = int(cs_type) - 1
+                    text_temp = text + cs4choice[choice_text][idx]
+
+                elif cs_type == 'shuffle1':
+                    temp_cs = random.sample(cs4choice[choice_text], k=1)
+                    text_temp = text + ' [SEP] '.join(temp_cs)
 
                 elif cs_type == 'shuffle2':
                     temp_cs = random.sample(cs4choice[choice_text], k=2)

@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 
 from csqa_task.data import ProcessorBase
-from csqa_task.rank_example import RankOMCSExample
+from csqa_task.example import OMCSExample
 
 
 class RankOMCS_Processor(ProcessorBase):
@@ -38,7 +38,7 @@ class RankOMCS_Processor(ProcessorBase):
     
     @staticmethod
     def load_example(case, cs4choice):
-        return RankOMCSExample.load_from(case, cs4choice)
+        return OMCSExample.load_from(case, cs4choice)
 
     def inject_commonsense(self):
         for case_index, case in enumerate(self.raw_csqa):
@@ -75,7 +75,7 @@ class RankOMCS_Processor(ProcessorBase):
 
                         omcs_index += 1
                         choice['cs'] = insert_cs
-                        cs4choice[choice_text] = insert_cs
+                        cs4choice[choice_text] = [insert_cs, ]
 
                     example = self.load_example(case, cs4choice)
                     self.examples.append(example)
@@ -88,7 +88,7 @@ class RankOMCS_Processor(ProcessorBase):
 
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
         all_label = []
-
+        # import pdb; pdb.set_trace()
         for example in tqdm(self.examples):
             feature_dict = example.tokenize(tokenizer, args)
             all_input_ids.append(feature_dict['input_ids'])
