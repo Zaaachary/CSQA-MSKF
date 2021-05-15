@@ -1,5 +1,6 @@
 import os
 import json
+import pdb
 from random import random, sample
 from copy import deepcopy
 import logging
@@ -41,7 +42,7 @@ class RankOMCS_Processor(ProcessorBase):
         return OMCSExample.load_from(case, cs4choice)
 
     def inject_commonsense(self):
-        for case_index, case in enumerate(self.raw_csqa):
+        for case_index, case in enumerate(self.raw_csqa[:2]):
             question = case['question']
             # 为每个 target choice 评估它的每条常识
             for choice_index, target_choice in enumerate(question['choices']):
@@ -118,8 +119,10 @@ class RankOMCS_Processor(ProcessorBase):
                 loss_index += 1
 
             if case['isanswer']:
+                # 正确答案 则 loss 从小到大排序
                 case['cs_list'].sort(key=lambda x: x[0])
             else:
+                # 错误答案 则 loss 从大到小排序
                 case['cs_list'].sort(key=lambda x: x[0], reverse=True)
 
         return self.csqa_cs_list

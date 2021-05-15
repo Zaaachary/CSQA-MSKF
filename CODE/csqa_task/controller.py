@@ -79,7 +79,7 @@ class MultipleChoice:
 
     def load_data(self, ProcessorClass, tokenizer):
         self.tokenizer = tokenizer
-        if self.config.mission in ("train", 'conti-train', 'rankcs'):
+        if self.config.mission in ("train", 'conti-train'):
             processor = ProcessorClass(self.config, 'dev')
             processor.load_data()
             self.deval_dataloader = processor.make_dataloader(
@@ -116,6 +116,22 @@ class MultipleChoice:
             self.processor = processor
             logger.info("test dataset loaded")
 
+        elif self.config.mission == 'rankcs':
+            processor = ProcessorClass(self.config, 'dev')
+            processor.load_data()
+            self.deval_dataloader = processor.make_dataloader(
+                tokenizer, self.config, shuffle=False)
+            self.dev_processor = processor
+            logger.info("dev dataset loaded")
+            
+            processor = ProcessorClass(self.config, 'train')
+            processor.load_data()
+            self.train_dataloader = processor.make_dataloader(
+                tokenizer, self.config, shuffle=False)
+            self.train_processor = processor
+            logger.info("train dataset loaded")
+
+
     def rankcs(self):
         loss = torch.nn.CrossEntropyLoss(reduction='none')
 
@@ -128,6 +144,7 @@ class MultipleChoice:
             for batch in tqdm(dataloader):
                 if not self.config.clip_batch_off:
                     batch = self.trainer.clip_batch(batch)
+                # import pdb; pdb.set_trace()
                 with torch.no_grad():
                     batch = list(map(lambda x: x.to(self.device), batch))
                     labels = batch[-1]
