@@ -42,7 +42,7 @@ class RankOMCS_Processor(ProcessorBase):
         return OMCSExample.load_from(case, cs4choice)
 
     def inject_commonsense(self):
-        for case_index, case in enumerate(self.raw_csqa[:2]):
+        for case_index, case in enumerate(self.raw_csqa):
             question = case['question']
             # 为每个 target choice 评估它的每条常识
             for choice_index, target_choice in enumerate(question['choices']):

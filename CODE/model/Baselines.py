@@ -71,6 +71,7 @@ class AlbertBaseline(AlbertPreTrainedModel):
         logits = F.softmax(logits, dim=1)
         return logits
 
+
 class BertBaseline(BertPreTrainedModel):
 
     def __init__(self, config, *args, **kwargs):

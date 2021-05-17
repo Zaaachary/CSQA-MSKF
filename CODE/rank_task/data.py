@@ -5,6 +5,7 @@ from copy import deepcopy
 import logging
 
 from tqdm import tqdm
+import random
 import torch
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 
@@ -29,19 +30,41 @@ class RankOMCS_Processor(ProcessorBase):
             self.inject_omcs_rank()
 
     def load_dataset(self):
-        dir_dict = {'0.1': 'csrk_v0.1'}
+        dir_dict = {
+            '0.1': 'csrk_v0.1',
+            '0.2': 'csrk_v0.2',
+            '0.3': 'csrk_v0.3',
+            }
 
         f = open(os.path.join(self.args.dataset_dir, 'csrk', dir_dict[self.csrk_version], f"{self.dataset_type}_csrank.json"), 'r', encoding='utf-8')
         self.csqa_cs_list = json.load(f)
         f.close()
         
     def inject_omcs_rank(self):
+        if self.dataset_type == 'dev':
+            self.csqa_cs_list = random.sample(self.csqa_cs_list, k=500)
+        else:
+            self.csqa_cs_list = random.sample(self.csqa_cs_list, k=10000)
+
         for choice_case in self.csqa_cs_list:
+
             if self.split_method == 'half':
+                if len(choice_case['cs_list']) < 2:
+                    continue
                 half = int(len(choice_case['cs_list'])/2)
                 front = choice_case['cs_list'][:half]
                 back = choice_case['cs_list'][half:]
             
+            elif self.split_method == 'topbotton2':
+                if len(choice_case['cs_list']) >= 4:
+                    front = choice_case['cs_list'][:2]
+                    back = choice_case['cs_list'][-2:]
+                elif len(choice_case['cs_list']) >=2:
+                    front = choice_case['cs_list'][:1]
+                    back = choice_case['cs_list'][-1:]
+                else:
+                    continue
+
             example = OMCSrankExample.load_from(choice_case, front, choice_case['isanswer'])
             self.examples.append(example)
             example = OMCSrankExample.load_from(choice_case, back, not choice_case['isanswer'])
@@ -53,21 +76,22 @@ class RankOMCS_Processor(ProcessorBase):
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
         all_label = []
 
+        seq_len = args.max_seq_len
+
         for example in tqdm(self.examples):
             feature_dict, labels = example.tokenize(tokenizer, args)
-            all_input_ids.append(feature_dict['input_ids'])
-            all_token_type_ids.append(feature_dict['token_type_ids'])
-            all_attention_mask.append(feature_dict['attention_mask'])
+            all_input_ids.extend(feature_dict['input_ids'])
+            all_token_type_ids.extend(feature_dict['token_type_ids'])
+            all_attention_mask.extend(feature_dict['attention_mask'])
             all_label.extend(labels)
 
-        seq_len = all_input_ids[0].shape[-1]
 
-        all_input_ids = torch.stack(all_input_ids).reshape(-1, seq_len)
-        all_attention_mask = torch.stack(all_attention_mask).reshape(-1, seq_len)
-        all_token_type_ids = torch.stack(all_token_type_ids).reshape(-1, seq_len)
+        all_input_ids = torch.tensor(all_input_ids)
+        all_attention_mask = torch.tensor(all_attention_mask)
+        all_token_type_ids = torch.tensor(all_token_type_ids)
+
         all_label = torch.tensor(all_label, dtype=torch.long)
 
-        
         data = (all_input_ids, all_attention_mask, all_token_type_ids, all_label)
 
         dataset = TensorDataset(*data)

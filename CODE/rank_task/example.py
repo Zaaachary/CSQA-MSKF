@@ -14,7 +14,8 @@ class OMCSrankExample(BaseExample):
 
     def tokenize(self, tokenizer, args):
         max_seq_len = args.max_seq_len
-        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=True, max_length=max_seq_len, padding='max_length', truncation='only_first', return_tensors='pt')
+
+        feature_dict = tokenizer.batch_encode_plus(self.text_list, add_special_tokens=True, max_length=max_seq_len, padding='max_length', truncation='only_first')
 
         labels = [self.label] * len(self.text_list)
         return feature_dict, labels
@@ -26,7 +27,7 @@ class OMCSrankExample(BaseExample):
 
         for cs in cs_list:
 
-            text = f"{choice} [SEP] {question}", f"{cs[1]}"
+            text = f"{question} [SEP] {question_concept} [SEP] {choice}", f"{cs[1]}"
 
             text_list.append(text)
 

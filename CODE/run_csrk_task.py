@@ -13,10 +13,11 @@ import os
 import time
 from pprint import pprint
 
-from transformers import AlbertTokenizer, BertTokenizer, BertConfig
+from transformers import AlbertTokenizer, BertTokenizer, BertConfig, AlbertConfig
 from transformers import BertForSequenceClassification
+from transformers.models.albert.configuration_albert import AlbertConfig
 
-
+from model.AlbertModel import AlbertForSequenceClassification
 from rank_task.data import *
 from rank_task.controller import TextClassification
 # from model.Baselines import AlbertBaseline
@@ -45,9 +46,22 @@ def select_task(args):
     model_dict = {
         "Bert": (BertForSequenceClassification, 
         {
-            'config': BertConfig(num_labels = 2, problem_type = "single_label_classification")
+            'config': BertConfig(
+                num_labels = 2, 
+                problem_type = "single_label_classification",
+                
+                )
             }
         ),
+        "Albert": (AlbertForSequenceClassification,
+        {
+            'config': AlbertConfig(
+                num_labels = 2,
+                problem_type = "single_label_classification",
+            )
+        }
+
+        )
     }
 
     processor_dict = {
@@ -159,34 +173,32 @@ if __name__ == "__main__":
     parser.add_argument('--PTM_model_vocab_dir', type=str, default=None)
 
     args_str = r"""
-    --task_name Webster_Bert
+    --task_name RankOMCS_Bert
     --mission train
     --fp16 0
-    --gpu_ids 0
     --seed 42
-    --save_mode epoch
-    --print_step 50
+    --gpu_ids -1
+    --save_mode step
+    --print_step 100
     --evltest_batch_size 12
-    --eval_after_tacc 0.8
+    --eval_after_tacc 0.60
 
-    --DAPT_version 1.0
-    --mask_pct 0.20
-    --max_seq_len 40
-    --mask_method random
-
-    --train_batch_size 2
-    --gradient_accumulation_steps 8
-    --num_train_epochs 2
+    --max_seq_len 80
+    --CSRK_version 0.2
+    --split_method half
+    
+    --train_batch_size 8
+    --gradient_accumulation_steps 1
     --learning_rate 2e-5
+    --num_train_epochs 10
     --warmup_proportion 0.1
     --weight_decay 0.1
-
-    --dataset_dir ..\DATA
-    --result_dir  ..\DATA\result
-    --saved_model_dir D:\CODE\Python\Transformers-Models\bert-base-cased
-    --PTM_model_vocab_dir D:\CODE\Python\Transformers-Models\bert-base-cased
+    
+    --dataset_dir /home/zhifli/DATA
+    --result_dir  /home/zhifli/DATA/model_save
+    --PTM_model_vocab_dir /home/zhifli/DATA/transformers-models/bert-base-uncased
     """
-
+    # --PTM_model_vocab_dir /home/zhifli/DATA/transformers-models/bert-base-uncased
 
     args = parser.parse_args()
     # args = parser.parse_args(args_str.split())

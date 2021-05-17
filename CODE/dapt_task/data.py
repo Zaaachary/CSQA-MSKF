@@ -93,7 +93,7 @@ class Webster_Processor(object):
         tokens_masked = token_list[::]
 
         indices = [i for i in range(len(token_list))]
-        mask_indices = random.choices(indices, k=int(self.mask_pct*len(token_list)))
+        mask_indices = random.sameple(indices, k=int(self.mask_pct*len(token_list)))
         for index in mask_indices:
             tokens_masked[index] = self.tokenizer.mask_token
         return tokens_masked
