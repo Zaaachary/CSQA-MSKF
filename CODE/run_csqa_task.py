@@ -7,6 +7,7 @@
 """
 import argparse
 import logging
+from model.Fusion import MultiSourceFusion
 import os
 import time
 from pprint import pprint
@@ -14,6 +15,7 @@ from pprint import pprint
 from transformers import AlbertTokenizer, BertTokenizer
 
 from csqa_task.data import *
+from csqa_task.multi_model_data import *
 from csqa_task.controller import MultipleChoice
 from csqa_task.rank_data import RankOMCS_Processor
 
@@ -53,7 +55,6 @@ def select_task(args):
         "Albert_AttnMergeAddTFM": (AlbertAddTFM, []),
 
         "Albert_AttnRanker": (AlbertAttRanker, ['cs_num',]),
-
         "Albert_CrossAttn": (AlbertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
 
         "Albert_BurgerAlpha0": (AlbertBurgerAlpha0, ['model_cs_num', 'max_qa_len', 'max_cs_len']),
@@ -61,7 +62,8 @@ def select_task(args):
         "Albert_BurgerAlpha2": (AlbertBurgerAlpha2, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
         # 3 4 5
         # "Albert_BurgerAlphaX": (AlbertBurgerAlphaX, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
-        "Albert_BurgerAlpha6": (AlbertBurgerAlpha6, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers'])
+        "Albert_BurgerAlpha6": (AlbertBurgerAlpha6, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
+        "MultiSourceFusion": (MultiSourceFusion, [])
     }
 
     processor_dict = {
@@ -73,6 +75,7 @@ def select_task(args):
         "OMCSrerank": OMCS_rerank_Processor,
         "CSLinear": CSLinear_Processor,
         "CSLE": CSLinearEnhanced_Processor,
+        "OMWKCS": MultiModel_ProcessorBase,
     }
 
     processor_name, model_name = args.task_name.split('_', maxsplit=1)
@@ -185,10 +188,13 @@ if __name__ == "__main__":
     parser.add_argument('--print_step', type=int, default=None)
     parser.add_argument('--eval_after_tacc', type=float, default=0)
     parser.add_argument('--evltest_batch_size', type=int)
+    parser.add_argument('--processor_batch_size', type=int)
     parser.add_argument('--dev_method', type=str, default=None)
     parser.add_argument('--knowledge_ensemble', action='store_true')
+    parser.add_argument('--without_PTM', action='store_true')
     
     # task-specific hyper param
+    parser.add_argument('--model_list', nargs='+')
     parser.add_argument('--max_seq_len', type=int, default=None, help='used where dataprocessor restrain total len')
     parser.add_argument('--max_qa_len', type=int, default=None)
     parser.add_argument('--max_cs_len', type=int, default=None)
@@ -212,6 +218,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset_dir', type=str, default='../DATA')
     parser.add_argument('--result_dir', type=str, default=None)
     parser.add_argument('--saved_model_dir', type=str, default=None)
+    parser.add_argument('--encoder_dir_list', nargs='+')
     parser.add_argument('--PTM_model_vocab_dir', type=str, default=None)
 
     args_str = r"""

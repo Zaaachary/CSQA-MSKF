@@ -198,7 +198,8 @@ class BaseTrainer:
         output_config_file = os.path.join(self.model_save_dir, CONFIG_NAME)
         output_traininfo_file = os.path.join(self.model_save_dir, "train_info.ckpt")
     
-        self.model.config.to_json_file(output_config_file)
+        if hasattr(self.model, "config"):
+            self.model.config.to_json_file(output_config_file)
         train_info = {
             "optimizer": self.optimizer.state_dict(),
             "scheduler": self.scheduler.state_dict(),

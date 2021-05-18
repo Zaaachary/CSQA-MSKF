@@ -55,16 +55,23 @@ class MultipleChoice:
         ModelClass: e.g. modelTC
         '''
         # load model
-        if self.config.mission == "train":
-            model_dir = self.config.PTM_model_vocab_dir
-            model = ModelClass.from_pretrained(model_dir, **self.model_kwargs)
-        else:
-            model_dir = self.config.saved_model_dir
-            if hasattr(ModelClass, 'from_pt'):
-                model = ModelClass.from_pt(model_dir, **self.model_kwargs)
+        if not self.config.without_PTM:
+            
+            if self.config.mission == "train":
+                model_dir = self.config.PTM_model_vocab_dir
+                model = ModelClass.from_pretrained(model_dir, **self.model_kwargs)
             else:
-                model = ModelClass.from_pretrained(
-                    model_dir, **self.model_kwargs)
+                model_dir = self.config.saved_model_dir
+                if hasattr(ModelClass, 'from_pt'):
+                    model = ModelClass.from_pt(model_dir, **self.model_kwargs)
+                else:
+                    model = ModelClass.from_pretrained(
+                        model_dir, **self.model_kwargs)
+        else:
+            with open(os.path.join(self.config.PTM_model_vocab_dir, 'config.json'), 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            self.config.hidden_size = config['hidden_size']
+            model = ModelClass(self.config)
 
         if self.multi_gpu:
             model = torch.nn.DataParallel(model, device_ids=self.gpu_ids)

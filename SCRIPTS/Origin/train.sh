@@ -1,6 +1,6 @@
 python CODE/run_csqa_task.py\
     --task_name Origin_Albert_Baseline\
-    --mission conti-train\
+    --mission train\
     --fp16 0\
     --seed 42\
     --gpu_ids 6\
@@ -20,5 +20,4 @@ python CODE/run_csqa_task.py\
     \
     --dataset_dir /home/zhifli/DATA\
     --result_dir  /data/zhifli/model_save\
-    --saved_model_dir /data/zhifli/model_save/Origin_Albert_Baseline/0941-May11_seed42/\
     --PTM_model_vocab_dir /home/zhifli/DATA/transformers-models/albert-xxlarge-v2/ 

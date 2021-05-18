@@ -42,7 +42,7 @@ class AlbertBaseline(AlbertPreTrainedModel):
 
         return loss, right_num
 
-    def _forward(self, input_ids, attention_mask, token_type_ids):
+    def _forward(self, input_ids, attention_mask, token_type_ids, return_pooler=False):
         # [B, 5, L] => [B * 5, L]
         flat_input_ids = input_ids.view(-1, input_ids.size(-1))
         flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1))
@@ -59,7 +59,9 @@ class AlbertBaseline(AlbertPreTrainedModel):
         # [B*5, H] => [B*5, 1] => [B, 5]
         logits = self.scorer(pooler_output).view(-1, 5)
 
-        return logits
+        result = pooler_output if return_pooler else logits
+
+        return result
 
     def _to_tensor(self, it, device): return torch.tensor(it, device=device, dtype=torch.float)
 

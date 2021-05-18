@@ -45,14 +45,16 @@ class ProcessorBase(object):
             self.raw_csqa.append(json.loads(line.strip()))
         f.close()
 
-    def make_dataloader(self, tokenizer, args, shuffle=True):
-        batch_size = args.train_batch_size if self.dataset_type in ['train', 'conti-trian'] else args.evltest_batch_size
+    def make_dataloader(self, tokenizer, args, shuffle=True, examples=None):
         drop_last = False
 
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
         all_label = []
 
-        for example in tqdm(self.examples):
+        if not examples:
+            examples = self.examples
+
+        for example in tqdm(examples):
             feature_dict = example.tokenize(tokenizer, args)
             all_input_ids.append(feature_dict['input_ids'])
             all_token_type_ids.append(feature_dict['token_type_ids'])
@@ -68,7 +70,7 @@ class ProcessorBase(object):
 
         dataset = TensorDataset(*data)
         sampler = RandomSampler(dataset) if shuffle else None
-        dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, drop_last=drop_last)
+        dataloader = DataLoader(dataset, sampler=sampler, batch_size=self.batch_size, drop_last=drop_last)
 
         return dataloader
 
@@ -100,54 +102,22 @@ class Baseline_Processor(ProcessorBase):
     
     def __init__(self, args, dataset_type):
         super(Baseline_Processor, self).__init__(args, dataset_type)
+        self.csqa_examples = []
 
     def load_data(self):
-        
         self.load_csqa()
+        self.make_csqa()
+
+    def make_csqa(self):
         # convert raw data 2 CSQAexample
-        self.examples = []
         for _, case in enumerate(self.raw_csqa):
             example = CSQAExample.load_from_json(case)
-            self.examples.append(example)
+            self.csqa_examples.append(example)
 
         # self.examples = data
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        return super().make_dataloader(tokenizer, args, shuffle=shuffle)
-
-    def make_dataloader_old(self, tokenizer, args, shuffle=True):
-        batch_size = args.train_batch_size if self.dataset_type == 'train' else args.evltest_batch_size
-        drop_last = False
-
-        T, L = [], []
-
-        for example in tqdm(self.examples):
-            text_list, label = example.tokenize(tokenizer, args)
-            T.append(text_list)
-            L.append(label)
-        
-        self.data = (T, L)  # len(T) = len(L)
-        return self._convert_to_tensor(batch_size, drop_last, shuffle)
-
-    def _convert_to_tensor(self, batch_size, drop_last, shuffle):
-        tensors = []
-
-        features = self.data[0]     # tensor, label
-        all_input_ids = torch.tensor([[f.input_ids for f in fs] for fs in features], dtype=torch.long)
-        all_input_mask = torch.tensor([[f.input_mask for f in fs] for fs in features], dtype=torch.long)
-        all_segment_ids = torch.tensor([[f.segment_ids for f in fs] for fs in features], dtype=torch.long)
-
-        tensors.extend((all_input_ids, all_input_mask, all_segment_ids))
-        
-        # labels
-        tensors.append(torch.tensor(self.data[1], dtype=torch.long))
-        # b, 5, len; b,
-
-        dataset = TensorDataset(*tensors)
-        sampler = RandomSampler(dataset) if shuffle else None
-        dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, drop_last=drop_last)
-
-        return dataloader
+        return ProcessorBase.make_dataloader(self, tokenizer, args, shuffle=shuffle, examples=self.csqa_examples)
 
 
 class OMCS_Processor(ProcessorBase):
@@ -159,11 +129,12 @@ class OMCS_Processor(ProcessorBase):
     def __init__(self, args, dataset_type):
         super(OMCS_Processor, self).__init__(args, dataset_type)
         self.omcs_version = args.OMCS_version
+        self.omcs_examples = []
 
     def load_data(self):
         self.load_csqa()    # csqa dataset
         self.load_omcs()
-        self.inject_commonsense()
+        self.inject_omcs()
 
     def load_omcs(self):
         dir_dict = {'1.0':'omcs_v1.0', '3.0':'omcs_v3.0_15', '3.1':'omcs_v3.1_10'}
@@ -172,12 +143,8 @@ class OMCS_Processor(ProcessorBase):
 
         with open(omcs_file, 'r', encoding='utf-8') as f:
             self.omcs_cropus = json.load(f)
-    
-    @staticmethod
-    def load_example(case, cs4choice):
-        return OMCSExample.load_from(case, cs4choice)
 
-    def inject_commonsense(self):
+    def inject_omcs(self):
         omcs_index = 0
         for case in self.raw_csqa:
             cs4choice = {}
@@ -205,35 +172,11 @@ class OMCS_Processor(ProcessorBase):
 
                 cs4choice[choice_text] = cs_list
             
-            example = self.load_example(case, cs4choice)
-            self.examples.append(example)
+            example = OMCSExample.load_from(case, cs4choice)
+            self.omcs_examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        batch_size = args.train_batch_size if self.dataset_type in ['train', 'conti-trian'] else args.evltest_batch_size
-        drop_last = False
-
-        all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
-        all_label = []
-
-        for example in tqdm(self.examples):
-            feature_dict = example.tokenize(tokenizer, args)
-            all_input_ids.append(feature_dict['input_ids'])
-            all_token_type_ids.append(feature_dict['token_type_ids'])
-            all_attention_mask.append(feature_dict['attention_mask'])
-            all_label.append(example.label)
-
-        all_input_ids = torch.stack(all_input_ids)
-        all_attention_mask = torch.stack(all_attention_mask)
-        all_token_type_ids = torch.stack(all_token_type_ids)
-        all_label = torch.tensor(all_label, dtype=torch.long)
-
-        data = (all_input_ids, all_attention_mask, all_token_type_ids, all_label)
-
-        dataset = TensorDataset(*data)
-        sampler = RandomSampler(dataset) if shuffle else None
-        dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, drop_last=drop_last)
-
-        return dataloader
+        return ProcessorBase.make_dataloader(self, tokenizer, args, shuffle=shuffle, examples=self.omcs_examples)
 
     def make_dev(self, predict_list, logits_list):
         # override
@@ -253,11 +196,12 @@ class Wiktionary_Processor(ProcessorBase):
     def __init__(self, args, dataset_type):
         super(Wiktionary_Processor, self).__init__(args, dataset_type)
         self.wkdt_version = args.WKDT_version
+        self.wkdt_examples = []
 
     def load_data(self):
         self.load_csqa()
         self.load_wkdt()
-        self.inject_description()
+        self.inject_wkdt()
 
     def load_wkdt(self):
         dir_dict = {'2.0': 'wiktionary_v2', '3.0': 'wiktionary_v3', '4.0': "wiktionary_v4", '5.0': "wiktionary_v5"}
@@ -271,7 +215,7 @@ class Wiktionary_Processor(ProcessorBase):
             self.wiktionary = json.load(f)
         
 
-    def inject_description(self):
+    def inject_wkdt(self):
         if self.wkdt_version == "5.0":
             for key, value in self.wiktionary.items():
                 self.wiktionary[key] = value[0]
@@ -290,16 +234,13 @@ class Wiktionary_Processor(ProcessorBase):
                 choice['desc'] = choice_desc
         
             case['Qconcept_desc'] = desc_dict[Qconcept]
-            example = self.load_example(case, desc_dict)
+            example = WKDTExample.load_from(case, desc_dict)
             self.examples.append(example)
+            self.wkdt_examples.append(example)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        return super(Wiktionary_Processor, self).make_dataloader(tokenizer, args, shuffle=shuffle)
-
-    @staticmethod
-    def load_example(case, cs4choice):
-        return WKDTExample.load_from(case, cs4choice)
-
+        return ProcessorBase.make_dataloader(self, tokenizer, args, shuffle=shuffle, examples=self.wkdt_examples)
+        
     def make_dev(self, predict_list, logits_list):
         super(Wiktionary_Processor, self).make_dev(predict_list, logits_list)
         return self.raw_csqa
