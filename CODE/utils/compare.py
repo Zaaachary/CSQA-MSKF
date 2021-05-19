@@ -243,14 +243,12 @@ if __name__ == "__main__":
     # --choose_top
     # --dev
     args_str = r"""
-    --task_name vote
+    --task_name vote_logit
+    --dev
     --predict_dir 
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\1829-May04_seed5004_wkdtv4.0_80.59
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\1138-Apr23_seed42_wkdtv3.0
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_01_80.01
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_equal_dev5_group
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\MSKE_OMCS\train02_train02_80.26
+    /data/zhifli/model_save/albert-base-v2/Origin_Albert_Baseline/2030-May17_seed5017_58.31
+    /data/zhifli/model_save/albert-base-v2/WKDT_Albert_Baseline/0027-May18_seed5017_wkdtv4.0_59.05
+    /data/zhifli/model_save/albert-base-v2/MSKE_Albert_Baseline/0026-May18_seed5017_TMtrian_02_equal_DMtop3_59.13
     """
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\BurgerAlpha2\layer11_80.18
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_02_77.96

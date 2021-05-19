@@ -7,7 +7,6 @@
 """
 import argparse
 import logging
-from model.Fusion import MultiSourceFusion
 import os
 import time
 from pprint import pprint
@@ -23,6 +22,7 @@ from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
 from model.Baselines import AlbertBaseline, BertBaseline
 from model.HH_linear import AlbertCrossAttn
 from model.AlbertBurger import AlbertBurgerAlpha0, AlbertBurgerAlpha2,  AlbertBurgerAlpha6
+from model.Fusion import MultiSourceAttnMerge, MultiSourceFusion
 
 from model.HeadHunter import AlbertAttRanker
 
@@ -64,7 +64,8 @@ def select_task(args):
         # "Albert_BurgerAlphaX": (AlbertBurgerAlphaX, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
         "Albert_BurgerAlpha6": (AlbertBurgerAlpha6, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
         
-        "MultiSourceFusion": (MultiSourceFusion, ['model_list'])
+        "MultiSourceFusion": (MultiSourceFusion, ['model_list']),
+        "MultiSourceAttnMerge": (MultiSourceAttnMerge, ['model_list'])
     }
 
     processor_dict = {
@@ -85,7 +86,7 @@ def select_task(args):
 
     model_kwargs = {arg: args.__dict__[arg] for arg in args_list}
 
-    if args.task_name == "MultiSourceFusion":
+    if "MultiSourceFusion" in args.task_name or "MultiSourceAttnMerge" in args.task_name:
         model_kwargs['hidden_size'] = 4096 if "xxlarge" in args.PTM_model_vocab_dir else 768
 
     return ModelClass, ProcessorClass, model_kwargs
