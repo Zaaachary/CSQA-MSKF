@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader, RandomSampler, TensorDataset, dataloade
 
 from csqa_task.data import Baseline_Processor, OMCS_Processor, Wiktionary_Processor
 from model.Baselines import AlbertBaseline
-from utils.common import get_device
+from utils.common import get_device, mkdir_if_notexist
 from csqa_task.trainer import Trainer
 
 
@@ -38,6 +38,7 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
         Baseline_Processor.__init__(self, args, dataset_type)
         OMCS_Processor.__init__(self, args, dataset_type)
         Wiktionary_Processor.__init__(self, args, dataset_type)
+        self.args = args
         self.batch_size = args.processor_batch_size
         self.model_list = args.model_list
         self.encoder_dir_list = args.encoder_dir_list
@@ -69,8 +70,18 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
             self.models[model_name] =  AlbertBaseline.from_pretrained(model_dir)
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
-        self.make_multisource_dataloader(tokenizer, args)
-        self.run_model()    # self.model_pooler_batch
+        for model_index, model_name in enumerate(args.model_list):
+
+            self.make_multisource_dataloader(model_index, model_name, tokenizer, args)
+            self.run_model(model_index, model_name)    # self.model_pooler_batch
+
+        self.models = {}
+        torch.cuda.empty_cache()
+        
+        model_name = self.model_list[0]
+        dataloader = self.dataloaders[model_name]
+        self.labels = torch.cat([batch[-1] for batch in dataloader], dim=0)
+
         data = self.make_batch()
 
         self.batch_size = args.train_batch_size if self.dataset_type in ['train', 'conti-trian'] else args.evltest_batch_size
@@ -89,34 +100,29 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
         batch.append(self.labels)
         return batch
 
-    def make_multisource_dataloader(self, tokenizer, args):
+    def make_multisource_dataloader(self, model_index, model_name, tokenizer, args):
         Processor_dict = {
             'Origin': Baseline_Processor,
             'OMCS': OMCS_Processor,
             'WKDT': Wiktionary_Processor
         }
-
-        for model_name in args.model_list:
+        if not self.load_cache(model_index, False) or model_index==0:
             logger.info(f"Make dataloader for {model_name}")
             processor = Processor_dict[model_name]
             self.dataloaders[model_name] = processor.make_dataloader(self, tokenizer, args, shuffle=False)
 
-    def run_model(self):
-        model_name = self.model_list[0]
-        dataloader = self.dataloaders[model_name]
-        self.labels = torch.cat([batch[-1] for batch in dataloader], dim=0)
+    def run_model(self, model_index, model_name):
 
-        for model_name in self.model_list:
+        pooler = self.load_cache(model_index)
+        if not pooler:
             logger.info(f"Run {model_name} model to generate pooler feature")
             dataloader = self.dataloaders[model_name]
             model = self.models[model_name]
             model.to(self.device)
             model.eval()
-
             batch_pooler = []
             for batch in tqdm(dataloader):
                 batch = Trainer.clip_batch(batch)
-
                 batch = list(map(lambda x:x.to(self.device), batch))
                 batch = batch[:-1]
                 with torch.no_grad():
@@ -126,13 +132,33 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
                     pooler_cpu = pooler.to('cpu')
                     del pooler
                     batch_pooler.append(pooler_cpu)
-            
             self.model_pooler_batch[model_name] = batch_pooler
-
             del model
             torch.cuda.empty_cache()
-        self.models = {}
-        torch.cuda.empty_cache()
+            self.save_pooler(batch_pooler, model_index)
+        else:
+            logger.info(f"Load pooler generated from {model_name} model")
+            self.model_pooler_batch[model_name] = pooler
 
-    def save_pooler(self):
-        pass
+    def save_pooler(self, batch_pooler, model_index):
+        model_name = self.model_list[model_index]
+        save_dir = self.encoder_dir_list[model_index]
+        file_name = f"{model_name}_seq{self.args.max_seq_len}_{self.dataset_type}.pt"
+        file_dir = os.path.join(save_dir, 'pooler', file_name)
+        mkdir_if_notexist(file_dir)
+        torch.save(batch_pooler, file_dir)
+
+    def load_cache(self, model_index, return_pooler=True):
+        model_name = self.model_list[model_index]
+        save_dir = self.encoder_dir_list[model_index]
+        file_name = f"{model_name}_seq{self.args.max_seq_len}_{self.dataset_type}.pt"
+        file_dir = os.path.join(save_dir, 'pooler', file_name)
+
+        if os.path.isfile(file_dir):
+            if return_pooler:
+                batch_pooler = torch.load(file_dir)
+                return batch_pooler
+            else:
+                return True
+        else:
+            return False

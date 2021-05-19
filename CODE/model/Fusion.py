@@ -20,17 +20,21 @@ class MultiSourceFusion(nn.Module):
     def __init__(self, model_list, hidden_size=768):
         super().__init__()
 
-        self.model_num = model_list
+        self.model_num = len(model_list)
         self.hidden_size = hidden_size
-
-        self.fusion = nn.Sequential(
-            nn.Dropout(0.1),
-            nn.Linear(self.hidden_size* self.model_num, self.hidden_size)
-        )
         self.activation = nn.ReLU()
 
+        self.fusion = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(self.hidden_size*self.model_num, self.hidden_size*self.model_num*2),
+            self.activation,
+            nn.Linear(self.hidden_size*self.model_num*2, self.hidden_size*self.model_num),
+            self.activation,
+            nn.Linear(self.hidden_size*self.model_num, self.hidden_size),
+        )
+
         self.scorer = nn.Sequential(
-            nn.Dropout(0.1),
+            nn.Dropout(0.2),
             nn.Linear(self.hidden_size, 1)
         )
 

@@ -3,7 +3,7 @@ python CODE/run_csqa_task.py\
     --mission train\
     --fp16 0\
     --seed 42\
-    --gpu_ids 0\
+    --gpu_ids 2\
     --save_mode step\
     --print_step 100\
     --evltest_batch_size 12\
