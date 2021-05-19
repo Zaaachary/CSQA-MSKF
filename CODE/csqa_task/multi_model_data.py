@@ -133,3 +133,6 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
             torch.cuda.empty_cache()
         self.models = {}
         torch.cuda.empty_cache()
+
+    def save_pooler(self):
+        pass

@@ -17,16 +17,17 @@ from utils import common
 
 class MultiSourceFusion(nn.Module):
 
-    def __init__(self, config):
+    def __init__(self, model_list, hidden_size=768):
         super().__init__()
 
-        self.model_num = len(config.model_list)
-        self.hidden_size = config.hidden_size
+        self.model_num = model_list
+        self.hidden_size = hidden_size
 
         self.fusion = nn.Sequential(
             nn.Dropout(0.1),
             nn.Linear(self.hidden_size* self.model_num, self.hidden_size)
         )
+        self.activation = nn.ReLU()
 
         self.scorer = nn.Sequential(
             nn.Dropout(0.1),
@@ -50,7 +51,10 @@ class MultiSourceFusion(nn.Module):
     def _forward(self, *pooler):
         # pooler [B, 5, H] *n -> [B, 5, nH]
         pooler = torch.cat(pooler, dim=-1)
+        
         fuse = self.fusion(pooler)
+        fuse = self.activation(fuse)
+
         logits = self.scorer(fuse)
         logits = logits.squeeze(-1)
         return logits

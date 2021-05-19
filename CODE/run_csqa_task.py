@@ -63,7 +63,8 @@ def select_task(args):
         # 3 4 5
         # "Albert_BurgerAlphaX": (AlbertBurgerAlphaX, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
         "Albert_BurgerAlpha6": (AlbertBurgerAlpha6, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
-        "MultiSourceFusion": (MultiSourceFusion, [])
+        
+        "MultiSourceFusion": (MultiSourceFusion, ['model_list'])
     }
 
     processor_dict = {
@@ -83,6 +84,9 @@ def select_task(args):
     ProcessorClass = processor_dict[processor_name]
 
     model_kwargs = {arg: args.__dict__[arg] for arg in args_list}
+
+    if args.task_name == "MultiSourceFusion":
+        model_kwargs['hidden_size'] = 4096 if "xxlarge" in args.PTM_model_vocab_dir else 768
 
     return ModelClass, ProcessorClass, model_kwargs
 
@@ -105,12 +109,16 @@ def set_result(args):
         if 'MSKE' in args.task_name:
             task_str += f'_TM{args.train_method}_DM{args.dev_method}'
 
+        if 'OMWKCS' in args.task_name:
+            task_str += f"_{'+'.join(args.model_list)}"
+
         args.result_dir = os.path.join(
             args.result_dir, 
             os.path.basename(args.PTM_model_vocab_dir), 
             args.task_name,
             task_str, ''
             )
+
         args.task_str = task_str
 
         log_file_dir = os.path.join(args.result_dir, 'train_task_log.txt')

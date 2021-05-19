@@ -68,10 +68,7 @@ class MultipleChoice:
                     model = ModelClass.from_pretrained(
                         model_dir, **self.model_kwargs)
         else:
-            with open(os.path.join(self.config.PTM_model_vocab_dir, 'config.json'), 'r', encoding='utf-8') as f:
-                config = json.load(f)
-            self.config.hidden_size = config['hidden_size']
-            model = ModelClass(self.config)
+            model = ModelClass(**self.model_kwargs)
 
         if self.multi_gpu:
             model = torch.nn.DataParallel(model, device_ids=self.gpu_ids)
