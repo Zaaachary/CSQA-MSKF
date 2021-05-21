@@ -135,15 +135,33 @@ class MultipleChoice:
             self.train_processor = processor
             logger.info("train dataset loaded")
 
+            processor = ProcessorClass(self.config, 'test')
+            processor.load_data()
+            self.test_dataloader = processor.make_dataloader(
+                tokenizer, self.config, shuffle=False)
+            self.test_processor = processor
+            logger.info("test dataset loaded")
+
 
     def rankcs(self):
         loss = torch.nn.CrossEntropyLoss(reduction='none')
+        dataloader_dict = {
+            "dev": self.deval_dataloader,
+            "train": self.train_dataloader,
+            "test": self.test_dataloader
+        }
+        processor_dict = {
+            "dev": self.dev_processor,
+            "train": self.train_processor,
+            "test": self.test_processor
+        }
 
-        for task in ['dev', 'train']:
+        # for task in ['test']:
+        for task in ['dev', 'train', 'test']:
             loss_list = []
             logits_list = []
-            dataloader = self.deval_dataloader if task == 'dev' else self.train_dataloader
-            processor = self.dev_processor if task == 'dev' else self.train_processor
+            dataloader = dataloader_dict[task]
+            processor = processor_dict[task]
 
             self.model.eval()
             for batch in tqdm(dataloader):

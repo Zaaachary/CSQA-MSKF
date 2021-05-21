@@ -15,7 +15,6 @@
 => 
 """
 import json
-import pandas
 
 # raw_prediction_dir = r"D:\CODE\Commonsense\CSQA_dev\DATA\result\prediction"
 raw_prediction_dir = r"D:\CODE\Commonsense\CSQA_dev"

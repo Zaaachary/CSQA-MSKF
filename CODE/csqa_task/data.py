@@ -138,7 +138,12 @@ class OMCS_Processor(ProcessorBase):
         self.inject_omcs()
 
     def load_omcs(self):
-        dir_dict = {'1.0':'omcs_v1.0', '3.0':'omcs_v3.0_15', '3.1':'omcs_v3.1_10'}
+        dir_dict = {
+            '1.0':'omcs_v1.0', 
+            '3.0':'omcs_v3.0_15',
+            '3.0_rank':'omcs_v3.0_rank',
+            '3.1':'omcs_v3.1_10'
+            }
 
         omcs_file = os.path.join(self.dataset_dir, 'omcs', dir_dict[self.omcs_version] ,f"{self.dataset_type}_rand_split_omcs.json")
 

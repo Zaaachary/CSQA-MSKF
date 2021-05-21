@@ -55,7 +55,7 @@ class RankOMCS_Processor(ProcessorBase):
                     'question': question['stem'],
                     'question_concept': question['question_concept'],
                     'choice': target_choice_text,
-                    'isanswer': target_choice['label'] == case['answerKey'],
+                    # 'isanswer': target_choice['label'] == case['answerKey'],
                     'cs_list': target_cs_list
                 }
 
@@ -89,7 +89,7 @@ class RankOMCS_Processor(ProcessorBase):
 
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
         all_label = []
-        # import pdb; pdb.set_trace()
+
         for example in tqdm(self.examples):
             feature_dict = example.tokenize(tokenizer, args)
             all_input_ids.append(feature_dict['input_ids'])
