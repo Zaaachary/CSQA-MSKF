@@ -110,6 +110,19 @@ class RankOMCS_Processor(ProcessorBase):
 
         return dataloader
 
+    def set_cs_logits(self, logits_list):
+        logits_index = 0
+        for case_index, case in enumerate(self.csqa_cs_list):
+            answer_index = case_index % 5
+            for cs_index, cs in enumerate(case['cs_list']):
+                case['cs_list'][cs_index] = (logits_list[logits_index][answer_index], cs)
+                logits_index += 1
+            
+            case['cs_list'].sort(key=lambda x:x[0], reverse=True)
+
+        return self.csqa_cs_list
+
+
     def set_cs_loss(self, loss_list):
         # loss_list  cs_num * 5 * B
         loss_index = 0

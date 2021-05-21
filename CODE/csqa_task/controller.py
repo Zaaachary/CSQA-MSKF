@@ -141,6 +141,7 @@ class MultipleChoice:
 
         for task in ['dev', 'train']:
             loss_list = []
+            logits_list = []
             dataloader = self.deval_dataloader if task == 'dev' else self.train_dataloader
             processor = self.dev_processor if task == 'dev' else self.train_processor
 
@@ -155,10 +156,12 @@ class MultipleChoice:
                     batch = batch[:-1]  # rm label
 
                     logits = self.model.predict(*batch) # [B, 5]
-                    batch_loss_list = loss(logits, labels)  # [B]
-                    loss_list.extend(batch_loss_list.cpu().tolist())
+                    # batch_loss_list = loss(logits, labels)  # [B]
+                    # loss_list.extend(batch_loss_list.cpu().tolist())
+                    logits_list.extend(logits.cpu().tolist())
                     
-            csqa_cslist = processor.set_cs_loss(loss_list)
+            csqa_cslist = processor.set_cs_logits(logits_list)
+            # csqa_cslist = processor.set_cs_loss(loss_list)
             result_dump(self.config, csqa_cslist, f'{task}_csrank.json', folder='csqa_csrank')
 
 
