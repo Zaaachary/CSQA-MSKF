@@ -148,7 +148,7 @@ class MultipleChoice:
             for batch in tqdm(dataloader):
                 if not self.config.clip_batch_off:
                     batch = self.trainer.clip_batch(batch)
-                # import pdb; pdb.set_trace()
+
                 with torch.no_grad():
                     batch = list(map(lambda x: x.to(self.device), batch))
                     labels = batch[-1]

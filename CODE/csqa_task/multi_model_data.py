@@ -133,9 +133,9 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
                     del pooler
                     batch_pooler.append(pooler_cpu)
             self.model_pooler_batch[model_name] = batch_pooler
-            del model
-            torch.cuda.empty_cache()
             self.save_pooler(batch_pooler, model_index)
+            model.to('cpu')
+            # torch.cuda.empty_cache()
         else:
             logger.info(f"Load pooler generated from {model_name} model")
             self.model_pooler_batch[model_name] = pooler
