@@ -1,6 +1,5 @@
 import os
 import json
-import pdb
 from random import choice, random, sample
 from copy import deepcopy
 import logging
@@ -38,7 +37,7 @@ class RankWKDT_Processor(ProcessorBase):
             self.wiktionary = json.load(f)
 
     def inject_wkdt(self):
-        for case_idnex, case in enumerate(self.raw_csqa[:10]):
+        for case_idnex, case in enumerate(self.raw_csqa):
             question = case['question']
             Qconcept = question['question_concept']
             Qconcept_desc_list = self.wiktionary[Qconcept]
@@ -110,7 +109,6 @@ class RankWKDT_Processor(ProcessorBase):
         return dataloader
 
     def set_cs_logits(self, logits_list):
-        import pdb; pdb.set_trace()
         logits_index = 0
         for case_index, case in enumerate(self.wkdt_desc_list):
             answer_index = case_index % 5
