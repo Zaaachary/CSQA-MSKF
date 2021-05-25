@@ -156,7 +156,6 @@ class MultipleChoice:
             "test": self.test_processor
         }
 
-        # for task in ['test']:
         for task in ['dev', 'train', 'test']:
             loss_list = []
             logits_list = []

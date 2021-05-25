@@ -1,7 +1,7 @@
 import os
 import json
 import pdb
-from random import random, sample
+from random import choice, random, sample
 from copy import deepcopy
 import logging
 
@@ -10,7 +10,117 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 
 from csqa_task.data import ProcessorBase
-from csqa_task.example import OMCSExample
+from csqa_task.example import OMCSExample, WKDTExample
+
+
+class RankWKDT_Processor(ProcessorBase):
+    
+    def __init__(self, args, dataset_type):
+        super(RankWKDT_Processor, self).__init__(args, dataset_type)
+        self.wkdt_version = args.WKDT_version
+        self.wkdt_examples = []
+        self.wkdt_desc_list = []
+        
+    def load_data(self):
+        self.load_csqa()
+        self.load_wkdt()
+        self.inject_wkdt()
+
+    def load_wkdt(self):
+        dir_dict = {'2.0': 'wiktionary_v2', '3.0': 'wiktionary_v3', '4.0': "wiktionary_v4", '5.0': "wiktionary_v5"}
+
+        wiktionary_file = os.path.join(
+            self.dataset_dir, 'wkdt', dir_dict[self.wkdt_version], 
+            f"{self.dataset_type}_concept.json"
+        )
+        
+        with open(wiktionary_file, 'r', encoding='utf-8') as f:
+            self.wiktionary = json.load(f)
+
+    def inject_wkdt(self):
+        for case_idnex, case in enumerate(self.raw_csqa[:10]):
+            question = case['question']
+            Qconcept = question['question_concept']
+            Qconcept_desc_list = self.wiktionary[Qconcept]
+            # 
+            
+            for choice_index, target_choice in enumerate(question['choices']):
+                target_choice_text = target_choice['text']
+                choice_desc_list = self.wiktionary[target_choice_text]
+                # desc_dict[choice_text] = choice_desc
+                # choice['desc'] = choice_desc
+                target_choice_info = {
+                    'id': case['id'],
+                    'question': question['stem'],
+                    'question_concept': question['question_concept'],
+                    'choice': target_choice_text,
+                    'desc_list':[]
+                }
+
+                for Qdesc in Qconcept_desc_list:
+                    for Cdesc in choice_desc_list:
+                        target_choice_info['desc_list'].append({
+                            'Qdesc': Qdesc,
+                            'Cdesc': Cdesc
+                        })
+    
+                        desc_dict = {}    # question concept, choice
+                        desc_dict[Qconcept] = Qdesc
+
+                        for choice in question['choices']:
+                            choice_text = choice['text']
+
+                            if choice_text == target_choice_text:
+                                desc = Cdesc
+                            else:
+                                desc = self.wiktionary[choice_text][0]
+
+                            desc_dict[choice_text] = desc
+                        
+                        example = WKDTExample.load_from(case, desc_dict)
+                        self.wkdt_examples.append(example)
+                    
+                self.wkdt_desc_list.append(target_choice_info)
+
+    def make_dataloader(self, tokenizer, args, shuffle=True):
+        batch_size = args.evltest_batch_size
+        drop_last = False
+
+        all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
+        all_label = []
+
+        for example in tqdm(self.wkdt_examples):
+            feature_dict = example.tokenize(tokenizer, args)
+            all_input_ids.append(feature_dict['input_ids'])
+            all_token_type_ids.append(feature_dict['token_type_ids'])
+            all_attention_mask.append(feature_dict['attention_mask'])
+            all_label.append(example.label)
+
+        all_input_ids = torch.stack(all_input_ids)
+        all_attention_mask = torch.stack(all_attention_mask)
+        all_token_type_ids = torch.stack(all_token_type_ids)
+        all_label = torch.tensor(all_label, dtype=torch.long)
+
+        data = (all_input_ids, all_attention_mask, all_token_type_ids, all_label)
+
+        dataset = TensorDataset(*data)
+        sampler = RandomSampler(dataset) if shuffle else None
+        dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, drop_last=drop_last)
+
+        return dataloader
+
+    def set_cs_logits(self, logits_list):
+        import pdb; pdb.set_trace()
+        logits_index = 0
+        for case_index, case in enumerate(self.wkdt_desc_list):
+            answer_index = case_index % 5
+            for cs_index, desc in enumerate(case['desc_list']):
+                case['desc_list'][cs_index] = (logits_list[logits_index][answer_index], desc)
+                logits_index += 1
+            
+            case['desc_list'].sort(key=lambda x:x[0], reverse=True)
+
+        return self.wkdt_desc_list
 
 
 class RankOMCS_Processor(ProcessorBase):
@@ -55,7 +165,6 @@ class RankOMCS_Processor(ProcessorBase):
                     'question': question['stem'],
                     'question_concept': question['question_concept'],
                     'choice': target_choice_text,
-                    # 'isanswer': target_choice['label'] == case['answerKey'],
                     'cs_list': target_cs_list
                 }
 

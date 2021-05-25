@@ -53,7 +53,7 @@ def dump_omcs(dataset_dir, version, omcs_data, target):
     f.close()
 
 if __name__ == "__main__":
-    data_dir = "/data/zhifli/model_save/albert-base-v2/OMCS_Albert_Baseline/2152-May19_seed42_cs3_omcsv3.0/csqa_csrank"
+    data_dir = "/home/zhifli/DATA/omcs/omcs_v3.0_rank/cs_rank/"
     dataset_dir = "/home/zhifli/DATA/"
 
     for target in ["dev", "train", "test"]:

@@ -16,7 +16,7 @@ from transformers import AlbertTokenizer, BertTokenizer
 from csqa_task.data import *
 from csqa_task.multi_model_data import *
 from csqa_task.controller import MultipleChoice
-from csqa_task.rank_data import RankOMCS_Processor
+from csqa_task.rank_data import RankOMCS_Processor, RankWKDT_Processor
 
 from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
 from model.Baselines import AlbertBaseline, BertBaseline
@@ -73,6 +73,7 @@ def select_task(args):
         "OMCS": OMCS_Processor,
         "RankOMCS": RankOMCS_Processor,
         "WKDT": Wiktionary_Processor,
+        "RankWKDT": RankWKDT_Processor,
         "MSKE": MSKE_Processor,
         "OMCSrerank": OMCS_rerank_Processor,
         "CSLinear": CSLinear_Processor,
