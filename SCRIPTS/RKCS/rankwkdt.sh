@@ -2,7 +2,7 @@ python CODE/run_csqa_task.py\
     --task_name RankWKDT_Albert_Baseline\
     --mission rankcs\
     --fp16 0\
-    --gpu_ids 5\
+    --gpu_ids 7\
     --evltest_batch_size 12\
     --train_batch_size 12\
     \

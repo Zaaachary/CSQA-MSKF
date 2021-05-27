@@ -1,9 +1,9 @@
 python CODE/run_csqa_task.py\
-    --task_name OMWKCS_MultiSourceFusion\
+    --task_name OMWKCS_MultiSourceFusionPlus\
     --mission train\
     --fp16 0\
     --seed 42\
-    --gpu_ids 6\
+    --gpu_ids 2\
     --save_mode step\
     --print_step 100\
     --evltest_batch_size 12\
@@ -19,10 +19,9 @@ python CODE/run_csqa_task.py\
     --max_desc_len 45\
     --OMCS_version 3.0\
     --cs_num 1\
-    --max_cs_len 20\
     \
-    --train_batch_size 1\
-    --gradient_accumulation_steps 16\
+    --train_batch_size 16\
+    --gradient_accumulation_steps 1\
     --learning_rate 1e-5\
     --num_train_epochs 8\
     --warmup_proportion 0.1\

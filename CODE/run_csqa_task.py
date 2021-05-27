@@ -22,7 +22,7 @@ from model.AttnMerge import AlbertAddTFM, AlbertAttnMerge
 from model.Baselines import AlbertBaseline, BertBaseline
 from model.HH_linear import AlbertCrossAttn
 from model.AlbertBurger import AlbertBurgerAlpha0, AlbertBurgerAlpha2,  AlbertBurgerAlpha6
-from model.Fusion import MultiSourceAttnMerge, MultiSourceFusion
+from model.Fusion import MultiSourceAttnMerge, MultiSourceFusion, MultiSourceFusionPlus
 
 from model.HeadHunter import AlbertAttRanker
 
@@ -65,6 +65,7 @@ def select_task(args):
         "Albert_BurgerAlpha6": (AlbertBurgerAlpha6, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
         
         "MultiSourceFusion": (MultiSourceFusion, ['model_list']),
+        "MultiSourceFusionPlus": (MultiSourceFusionPlus, ['model_list']),
         "MultiSourceAttnMerge": (MultiSourceAttnMerge, ['model_list'])
     }
 
