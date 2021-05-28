@@ -46,6 +46,7 @@ class ProcessorBase(object):
         f.close()
 
     def make_dataloader(self, tokenizer, args, shuffle=True, examples=None):
+        # import pdb; pdb.set_trace()
         drop_last = False
 
         all_input_ids, all_token_type_ids, all_attention_mask = [], [], []
@@ -210,7 +211,9 @@ class Wiktionary_Processor(ProcessorBase):
         self.inject_wkdt()
 
     def load_wkdt(self):
-        dir_dict = {'2.0': 'wiktionary_v2', '3.0': 'wiktionary_v3', '4.0': "wiktionary_v4", '5.0': "wiktionary_v5"}
+
+        dir_dict = {'2.0': 'wiktionary_v2', '3.0': 'wiktionary_v3', '4.0': "wiktionary_v4", 
+        '5.0': "wiktionary_v5", '5.0_rank': "wiktionary_v5_rank"}
 
         wiktionary_file = os.path.join(
             self.dataset_dir, 'wkdt', dir_dict[self.wkdt_version], 
@@ -219,32 +222,53 @@ class Wiktionary_Processor(ProcessorBase):
         
         with open(wiktionary_file, 'r', encoding='utf-8') as f:
             self.wiktionary = json.load(f)
-        
+
+
 
     def inject_wkdt(self):
-        if self.wkdt_version == "5.0":
-            for key, value in self.wiktionary.items():
-                self.wiktionary[key] = value[0]
+        if "rank" not in self.wkdt_version:
+            if self.wkdt_version == "5.0":
+                for key, value in self.wiktionary.items():
+                    self.wiktionary[key] = value[0]
 
-        for case in self.raw_csqa:
-            desc_dict = {}    # question concept, choice
-            Qconcept = case['question']['question_concept']
-            Qconcept_desc = self.wiktionary[Qconcept]
-            desc_dict[Qconcept] = Qconcept_desc
+            for case in self.raw_csqa:
+                desc_dict = {}    # question concept, choice
+                Qconcept = case['question']['question_concept']
+                Qconcept_desc = self.wiktionary[Qconcept]
+                desc_dict[Qconcept] = Qconcept_desc
+                
+                question = case['question']
+                for choice in question['choices']:
+                    choice_text = choice['text']
+                    choice_desc = self.wiktionary[choice_text]
+                    desc_dict[choice_text] = choice_desc
+                    choice['desc'] = choice_desc
             
-            question = case['question']
-            for choice in question['choices']:
-                choice_text = choice['text']
-                choice_desc = self.wiktionary[choice_text]
-                desc_dict[choice_text] = choice_desc
-                choice['desc'] = choice_desc
-        
-            case['Qconcept_desc'] = desc_dict[Qconcept]
-            example = WKDTExample.load_from(case, desc_dict)
-            self.examples.append(example)
-            self.wkdt_examples.append(example)
+                case['Qconcept_desc'] = desc_dict[Qconcept]
+                example = WKDTExample.load_from(case, desc_dict)
+                self.examples.append(example)
+                self.wkdt_examples.append(example)
+        else:
+            for case_index, case in enumerate(self.raw_csqa):
+                desc_list = []    # question concept, choice
+                Qconcept = case['question']['question_concept']
+                
+                question = case['question']
+                for choice_index, choice in enumerate(question['choices']):
+                    choice_text = choice['text']
+                    wkdt = self.wiktionary[case_index*5:case_index*5+5]
+                    desc = wkdt[choice_index]['cs_list'][0]
+                    desc_list.append(desc)
+                    choice['QCdesc'] = desc[0]
+                    choice['Cdesc'] = desc[1]
+            
+                example = WKDTExamplev2.load_from(case, desc_list)
+                self.examples.append(example)
+                self.wkdt_examples.append(example)
+
 
     def make_dataloader(self, tokenizer, args, shuffle=True):
+        
         return ProcessorBase.make_dataloader(self, tokenizer, args, shuffle=shuffle, examples=self.wkdt_examples)
         
     def make_dev(self, predict_list, logits_list):

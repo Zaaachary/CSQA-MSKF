@@ -3,7 +3,7 @@ python CODE/run_csqa_task.py\
     --mission train\
     --fp16 0\
     --seed 5017\
-    --gpu_ids 5\
+    --gpu_ids 6\
     --save_mode step\
     --print_step 100\
     --evltest_batch_size 12\
@@ -12,9 +12,9 @@ python CODE/run_csqa_task.py\
     --max_seq_len 140\
     --max_qa_len 58\
     --max_desc_len 40\
-    --WKDT_version 4.0\
+    --WKDT_version 5.0_rank\
     \
-    --train_batch_size 8\
+    --train_batch_size 16\
     --gradient_accumulation_steps 1\
     --learning_rate 1e-5\
     --num_train_epochs 8\

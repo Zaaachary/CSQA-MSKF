@@ -33,7 +33,6 @@ class MultiSourceFusion(nn.Module):
             nn.Linear(self.hidden_size*self.model_num, self.hidden_size*self.model_num),
             self.activation,
             
-
             nn.Linear(self.hidden_size*self.model_num, self.hidden_size),
             self.activation,
         )
@@ -78,7 +77,6 @@ class MultiSourceFusion(nn.Module):
             if module.bias is not None:
                 module.bias.data.zero_()
 
-
 class MultiSourceFusionPlus(nn.Module):
 
     def __init__(self, model_list, hidden_size=768):
@@ -114,8 +112,10 @@ class MultiSourceFusionPlus(nn.Module):
         pooler = torch.cat(pooler, dim=-1)
         pooler = self.drop_out(pooler)
         interffn = self.activation(self.ffn(pooler))
-        ffn_output = self.ffn_output(pooler + interffn) # 残差
+
+        ffn_output = self.ffn_output(pooler) 
         ffn_output = self.activation(ffn_output)
+        ffn_output = ffn_output + interffn  # 残差
         ffn_output = self.layer_norm(ffn_output)
 
         logits = self.scorer(self.drop_out(ffn_output))
