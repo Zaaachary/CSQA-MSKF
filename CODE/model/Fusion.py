@@ -110,12 +110,12 @@ class MultiSourceFusionPlus(nn.Module):
     def _forward(self, *pooler):
         # pooler [B, 5, H] *n -> [B, 5, nH]
         pooler = torch.cat(pooler, dim=-1)
+        pooler = self.layer_norm(pooler)
         pooler = self.drop_out(pooler)
+        
         interffn = self.activation(self.ffn(pooler))
-
-        ffn_output = self.ffn_output(pooler) 
+        ffn_output = self.ffn_output(pooler + interffn) # 残差
         ffn_output = self.activation(ffn_output)
-        ffn_output = ffn_output + interffn  # 残差
         ffn_output = self.layer_norm(ffn_output)
 
         logits = self.scorer(self.drop_out(ffn_output))

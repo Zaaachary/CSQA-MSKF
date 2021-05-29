@@ -98,7 +98,7 @@ def set_result(args):
     set result dir name accroding to the task
     '''
     if args.mission in ('train', 'conti-train'):
-        task_str = time.strftime(r'%H%M-%b%d') + f'_seed{args.seed}'
+        task_str = time.strftime(r'%d%b-%H%M') + f'_seed{args.seed}'
         if 'OMCS' in args.task_name or 'CSLinear' in args.task_name:
             task_str += f'_cs{args.cs_num}'
             task_str += f'_omcsv{args.OMCS_version}'
