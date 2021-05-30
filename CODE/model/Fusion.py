@@ -67,8 +67,14 @@ class MultiSourceFusion(nn.Module):
         logits = logits.squeeze(-1)
         return logits
 
-    def predict(self, ):
-        return 
+    def predict(self, *pooler):
+        """
+        return: [B, 5]
+        """
+        logits = self._forward(*pooler)
+        logits = F.softmax(logits, dim=1)
+        return logits
+
 
     @staticmethod
     def init_weights(module):
@@ -122,8 +128,13 @@ class MultiSourceFusionPlus(nn.Module):
         logits = logits.squeeze(-1)
         return logits
 
-    def predict(self, ):
-        return 
+    def predict(self, *pooler):
+        """
+        return: [B, 5]
+        """
+        logits = self._forward(*pooler)
+        logits = F.softmax(logits, dim=1)
+        return logits
 
     @staticmethod
     def init_weights(module):
@@ -174,8 +185,13 @@ class MultiSourceAttnMerge(nn.Module):
         logits = logits.squeeze(-1)
         return logits
 
-    def predict(self, ):
-        return 
+    def predict(self, *pooler):
+        """
+        return: [B, 5]
+        """
+        logits = self._forward(*pooler)
+        logits = F.softmax(logits, dim=1)
+        return logits
 
     @staticmethod
     def init_weights(module):

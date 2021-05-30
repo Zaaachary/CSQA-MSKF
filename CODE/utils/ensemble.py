@@ -243,12 +243,10 @@ if __name__ == "__main__":
     # --choose_top
     # --dev
     args_str = r"""
-    --task_name vote
-    --dev
-    --predict_dir 
-    /data/zhifli/model_save/albert-base-v2/Origin_Albert_Baseline/2030-May17_seed5017_58.31
-    /data/zhifli/model_save/albert-base-v2/WKDT_Albert_Baseline/0027-May18_seed5017_wkdtv4.0_59.05
-    /data/zhifli/model_save/albert-base-v2/OMCS_Albert_Baseline/2152-May19_seed42_cs3_omcsv3.0
+    --task_name compare
+    --predict_dir
+    /data/zhifli/model_save/albert-xxlarge-v2/OMCS_Albert_Baseline/1946-May21_seed42_cs3_omcsv3.0_rank/
+    /data/zhifli/model_save/albert-base-v2/OMWKCS_MultiSourceFusion/30May-2146_seed42_Origin+WKDT+OMCS_62.00%/
     """
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\BurgerAlpha2\layer11_80.18
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_02_77.96

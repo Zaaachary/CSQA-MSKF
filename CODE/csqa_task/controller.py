@@ -69,6 +69,10 @@ class MultipleChoice:
                         model_dir, **self.model_kwargs)
         else:
             model = ModelClass(**self.model_kwargs)
+            if self.config.mission != "train":
+                model_dir = os.path.join(self.config.saved_model_dir, 'pytorch_model.bin')
+                state_dict = torch.load(model_dir)
+                model.load_state_dict(state_dict)
 
         if self.multi_gpu:
             model = torch.nn.DataParallel(model, device_ids=self.gpu_ids)

@@ -72,7 +72,7 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
     def make_dataloader(self, tokenizer, args, shuffle=True):
         for model_index, model_name in enumerate(args.model_list):
 
-            self.make_multisource_dataloader(model_index, model_name, tokenizer, args)
+            self.make_multisource_dataloader(model_index, model_name, tokenizer, args, shuffle=shuffle)
             self.run_model(model_index, model_name)    # self.model_pooler_batch
 
         self.models = {}
@@ -100,7 +100,7 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
         batch.append(self.labels)
         return batch
 
-    def make_multisource_dataloader(self, model_index, model_name, tokenizer, args):
+    def make_multisource_dataloader(self, model_index, model_name, tokenizer, args, shuffle):
         Processor_dict = {
             'Origin': Baseline_Processor,
             'OMCS': OMCS_Processor,
@@ -109,7 +109,7 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
         if not self.load_cache(model_index, False) or model_index==0:
             logger.info(f"Make dataloader for {model_name}")
             processor = Processor_dict[model_name]
-            self.dataloaders[model_name] = processor.make_dataloader(self, tokenizer, args, shuffle=False)
+            self.dataloaders[model_name] = processor.make_dataloader(self, tokenizer, args, shuffle=shuffle)
 
     def run_model(self, model_index, model_name):
 
