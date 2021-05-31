@@ -1,8 +1,8 @@
 python CODE/run_csqa_task.py\
     --task_name OMCS_Albert_Baseline\
-    --mission eval\
+    --mission predict\
     --fp16 0\
-    --gpu_ids 7\
+    --gpu_ids 5\
     --evltest_batch_size 12\
     \
     --max_seq_len 140\

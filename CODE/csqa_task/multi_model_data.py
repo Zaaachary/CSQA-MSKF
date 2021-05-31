@@ -69,7 +69,7 @@ class MultiModel_ProcessorBase(Baseline_Processor, OMCS_Processor, Wiktionary_Pr
             logger.info(f"Load {model_name} model")
             self.models[model_name] =  AlbertBaseline.from_pretrained(model_dir)
 
-    def make_dataloader(self, tokenizer, args, shuffle=True):
+    def make_dataloader(self, tokenizer, args, shuffle=False):
         for model_index, model_name in enumerate(args.model_list):
 
             self.make_multisource_dataloader(model_index, model_name, tokenizer, args, shuffle=shuffle)
