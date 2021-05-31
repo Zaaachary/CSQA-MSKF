@@ -140,8 +140,6 @@ def count_vote(args, result_list, choose_top, task_name):
 
             value['predict'] = chr(ord('A') + max_index)
 
-            # import pdb; pdb.set_trace()
-
         if args.dev:
             if value['predict'] == value["answerKey"]:
                 value['TF'] = "T"
@@ -245,9 +243,12 @@ if __name__ == "__main__":
     args_str = r"""
     --task_name compare
     --predict_dir
-    /data/zhifli/model_save/albert-xxlarge-v2/OMCS_Albert_Baseline/1946-May21_seed42_cs3_omcsv3.0_rank/
-    /data/zhifli/model_save/albert-base-v2/OMWKCS_MultiSourceFusion/30May-2146_seed42_Origin+WKDT+OMCS_62.00%/
+    D:\CODE\Commonsense\CSQA_DATA\predict\ensemble
+    D:\CODE\Commonsense\CSQA_DATA\predict\MSKF
     """
+    # D:\CODE\Commonsense\CSQA_DATA\predict\
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10
+    # D:\CODE\Commonsense\CSQA_DATA\predict\albert_alpha2
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\BurgerAlpha2\layer11_80.18
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_02_77.96
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\1312-May11_seed5004_wkdtv5.0_75.53
