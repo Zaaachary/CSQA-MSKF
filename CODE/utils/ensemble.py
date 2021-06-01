@@ -243,12 +243,12 @@ if __name__ == "__main__":
     args_str = r"""
     --task_name compare
     --predict_dir
-    D:\CODE\Commonsense\CSQA_DATA\predict\ensemble
-    D:\CODE\Commonsense\CSQA_DATA\predict\MSKF
+    D:\CODE\Commonsense\CSQA_DATA\predict\albert_alpha2
+    D:\CODE\Commonsense\CSQA_DATA\predict\MSKF_84.36
     """
+    # D:\CODE\Commonsense\CSQA_DATA\predict\MSKF
     # D:\CODE\Commonsense\CSQA_DATA\predict\
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10
-    # D:\CODE\Commonsense\CSQA_DATA\predict\albert_alpha2
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\BurgerAlpha2\layer11_80.18
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_02_77.96
     # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\WKDT\1312-May11_seed5004_wkdtv5.0_75.53
