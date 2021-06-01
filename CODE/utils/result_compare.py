@@ -3,6 +3,13 @@ import os
 import json
 from collections import Counter
 
+def load_csqa(dataset_dir="/home/zhifli/DATA"):
+    raw_csqa = []
+    f = open(os.path.join(dataset_dir, 'csqa', "dev_rand_split.jsonl"), 'r', encoding='utf-8')
+    for line in f:
+        raw_csqa.append(json.loads(line.strip()))
+    f.close()
+    return raw_csqa
 
 def load_result(model_dir, method=None):
 
@@ -66,6 +73,20 @@ def compare_v1(args, result_list):
             result[key] = [value, right2[key]]
     return result
 
+def get_question_type():
+    raw_csqa = load_csqa()
+    question = {
+        'how': [],
+        'what': [],
+        'where': [],
+        'when': [],
+        'why': [],
+        'others': []
+    }
+    for case in raw_csqa:
+        import pdb; pdb.set_trace()
+
+
 def main(args):
     # load result
     result_list = []
@@ -91,6 +112,9 @@ def main(args):
     if args.task_name == "compare":
         result = compare_v1(args, result_list)
         result_dump(args, result, f'result_{len(result)}.json')
+    elif args.task_name == 'question_type':
+        result = get_question_type()
+        
 
 def mkdir_if_notexist(dir_):
     dirname, filename = os.path.split(dir_)
@@ -105,19 +129,19 @@ def result_dump(args, target, file_name, folder=''):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task_name', type=str, choices=['compare'])
+    parser.add_argument('--task_name', type=str, choices=['compare', 'question_type'])
     parser.add_argument('--predict_dir', nargs='+')
     parser.add_argument('--result_dir', type=str)
 
     args_str = r"""
-    --task_name compare
+    --task_name question_type
     --predict_dir
-    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10
-    D:\CODE\Commonsense\CSQA_DATA\model_save\WKDT\1829-May04_seed5004_wkdtv4.0_80.59
     --result_dir
     D:\CODE\Commonsense\CSQA_DATA\model_save\compare\
     """
     # D:\CODE\Commonsense\CSQA_DATA\model_save\OMCS\1946-May21_seed42_cs3_omcsv3.0_rank_80.99%
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10
+    # D:\CODE\Commonsense\CSQA_DATA\model_save\WKDT\1829-May04_seed5004_wkdtv4.0_80.59
 
     args = parser.parse_args(args_str.split())
     # args = parser.parse_args()
