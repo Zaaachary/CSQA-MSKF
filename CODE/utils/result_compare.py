@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 from collections import Counter
+from common import mkdir_if_notexist
 
 def load_csqa(dataset_dir="/home/zhifli/DATA"):
     raw_csqa = []
@@ -10,6 +11,12 @@ def load_csqa(dataset_dir="/home/zhifli/DATA"):
         raw_csqa.append(json.loads(line.strip()))
     f.close()
     return raw_csqa
+
+def result_dump(args, target, file_name, folder=''):
+    
+    mkdir_if_notexist(os.path.join(args.result_dir, folder, file_name))
+    with open(os.path.join(args.result_dir, folder, file_name), 'w', encoding='utf-8') as f:
+        json.dump(target, f, ensure_ascii=False, indent=4)
 
 def load_result(model_dir, method=None):
 
@@ -73,19 +80,51 @@ def compare_v1(args, result_list):
             result[key] = [value, right2[key]]
     return result
 
-def get_question_type():
-    raw_csqa = load_csqa()
+def get_question_type(args):
+    raw_csqa = load_csqa(args.dataset_dir)
     question = {
-        'how': [],
         'what': [],
         'where': [],
-        'when': [],
         'why': [],
+        'how': [],
         'others': []
     }
     for case in raw_csqa:
-        import pdb; pdb.set_trace()
+        stem = case['question']['stem'].lower()
+        for target in ['why', 'how', 'where', 'what']:
+            if target in stem:
+                question[target].append(case['id'])
+                break
+        else:
+            question['others'].append(case['id'])
+    
+    for key, value in question.items():
+        print(key, f": {len(value)}")
 
+    return question
+
+def count_acc(qeustion_type, result_list):
+    # import pdb; pdb.set_trace()
+    total_acc = []
+    for rindex, result in enumerate(result_list):
+        question_count = {key: 0 for key in qeustion_type.keys()}
+        data, model_dir = result
+        right = data['right_dict']
+        for key in right.keys():
+            for k, v in qeustion_type.items():
+                if key in v:
+                    question_count[k] += 1
+                    break
+        total_acc.append(question_count)
+    return total_acc
+
+def show_acc(total_acc, question_type):
+    for qtype, value in question_type.items():
+        qtype_num = len(value)
+        print("qtype:", qtype)
+        for index, acc in enumerate(total_acc):
+            print(f"{index}: {acc[qtype]}/{len(value)} => {acc[qtype]/len(value):0.4f}", )
+    
 
 def main(args):
     # load result
@@ -113,39 +152,34 @@ def main(args):
         result = compare_v1(args, result_list)
         result_dump(args, result, f'result_{len(result)}.json')
     elif args.task_name == 'question_type':
-        result = get_question_type()
-        
+        question_type = get_question_type(args)
+        total_acc = count_acc(question_type, result_list)
+        show_acc(total_acc, question_type)
 
-def mkdir_if_notexist(dir_):
-    dirname, filename = os.path.split(dir_)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-
-def result_dump(args, target, file_name, folder=''):
-    
-    mkdir_if_notexist(os.path.join(args.result_dir, folder, file_name))
-    with open(os.path.join(args.result_dir, folder, file_name), 'w', encoding='utf-8') as f:
-        json.dump(target, f, ensure_ascii=False, indent=4)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--task_name', type=str, choices=['compare', 'question_type'])
     parser.add_argument('--predict_dir', nargs='+')
     parser.add_argument('--result_dir', type=str)
+    parser.add_argument('--dataset_dir', type=str)
 
     args_str = r"""
     --task_name question_type
+    --dataset_dir D:\CODE\Commonsense\CSQA\DATA
     --predict_dir
+    D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10
+    D:\CODE\Commonsense\CSQA_DATA\model_save\OMCS\1946-May21_seed42_cs3_omcsv3.0_rank_80.99%
+    D:\CODE\Commonsense\CSQA_DATA\model_save\WKDT\1829-May04_seed5004_wkdtv4.0_80.59
+    D:\CODE\Commonsense\CSQA_DATA\predict\MSKF_84.36
+
     --result_dir
     D:\CODE\Commonsense\CSQA_DATA\model_save\compare\
     """
-    # D:\CODE\Commonsense\CSQA_DATA\model_save\OMCS\1946-May21_seed42_cs3_omcsv3.0_rank_80.99%
-    # D:\CODE\Commonsense\CSQA_DATA\model_save\xxlarge\origin\model_03_80.10
-    # D:\CODE\Commonsense\CSQA_DATA\model_save\WKDT\1829-May04_seed5004_wkdtv4.0_80.59
 
     args = parser.parse_args(args_str.split())
     # args = parser.parse_args()
-    print(args)
+    print(args, '\n')
 
     main(args)
     
