@@ -1,9 +1,9 @@
-python CODE/run_csqa_task.py\
+python CODE/run_csqa_task.py\ 
     --task_name OMCS_Albert_Baseline\
     --mission train\
     --fp16 0\
     --seed 42\
-    --gpu_ids 2\
+    --gpu_ids 0\
     --save_mode step\
     --print_step 100\
     --evltest_batch_size 16\
@@ -11,7 +11,7 @@ python CODE/run_csqa_task.py\
     \
     --max_seq_len 140\
     --OMCS_version 3.0_rank\
-    --cs_num 3\
+    --cs_num 5\
     \
     --train_batch_size 8\
     --gradient_accumulation_steps 1\
