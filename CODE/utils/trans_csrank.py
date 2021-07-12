@@ -3,7 +3,7 @@
 @File    :   trans_csranktoomcs.py
 @Author  :   Zachary Li
 @Contact :   li_zaaachary@163.com
-@Dscpt   :   
+@Dscpt   :   对cs进行排序并生成适合输入的形式
 """
 import os
 import json

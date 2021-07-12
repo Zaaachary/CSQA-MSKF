@@ -51,19 +51,6 @@ def select_task(args):
         "Bert_Baseline": (BertBaseline, []),
 
         "Albert_Baseline": (AlbertBaseline, []),
-        "Albert_AttnMerge": (AlbertAttnMerge, []),
-        "Albert_AttnMergeAddTFM": (AlbertAddTFM, []),
-
-        "Albert_AttnRanker": (AlbertAttRanker, ['cs_num',]),
-        "Albert_CrossAttn": (AlbertCrossAttn, ['cs_num', 'max_qa_len', 'max_cs_len']),
-
-        "Albert_BurgerAlpha0": (AlbertBurgerAlpha0, ['model_cs_num', 'max_qa_len', 'max_cs_len']),
-        # "Albert_BurgerAlpha1": (AlbertBurgerAlpha1, ['albert1_layers']),
-        "Albert_BurgerAlpha2": (AlbertBurgerAlpha2, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
-        # 3 4 5
-        # "Albert_BurgerAlphaX": (AlbertBurgerAlphaX, ['cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
-        "Albert_BurgerAlpha6": (AlbertBurgerAlpha6, ['model_cs_num', 'max_qa_len', 'max_cs_len', 'albert1_layers']),
-        
         "MultiSourceFusion": (MultiSourceFusion, ['model_list']),
         "MultiSourceFusionPlus": (MultiSourceFusionPlus, ['model_list']),
         "MultiSourceAttnMerge": (MultiSourceAttnMerge, ['model_list'])
@@ -75,10 +62,7 @@ def select_task(args):
         "RankOMCS": RankOMCS_Processor,
         "WKDT": Wiktionary_Processor,
         "RankWKDT": RankWKDT_Processor,
-        "MSKE": MSKE_Processor,
         "OMCSrerank": OMCS_rerank_Processor,
-        "CSLinear": CSLinear_Processor,
-        "CSLE": CSLinearEnhanced_Processor,
         "OMWKCS": MultiModel_ProcessorBase,
     }
 
