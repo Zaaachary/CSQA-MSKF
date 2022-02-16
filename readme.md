@@ -1,7 +1,7 @@
 # Model for Commonsense QA
 
 ## Albert Baseline
-description https://github.com/Zaaachary/CSQA-Description/blob/main/Albert-model-desc.md
+[model description](https://github.com/Zaaachary/CSQA-Description/blob/main/Albert-model-desc.md)
 
 ```
 !python CODE/run_csqa_task.py\
