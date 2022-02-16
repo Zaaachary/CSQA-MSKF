@@ -1,5 +1,12 @@
 # Model for Commonsense QA
 
+## Requirement
+```
+pip install pytorch
+pip install transformers
+pip install SentencePiece
+```
+
 ## Albert Baseline
 [model description](https://github.com/Zaaachary/CSQA-Description/blob/main/Albert-model-desc.md)
 
