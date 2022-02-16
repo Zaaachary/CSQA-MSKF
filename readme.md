@@ -1,15 +1,28 @@
-### MS-Model
+# Model for Commonsense QA
 
-**ALBERT -> Attention Merge -> Scorer**
+## Albert Baseline
 
-example: `<idx, input_ids, attention_mask, token_type_ids, labels>`
+```
+!python CODE/run_csqa_task.py\
+    --task_name Origin_Albert_Baseline\
+    --mission train\
+    --seed 42\
+    --fp16 0\
+    --gpu_ids 0\
+    --save_mode step\
+    --print_step 500\
+    --evltest_batch_size 12\
+    --eval_after_tacc 0.78\
+    --max_seq_len 128\
+    --train_batch_size 2\
+    --gradient_accumulation_steps 8\
+    --learning_rate 2e-5\
+    --num_train_epochs 10\
+    --warmup_proportion 0.1\
+    --weight_decay 0.1\
+    --dataset_dir DATA\
+    --result_dir  [YOUR OUTPUT]\
+    --PTM_model_vocab_dir albert-xxlarge-v2\
+```
 
-batch: `[batch_size, example_size]`
-
-#### Global
-
-input_ids `[B, 5, L]` -> flat_input_ids `[B*5, L]` -ALBERT-> ouput[0] `[B*5, L, Hidden_size]` -Attention Merge-> hidden_merged `[B*5, H]` -Scorer-> logits `[B, 5]`
-
-#### Scorer
-
-dropout + linear `[B*5, H]` -linear-> `[B*5, 1]` -> [B, 5]`
+## MSKF Model
