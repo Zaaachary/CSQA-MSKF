@@ -34,3 +34,5 @@ pip install SentencePiece
 ```
 
 ## MSKF Model
+
+Paper: [基于多知识源融合的级联式常识问答方法](https://kns.cnki.net/kcms2/article/abstract?v=3uoqIhG8C44YLTlOAiTRKibYlV5Vjs7iJTKGjg9uTdeTsOI_ra5_XRHMpetUSJMYHytyW09ZL_jzsDV8Na6-sVouHZ1vMQW2&uniplatform=NZKPT)
